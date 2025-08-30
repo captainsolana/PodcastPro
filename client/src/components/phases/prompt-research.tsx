@@ -329,7 +329,7 @@ export default function PromptResearch({ project }: PromptResearchProps) {
 
               {showEpisodePlanner && (
                 <EpisodePlanner
-                  project={project}
+                  project={{...project, refinedPrompt}}
                   researchResult={researchResult}
                   onPlanApproved={handleEpisodePlanApproved}
                 />
