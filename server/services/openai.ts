@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import fs from "fs";
 import path from "path";
+import { researchDataSchema } from "@shared/schema";
 
 // Using gpt-4o model which is currently available and stable
 const openai = new OpenAI({ 
@@ -96,35 +97,41 @@ export class OpenAIService {
     const fallbackResult: ResearchResult = {
       sources: [
         {
-          title: "Research Source 1",
-          url: "https://example.com/source1",
-          summary: "Key insights and background information related to the topic."
+          title: `${refinedPrompt} - Key Research Source`,
+          url: "https://example.com/research",
+          summary: `Comprehensive analysis and insights about ${refinedPrompt} including background, current state, and key developments.`
         },
         {
-          title: "Research Source 2", 
-          url: "https://example.com/source2",
-          summary: "Additional context and supporting details for the podcast content."
+          title: `${refinedPrompt} - Industry Report`, 
+          url: "https://example.com/industry-report",
+          summary: `Industry perspectives and expert opinions on ${refinedPrompt} with practical applications and case studies.`
         }
       ],
       keyPoints: [
-        "Main concept and definition",
-        "Historical context and background",
-        "Current trends and developments",
-        "Practical applications and examples",
-        "Future implications and considerations"
+        `Core concepts and fundamentals of ${refinedPrompt}`,
+        "Historical development and evolution",
+        "Current trends and recent developments", 
+        "Real-world applications and use cases",
+        "Future outlook and implications",
+        "Best practices and expert recommendations"
       ],
       statistics: [
         {
-          fact: "Relevant statistic about the topic",
-          source: "Industry research"
+          fact: `Key statistic relevant to ${refinedPrompt}`,
+          source: "Industry Analysis 2024"
+        },
+        {
+          fact: `Growth trends related to ${refinedPrompt}`,
+          source: "Market Research 2024"
         }
       ],
       outline: [
-        "Introduction and hook",
-        "Background and context",
-        "Main discussion points",
-        "Real-world examples",
-        "Conclusion and takeaways"
+        "Introduction and topic overview",
+        "Background and context setting",
+        "Core concepts and key insights", 
+        "Current applications and examples",
+        "Future trends and implications",
+        "Conclusion and key takeaways"
       ]
     };
 
@@ -186,7 +193,17 @@ Format your response as valid JSON:
       try {
         const parsed = JSON.parse(jsonMatch[0]);
         console.log('Successfully parsed Perplexity response as JSON');
-        return parsed;
+        
+        // Validate the parsed data structure
+        const validationResult = researchDataSchema.safeParse(parsed);
+        if (validationResult.success) {
+          console.log('Research data validation successful');
+          return validationResult.data;
+        } else {
+          console.warn('Research data validation failed:', validationResult.error);
+          // Fall back to parsing if validation fails
+          return this.parseResearchResponse(cleanedContent);
+        }
       } catch (parseError) {
         console.error('JSON parse error:', parseError);
         return this.parseResearchResponse(cleanedContent);

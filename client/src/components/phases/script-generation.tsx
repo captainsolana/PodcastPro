@@ -227,6 +227,22 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
                       </div>
                     )}
 
+                    {(project.researchData as any)?.outline && (
+                      <div>
+                        <h4 className="font-semibold mb-3">Episode Outline</h4>
+                        <div className="space-y-2">
+                          {(project.researchData as any).outline.map((item: string, index: number) => (
+                            <div key={index} className="flex items-center space-x-3">
+                              <div className="w-6 h-6 bg-primary/10 text-primary rounded-full flex items-center justify-center text-xs font-medium">
+                                {index + 1}
+                              </div>
+                              <p className="text-sm">{item}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {(project.researchData as any)?.statistics && (
                       <div>
                         <h4 className="font-semibold mb-3">Statistics</h4>

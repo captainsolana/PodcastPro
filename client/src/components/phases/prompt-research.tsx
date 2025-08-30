@@ -265,6 +265,23 @@ export default function PromptResearch({ project }: PromptResearchProps) {
                       </div>
                     </div>
 
+                    {/* Episode Outline */}
+                    {researchResult.outline && researchResult.outline.length > 0 && (
+                      <div className="mb-6">
+                        <h4 className="font-semibold text-sm mb-3">Suggested Episode Outline</h4>
+                        <div className="space-y-2">
+                          {researchResult.outline.map((item: string, index: number) => (
+                            <div key={index} className="flex items-center space-x-3">
+                              <div className="w-6 h-6 bg-primary/10 text-primary rounded-full flex items-center justify-center text-xs font-medium">
+                                {index + 1}
+                              </div>
+                              <p className="text-sm text-foreground">{item}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Statistics */}
                     {researchResult.statistics && researchResult.statistics.length > 0 && (
                       <div className="mb-6">
@@ -345,6 +362,23 @@ export default function PromptResearch({ project }: PromptResearchProps) {
                       ))}
                     </div>
                   </div>
+
+                  {/* Episode Outline */}
+                  {researchResult.outline && researchResult.outline.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold text-sm mb-3">Episode Outline</h4>
+                      <div className="space-y-2">
+                        {researchResult.outline.map((item: string, index: number) => (
+                          <div key={index} className="flex items-center space-x-3">
+                            <div className="w-6 h-6 bg-primary/10 text-primary rounded-full flex items-center justify-center text-xs font-medium">
+                              {index + 1}
+                            </div>
+                            <p className="text-sm text-foreground">{item}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Statistics */}
                   {researchResult.statistics && researchResult.statistics.length > 0 && (

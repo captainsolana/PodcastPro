@@ -78,7 +78,23 @@ export type ResearchData = {
   sources: Array<{ title: string; url: string; summary: string }>;
   keyPoints: string[];
   statistics: Array<{ fact: string; source: string }>;
+  outline: string[];
 };
+
+// Validation schema for research data
+export const researchDataSchema = z.object({
+  sources: z.array(z.object({
+    title: z.string(),
+    url: z.string(),
+    summary: z.string()
+  })),
+  keyPoints: z.array(z.string()),
+  statistics: z.array(z.object({
+    fact: z.string(),
+    source: z.string()
+  })),
+  outline: z.array(z.string())
+});
 
 export type EpisodePlan = {
   isMultiEpisode: boolean;
