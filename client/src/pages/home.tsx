@@ -12,9 +12,9 @@ export default function Home() {
   const [, setLocation] = useLocation();
   const [prompt, setPrompt] = useState("");
   const [title, setTitle] = useState("");
+  const { toast } = useToast();
   const { createProject, isCreating } = useProject();
   const { projects, isLoading: isLoadingProjects } = useProjects("demo-user"); // Using demo user for now
-  const { toast } = useToast();
 
   const handleCreateProject = async () => {
     if (!prompt.trim() || !title.trim()) {
@@ -26,38 +26,30 @@ export default function Home() {
       return;
     }
 
-    try {
-      createProject({
-        userId: "demo-user",
-        title: title.trim(),
-        description: prompt.trim(),
-        phase: 1,
-        status: "draft",
-        originalPrompt: prompt.trim(),
-        voiceSettings: { model: "nova", speed: 1.0 },
-      }, {
-        onSuccess: (newProject) => {
-          toast({
-            title: "Project Created",
-            description: "Your podcast project has been created successfully!",
-          });
-          setLocation(`/project/${newProject.id}`);
-        },
-        onError: () => {
-          toast({
-            title: "Error",
-            description: "Failed to create project. Please try again.",
-            variant: "destructive",
-          });
-        }
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create project. Please try again.",
-        variant: "destructive",
-      });
-    }
+    createProject({
+      userId: "demo-user",
+      title: title.trim(),
+      description: prompt.trim(),
+      phase: 1,
+      status: "draft",
+      originalPrompt: prompt.trim(),
+      voiceSettings: { model: "nova", speed: 1.0 },
+    }, {
+      onSuccess: (newProject) => {
+        toast({
+          title: "Project Created",
+          description: "Your podcast project has been created successfully!",
+        });
+        setLocation(`/project/${newProject.id}`);
+      },
+      onError: () => {
+        toast({
+          title: "Error",
+          description: "Failed to create project. Please try again.",
+          variant: "destructive",
+        });
+      }
+    });
   };
 
   return (

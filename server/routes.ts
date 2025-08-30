@@ -144,6 +144,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/ai/analyze-episodes", async (req, res) => {
+    try {
+      const { prompt, research } = req.body;
+      if (!prompt || !research) {
+        return res.status(400).json({ message: "Prompt and research data are required" });
+      }
+
+      const episodePlan = await openAIService.analyzeForEpisodeBreakdown(prompt, research);
+      res.json(episodePlan);
+    } catch (error) {
+      res.status(500).json({ message: (error as Error).message || "Failed to analyze episodes" });
+    }
+  });
+
+  app.post("/api/ai/generate-episode-script", async (req, res) => {
+    try {
+      const { prompt, research, episodeNumber, episodePlan } = req.body;
+      if (!prompt || !research || !episodeNumber || !episodePlan) {
+        return res.status(400).json({ message: "All episode data is required" });
+      }
+
+      const result = await openAIService.generateEpisodeScript(prompt, research, episodeNumber, episodePlan);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ message: (error as Error).message || "Failed to generate episode script" });
+    }
+  });
+
   // AI Suggestions routes
   app.get("/api/suggestions/:projectId", async (req, res) => {
     try {

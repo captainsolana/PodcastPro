@@ -19,6 +19,8 @@ export const projects = pgTable("projects", {
   originalPrompt: text("original_prompt"),
   refinedPrompt: text("refined_prompt"),
   researchData: json("research_data"),
+  episodePlan: json("episode_plan"), // Multi-episode breakdown plan
+  currentEpisode: integer("current_episode").default(1),
   scriptContent: text("script_content"),
   scriptAnalytics: json("script_analytics"),
   audioUrl: text("audio_url"),
@@ -76,4 +78,18 @@ export type ResearchData = {
   sources: Array<{ title: string; url: string; summary: string }>;
   keyPoints: string[];
   statistics: Array<{ fact: string; source: string }>;
+};
+
+export type EpisodePlan = {
+  isMultiEpisode: boolean;
+  totalEpisodes: number;
+  episodes: Array<{
+    episodeNumber: number;
+    title: string;
+    description: string;
+    keyTopics: string[];
+    estimatedDuration: number;
+    status: "planned" | "in_progress" | "completed";
+  }>;
+  reasoning: string;
 };

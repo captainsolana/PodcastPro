@@ -10,9 +10,14 @@ interface ScriptEditorProps {
   analytics?: ScriptAnalytics;
   onSave: () => void;
   project: Project;
+  episodeInfo?: {
+    currentEpisode: number;
+    totalEpisodes: number;
+    episodeTitle?: string;
+  };
 }
 
-export default function ScriptEditor({ content, onChange, analytics, onSave, project }: ScriptEditorProps) {
+export default function ScriptEditor({ content, onChange, analytics, onSave, project, episodeInfo }: ScriptEditorProps) {
   const handleExport = () => {
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
@@ -31,7 +36,18 @@ export default function ScriptEditor({ content, onChange, analytics, onSave, pro
       <CardHeader className="border-b border-border">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-lg">{project.title}</CardTitle>
+            <CardTitle className="text-lg">
+              {episodeInfo ? (
+                <>
+                  {episodeInfo.episodeTitle || `Episode ${episodeInfo.currentEpisode}`}
+                  <span className="text-sm font-normal text-muted-foreground ml-2">
+                    ({episodeInfo.currentEpisode} of {episodeInfo.totalEpisodes})
+                  </span>
+                </>
+              ) : (
+                project.title
+              )}
+            </CardTitle>
             <p className="text-sm text-muted-foreground">
               Estimated duration: {analytics?.speechTime ? `${Math.floor(analytics.speechTime / 60)} minutes` : "16 minutes"}
             </p>

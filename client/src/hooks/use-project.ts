@@ -68,6 +68,20 @@ export function useProject(projectId?: string) {
     },
   });
 
+  const analyzeEpisodesMutation = useMutation({
+    mutationFn: async ({ prompt, research }: { prompt: string; research: any }) => {
+      const response = await apiRequest("POST", "/api/ai/analyze-episodes", { prompt, research });
+      return response.json();
+    },
+  });
+
+  const generateEpisodeScriptMutation = useMutation({
+    mutationFn: async ({ prompt, research, episodeNumber, episodePlan }: { prompt: string; research: any; episodeNumber: number; episodePlan: any }) => {
+      const response = await apiRequest("POST", "/api/ai/generate-episode-script", { prompt, research, episodeNumber, episodePlan });
+      return response.json();
+    },
+  });
+
   return {
     project: project as Project,
     isLoading,
@@ -79,6 +93,8 @@ export function useProject(projectId?: string) {
     generateScript: generateScriptMutation.mutate,
     generateAudio: generateAudioMutation.mutate,
     generateSuggestions: generateSuggestionsMutation.mutate,
+    analyzeEpisodes: analyzeEpisodesMutation.mutate,
+    generateEpisodeScript: generateEpisodeScriptMutation.mutate,
     isCreating: createProjectMutation.isPending,
     isUpdating: updateProjectMutation.isPending,
     isRefiningPrompt: refinePromptMutation.isPending,
@@ -86,17 +102,22 @@ export function useProject(projectId?: string) {
     isGeneratingScript: generateScriptMutation.isPending,
     isGeneratingAudio: generateAudioMutation.isPending,
     isGeneratingSuggestions: generateSuggestionsMutation.isPending,
+    isAnalyzingEpisodes: analyzeEpisodesMutation.isPending,
+    isGeneratingEpisodeScript: generateEpisodeScriptMutation.isPending,
     refinePromptResult: refinePromptMutation.data,
     researchResult: conductResearchMutation.data,
     scriptResult: generateScriptMutation.data,
     audioResult: generateAudioMutation.data,
     suggestionsResult: generateSuggestionsMutation.data,
+    episodeAnalysisResult: analyzeEpisodesMutation.data,
+    episodeScriptResult: generateEpisodeScriptMutation.data,
   };
 }
 
 export function useProjects(userId?: string) {
   const { data: projects, isLoading, error } = useQuery({
-    queryKey: ["/api/projects"],
+    queryKey: ["/api/projects", userId],
+    queryFn: () => apiRequest(`/api/projects?userId=${userId}`),
     enabled: !!userId,
   });
 

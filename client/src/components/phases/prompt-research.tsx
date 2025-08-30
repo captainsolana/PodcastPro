@@ -3,9 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useProject } from "@/hooks/use-project";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowRight, RefreshCw, Search, FileText } from "lucide-react";
+import EpisodePlanner from "./episode-planner";
+import { ArrowRight, RefreshCw, Search, FileText, Calendar } from "lucide-react";
 import type { Project } from "@shared/schema";
 
 interface PromptResearchProps {
@@ -15,6 +17,8 @@ interface PromptResearchProps {
 export default function PromptResearch({ project }: PromptResearchProps) {
   const [prompt, setPrompt] = useState(project.originalPrompt || "");
   const [refinedPrompt, setRefinedPrompt] = useState(project.refinedPrompt || "");
+  const [showEpisodePlanner, setShowEpisodePlanner] = useState(false);
+  const [episodePlan, setEpisodePlan] = useState<any>(null);
   const { 
     updateProject, 
     refinePrompt, 
@@ -69,6 +73,7 @@ export default function PromptResearch({ project }: PromptResearchProps) {
 
     try {
       await conductResearch(refinedPrompt);
+      setShowEpisodePlanner(true);
       toast({
         title: "Research Complete",
         description: "AI has gathered comprehensive research data.",
@@ -82,11 +87,16 @@ export default function PromptResearch({ project }: PromptResearchProps) {
     }
   };
 
+  const handleEpisodePlanApproved = (plan: any) => {
+    setEpisodePlan(plan);
+    setShowEpisodePlanner(false);
+  };
+
   const handleProceedToScript = async () => {
-    if (!refinedPrompt || !researchResult) {
+    if (!refinedPrompt || !researchResult || !episodePlan) {
       toast({
         title: "Error",
-        description: "Please complete prompt refinement and research first.",
+        description: "Please complete all steps including episode planning.",
         variant: "destructive",
       });
       return;
@@ -99,6 +109,8 @@ export default function PromptResearch({ project }: PromptResearchProps) {
           phase: 2,
           refinedPrompt,
           researchData: researchResult,
+          episodePlan: episodePlan,
+          currentEpisode: 1,
         },
       });
       
@@ -222,8 +234,43 @@ export default function PromptResearch({ project }: PromptResearchProps) {
                 </div>
               )}
 
-              {researchResult && (
+              {researchResult && !showEpisodePlanner && !episodePlan && (
+                <div className="text-center py-8">
+                  <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-muted-foreground mb-4">Research completed! Now let's plan your episode structure.</p>
+                  <Button 
+                    onClick={() => setShowEpisodePlanner(true)}
+                    data-testid="button-plan-episodes"
+                  >
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Plan Episodes
+                  </Button>
+                </div>
+              )}
+
+              {showEpisodePlanner && (
+                <EpisodePlanner
+                  project={project}
+                  researchResult={researchResult}
+                  onPlanApproved={handleEpisodePlanApproved}
+                />
+              )}
+
+              {episodePlan && (
                 <div className="space-y-6">
+                  {/* Episode Plan Summary */}
+                  <div className="bg-success/10 p-4 rounded-lg border-l-4 border-success">
+                    <h4 className="font-semibold text-sm mb-2">Episode Plan Approved</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {episodePlan.isMultiEpisode 
+                        ? `${episodePlan.totalEpisodes}-episode series planned. Starting with Episode 1.`
+                        : "Single episode format selected."
+                      }
+                    </p>
+                  </div>
+
+                  {/* Research Summary */}
+                  <div className="space-y-6">
                   {/* Key Points */}
                   <div>
                     <h4 className="font-semibold text-sm mb-3">Key Points</h4>
@@ -275,8 +322,9 @@ export default function PromptResearch({ project }: PromptResearchProps) {
                       data-testid="button-proceed-to-script"
                     >
                       <ArrowRight className="w-4 h-4 mr-2" />
-                      Proceed to Script Generation
+                      {episodePlan?.isMultiEpisode ? "Start Episode 1 Script" : "Proceed to Script Generation"}
                     </Button>
+                  </div>
                   </div>
                 </div>
               )}

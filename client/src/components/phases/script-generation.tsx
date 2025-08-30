@@ -18,19 +18,32 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
   const { 
     updateProject,
     generateScript,
+    generateEpisodeScript,
     generateSuggestions,
     isGeneratingScript,
+    isGeneratingEpisodeScript,
     isGeneratingSuggestions,
     scriptResult,
+    episodeScriptResult,
     suggestionsResult
   } = useProject(project.id);
   const { toast } = useToast();
+
+  const episodePlan = (project as any).episodePlan;
+  const currentEpisode = (project as any).currentEpisode || 1;
+  const isMultiEpisode = episodePlan?.isMultiEpisode;
 
   useEffect(() => {
     if (scriptResult) {
       setScriptContent(scriptResult.content);
     }
   }, [scriptResult]);
+
+  useEffect(() => {
+    if (episodeScriptResult) {
+      setScriptContent(episodeScriptResult.content);
+    }
+  }, [episodeScriptResult]);
 
   const handleGenerateScript = async () => {
     if (!project.refinedPrompt || !project.researchData) {
@@ -43,14 +56,25 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
     }
 
     try {
-      await generateScript({
-        prompt: project.refinedPrompt,
-        research: project.researchData,
-      });
+      if (isMultiEpisode && episodePlan) {
+        await generateEpisodeScript({
+          prompt: project.refinedPrompt,
+          research: project.researchData,
+          episodeNumber: currentEpisode,
+          episodePlan: episodePlan,
+        });
+      } else {
+        await generateScript({
+          prompt: project.refinedPrompt,
+          research: project.researchData,
+        });
+      }
       
       toast({
         title: "Script Generated",
-        description: "Your podcast script has been created successfully!",
+        description: isMultiEpisode 
+          ? `Episode ${currentEpisode} script has been created successfully!` 
+          : "Your podcast script has been created successfully!",
       });
     } catch (error) {
       toast({
@@ -137,7 +161,7 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
           </div>
 
           <TabsContent value="editor" className="flex-1 p-6">
-            {!scriptContent && !scriptResult ? (
+            {!scriptContent && !scriptResult && !episodeScriptResult ? (
               <Card className="h-full flex items-center justify-center">
                 <CardContent className="text-center">
                   <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
@@ -147,11 +171,11 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
                   </p>
                   <Button 
                     onClick={handleGenerateScript}
-                    disabled={isGeneratingScript}
+                    disabled={isGeneratingScript || isGeneratingEpisodeScript}
                     size="lg"
                     data-testid="button-generate-script"
                   >
-                    {isGeneratingScript ? (
+                    {(isGeneratingScript || isGeneratingEpisodeScript) ? (
                       <>
                         <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                         Generating Script...
@@ -159,7 +183,7 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
                     ) : (
                       <>
                         <FileText className="w-4 h-4 mr-2" />
-                        Generate Script with AI
+                        {isMultiEpisode ? `Generate Episode ${currentEpisode} Script` : "Generate Script with AI"}
                       </>
                     )}
                   </Button>
@@ -169,9 +193,14 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
               <ScriptEditor
                 content={scriptContent}
                 onChange={setScriptContent}
-                analytics={scriptResult?.analytics}
+                analytics={(scriptResult || episodeScriptResult)?.analytics}
                 onSave={handleSaveScript}
                 project={project}
+                episodeInfo={isMultiEpisode ? {
+                  currentEpisode,
+                  totalEpisodes: episodePlan?.totalEpisodes,
+                  episodeTitle: episodePlan?.episodes?.find((ep: any) => ep.episodeNumber === currentEpisode)?.title
+                } : undefined}
               />
             )}
           </TabsContent>

@@ -21,6 +21,19 @@ export interface ResearchResult {
   outline: string[];
 }
 
+export interface EpisodePlanResult {
+  isMultiEpisode: boolean;
+  totalEpisodes: number;
+  episodes: Array<{
+    episodeNumber: number;
+    title: string;
+    description: string;
+    keyTopics: string[];
+    estimatedDuration: number;
+  }>;
+  reasoning: string;
+}
+
 export interface ScriptResult {
   content: string;
   sections: Array<{ type: string; content: string; duration: number }>;
@@ -157,6 +170,72 @@ export class OpenAIService {
       return result.suggestions || [];
     } catch (error) {
       throw new Error(`Failed to generate suggestions: ${(error as Error).message}`);
+    }
+  }
+
+  async analyzeForEpisodeBreakdown(prompt: string, research: ResearchResult): Promise<EpisodePlanResult> {
+    try {
+      const response = await openai.chat.completions.create({
+        model: "gpt-5", // the newest OpenAI model is "gpt-5" which was released August 7, 2025
+        messages: [
+          {
+            role: "system",
+            content: "You are a podcast series planning expert. Analyze research content and determine if it would benefit from being split into multiple 15-20 minute episodes. Consider content depth, natural topic divisions, and audience engagement."
+          },
+          {
+            role: "user",
+            content: `Analyze this podcast topic and research to determine if it should be a single episode or multiple episodes: 
+
+Topic: "${prompt}"
+
+Research: ${JSON.stringify(research)}
+
+Provide analysis in JSON format: { "isMultiEpisode": boolean, "totalEpisodes": number, "episodes": [{"episodeNumber": number, "title": string, "description": string, "keyTopics": string[], "estimatedDuration": number}], "reasoning": string }`
+          }
+        ],
+        response_format: { type: "json_object" },
+      });
+
+      return JSON.parse(response.choices[0].message.content || "{}");
+    } catch (error) {
+      throw new Error(`Failed to analyze episode breakdown: ${(error as Error).message}`);
+    }
+  }
+
+  async generateEpisodeScript(prompt: string, research: ResearchResult, episodeNumber: number, episodePlan: EpisodePlanResult): Promise<ScriptResult> {
+    try {
+      const currentEpisode = episodePlan.episodes.find(ep => ep.episodeNumber === episodeNumber);
+      if (!currentEpisode) {
+        throw new Error(`Episode ${episodeNumber} not found in plan`);
+      }
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-5", // the newest OpenAI model is "gpt-5" which was released August 7, 2025
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert podcast script writer. Create engaging 15-20 minute episode scripts that are part of a series. Include natural conversation flow, pauses, fillers, and transitions. Reference previous/future episodes when appropriate."
+          },
+          {
+            role: "user",
+            content: `Create a podcast script for Episode ${episodeNumber} of ${episodePlan.totalEpisodes}:
+
+Series Topic: "${prompt}"
+Episode Title: "${currentEpisode.title}"
+Episode Focus: "${currentEpisode.description}"
+Key Topics: ${currentEpisode.keyTopics.join(", ")}
+
+Research Data: ${JSON.stringify(research)}
+
+Include natural conversation elements like [pause], [thoughtful pause], [emphasis], etc. Reference this being part of a series when appropriate. Format as JSON: { "content": string, "sections": [{"type": string, "content": string, "duration": number}], "totalDuration": number, "analytics": {"wordCount": number, "readingTime": number, "speechTime": number, "pauseCount": number} }`
+          }
+        ],
+        response_format: { type: "json_object" },
+      });
+
+      return JSON.parse(response.choices[0].message.content || "{}");
+    } catch (error) {
+      throw new Error(`Failed to generate episode script: ${(error as Error).message}`);
     }
   }
 }
