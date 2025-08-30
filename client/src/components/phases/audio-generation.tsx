@@ -34,6 +34,19 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
   } = useProject(project.id);
   const { toast } = useToast();
 
+  // Automatically update project when audio is generated
+  useEffect(() => {
+    if (audioResult?.audioUrl) {
+      updateProject({
+        id: project.id,
+        updates: {
+          voiceSettings,
+          audioUrl: audioResult.audioUrl,
+        },
+      });
+    }
+  }, [audioResult, project.id, voiceSettings, updateProject]);
+
   const handleGenerateAudio = async () => {
     if (!project.scriptContent) {
       toast({
@@ -97,21 +110,13 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
     }
 
     try {
-      const result = await generateAudio({
+      await generateAudio({
         scriptContent: project.scriptContent,
         voiceSettings,
       });
       
-      // Automatically update the project with the new audio URL
-      if (result.audioUrl) {
-        await updateProject({
-          id: project.id,
-          updates: {
-            voiceSettings,
-            audioUrl: result.audioUrl,
-          },
-        });
-      }
+      // The audio result will be available through audioResult from the hook
+      // We'll update the project in a useEffect when audioResult changes
       
       toast({
         title: "Audio Generated",
@@ -271,10 +276,16 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
                     <SelectValue placeholder="Select voice model" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="nova">Nova (Balanced)</SelectItem>
-                    <SelectItem value="shimmer">Shimmer (Warm)</SelectItem>
-                    <SelectItem value="alloy">Alloy (Professional)</SelectItem>
-                    <SelectItem value="coral">Coral (Energetic)</SelectItem>
+                    <SelectItem value="alloy">Alloy (Neutral)</SelectItem>
+                    <SelectItem value="ash">Ash (Rich & Warm)</SelectItem>
+                    <SelectItem value="ballad">Ballad (Expressive)</SelectItem>
+                    <SelectItem value="coral">Coral (Bright & Clear)</SelectItem>
+                    <SelectItem value="echo">Echo (Deep & Resonant)</SelectItem>
+                    <SelectItem value="fable">Fable (Storytelling)</SelectItem>
+                    <SelectItem value="nova">Nova (Pleasant & Crisp)</SelectItem>
+                    <SelectItem value="onyx">Onyx (Professional)</SelectItem>
+                    <SelectItem value="sage">Sage (Wise & Measured)</SelectItem>
+                    <SelectItem value="shimmer">Shimmer (Gentle & Soft)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

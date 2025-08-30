@@ -497,19 +497,26 @@ export class OpenAIService {
 
   async generateAudio(scriptContent: string, voiceSettings: { model: string; speed: number }): Promise<{ audioUrl: string; duration: number }> {
     try {
-      // Map the voice model to OpenAI's voice names
+      // Map the voice model to OpenAI's voice names (all 11 voices available in gpt-4o-mini-tts)
       const voiceMap: { [key: string]: string } = {
-        'nova': 'nova',
-        'shimmer': 'shimmer', 
         'alloy': 'alloy',
-        'coral': 'nova', // coral is not available in OpenAI, using nova as closest alternative
+        'ash': 'ash',
+        'ballad': 'ballad',
+        'coral': 'coral',
+        'echo': 'echo',
+        'fable': 'fable',
+        'nova': 'nova',
+        'onyx': 'onyx',
+        'sage': 'sage',
+        'shimmer': 'shimmer',
       };
       
       const mp3 = await openai.audio.speech.create({
-        model: "tts-1-hd", // Using high-definition model for better quality
+        model: "gpt-4o-mini-tts", // Using the new gpt-4o-mini-tts model
         voice: voiceMap[voiceSettings.model] || "nova",
         input: scriptContent,
         speed: voiceSettings.speed,
+        instructions: "Speak in a natural, engaging podcast host tone with clear enunciation and appropriate pacing for audio content.",
         response_format: "mp3"
       });
 
