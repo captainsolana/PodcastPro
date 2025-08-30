@@ -309,7 +309,7 @@ export class OpenAIService {
     ];
   }
 
-  private async performPerplexityQuery(prompt: string): Promise<string> {
+  private async performPerplexityQuery(prompt: string): Promise<{content: string, citations: any[], searchResults: any[]}> {
     console.log('Making Perplexity API call for focused research');
     
     // Check if API key exists
@@ -354,23 +354,31 @@ export class OpenAIService {
       throw new Error('Invalid response format from Perplexity API');
     }
     
-    const content = data.choices[0].message.content;
-    return content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+    // Return the complete response data including citations and search results
+    return {
+      content: data.choices[0].message.content.replace(/<think>[\s\S]*?<\/think>/g, '').trim(),
+      citations: data.citations || [],
+      searchResults: data.search_results || []
+    };
   }
 
-  private synthesizeResearch(topic: string, researchResults: string[]): ResearchResult {
-    console.log('Synthesizing research from multiple sources');
+  private synthesizeResearch(topic: string, researchResults: {content: string, citations: any[], searchResults: any[]}[]): ResearchResult {
+    console.log('Synthesizing research from multiple sources with real citations');
     
     // Combine all research content
-    const combinedContent = researchResults.join('\n\n');
+    const allContent = researchResults.map(r => r.content).join('\n\n');
+    const allCitations = researchResults.flatMap(r => r.citations || []);
+    const allSearchResults = researchResults.flatMap(r => r.searchResults || []);
     
-    // Extract key insights from all research
-    const keyPoints = this.extractEnhancedKeyPoints(combinedContent, topic);
-    const statistics = this.extractEnhancedStatistics(combinedContent, topic);
-    const sources = this.generateResearchSources(topic, researchResults);
+    // Extract real sources from search results and citations
+    const realSources = this.extractRealSources(allSearchResults, allCitations);
+    
+    // Extract key insights from actual research content
+    const keyPoints = this.extractRealKeyPoints(allContent);
+    const statistics = this.extractRealStatistics(allContent, allSearchResults);
     
     return {
-      sources,
+      sources: realSources,
       keyPoints,
       statistics,
       outline: [
@@ -385,41 +393,36 @@ export class OpenAIService {
     };
   }
 
-  private extractEnhancedKeyPoints(content: string, topic: string): string[] {
-    // Look for more comprehensive patterns in the content
-    const bulletPoints = content.match(/(?:•|\*|-|\d\.)\s*([^\n]+)/g) || [];
-    const sentences = content.match(/[A-Z][^.!?]*[.!?]/g) || [];
+  private extractRealKeyPoints(content: string): string[] {
+    // Extract meaningful insights from the actual research content
+    const bulletPoints = content.match(/(?:•|\*|-|\d+\.)\s*([^\n]{30,200})/g) || [];
+    const importantSentences = content.match(/[A-Z][^.!?]{40,180}[.!?]/g) || [];
     
-    // Combine bullet points and important sentences
-    let points = [
-      ...bulletPoints.map(point => point.replace(/^(?:•|\*|-|\d\.)\s*/, '').trim()),
-      ...sentences
-        .filter(sentence => sentence.length > 30 && sentence.length < 150)
-        .filter(sentence => !sentence.toLowerCase().includes('podcast'))
-        .slice(0, 3)
+    // Look for specific data points and insights
+    const insights = [
+      ...bulletPoints.map(point => point.replace(/^(?:•|\*|-|\d+\.)\s*/, '').trim()),
+      ...importantSentences
+        .filter(sentence => {
+          const lower = sentence.toLowerCase();
+          return !lower.includes('podcast') && 
+                 (lower.includes('billion') || lower.includes('million') || 
+                  lower.includes('growth') || lower.includes('market') ||
+                  lower.includes('adoption') || lower.includes('innovation') ||
+                  lower.includes('technology') || lower.includes('development'));
+        })
+        .slice(0, 4)
     ];
     
-    // Ensure we have at least 6 quality points
-    if (points.length < 6) {
-      points = points.concat([
-        `Fundamental principles and core concepts of ${topic}`,
-        "Historical development and evolutionary milestones",
-        "Current adoption patterns and market penetration",
-        "Key technological innovations and breakthroughs",
-        "Strategic partnerships and collaborative frameworks",
-        "Future growth potential and emerging opportunities"
-      ]);
-    }
-    
-    return points.slice(0, 8).map(point => point.trim());
+    return insights.slice(0, 8).map(point => point.trim()).filter(point => point.length > 20);
   }
 
-  private extractEnhancedStatistics(content: string, topic: string): Array<{fact: string, source: string}> {
-    // Enhanced pattern matching for statistics
+  private extractRealStatistics(content: string, searchResults: any[]): Array<{fact: string, source: string}> {
+    // Enhanced pattern matching for real statistics from research
     const patterns = [
-      /\d+(?:\.\d+)?%[^.]*(?:increase|decrease|growth|decline|rate|adoption|usage|transactions)/gi,
-      /\d+(?:\.\d+)?\s*(?:million|billion|trillion|crore|lakh)[^.]*(?:users|transactions|value|revenue|market)/gi,
-      /(?:over|more than|approximately|around)\s*\d+(?:\.\d+)?[^.]*(?:percent|users|businesses|countries)/gi
+      /\d+(?:\.\d+)?%[^.]{10,100}(?:increase|decrease|growth|decline|rate|adoption|usage|transactions|market|revenue)/gi,
+      /\d+(?:\.\d+)?\s*(?:million|billion|trillion|crore|lakh)[^.]{10,100}(?:users|transactions|value|revenue|market|companies|businesses)/gi,
+      /(?:over|more than|approximately|around|nearly)\s*\d+(?:\.\d+)?[^.]{10,100}(?:percent|users|businesses|countries|banks|merchants)/gi,
+      /\$\d+(?:\.\d+)?\s*(?:million|billion|trillion)[^.]{10,100}/gi
     ];
     
     let stats: Array<{fact: string, source: string}> = [];
@@ -427,39 +430,43 @@ export class OpenAIService {
     for (const pattern of patterns) {
       const matches = content.match(pattern) || [];
       stats = stats.concat(
-        matches.slice(0, 2).map(stat => ({
-          fact: stat.trim(),
-          source: "Research Analysis 2024"
-        }))
+        matches.slice(0, 3).map(stat => {
+          // Try to find the source from search results
+          const relevantSource = searchResults.find(result => 
+            result.snippet && stat.toLowerCase().includes(result.snippet.toLowerCase().split(' ').slice(0, 3).join(' '))
+          );
+          
+          return {
+            fact: stat.trim(),
+            source: relevantSource?.title || "Industry Research 2024"
+          };
+        })
       );
     }
     
-    // If no stats found, use topic-specific fallback
-    if (stats.length === 0) {
-      return this.generateTopicStatistics(topic);
-    }
-    
-    return stats.slice(0, 4);
+    return stats.slice(0, 6);
   }
 
-  private generateResearchSources(topic: string, researchResults: string[]): Array<{title: string, url: string, summary: string}> {
-    return [
-      {
-        title: `${topic} - Comprehensive Foundation Analysis`,
-        url: "https://research.perplexity.ai/core-analysis",
-        summary: `In-depth analysis of fundamental concepts, historical development, and core principles of ${topic} based on comprehensive research.`
-      },
-      {
-        title: `${topic} - Current Market Trends and Statistics`,
-        url: "https://research.perplexity.ai/market-trends", 
-        summary: `Latest market data, adoption statistics, and current developments in ${topic} with expert insights and industry analysis.`
-      },
-      {
-        title: `${topic} - Future Outlook and Strategic Implications`,
-        url: "https://research.perplexity.ai/future-analysis",
-        summary: `Forward-looking analysis of emerging trends, growth opportunities, and strategic implications for ${topic}.`
+  private extractRealSources(searchResults: any[], citations: any[]): Array<{title: string, url: string, summary: string}> {
+    // Use real search results from Perplexity
+    const sources = searchResults.slice(0, 6).map(result => ({
+      title: result.title || 'Research Source',
+      url: result.url || '#',
+      summary: result.snippet || 'Relevant research information'
+    }));
+    
+    // Add citation URLs if we have them
+    citations.slice(0, 3).forEach(citation => {
+      if (citation && !sources.find(s => s.url === citation)) {
+        sources.push({
+          title: 'Additional Research Source',
+          url: citation,
+          summary: 'Supporting research and analysis'
+        });
       }
-    ];
+    });
+    
+    return sources.slice(0, 5); // Limit to top 5 most relevant sources
   }
 
   async generateScript(prompt: string, research: ResearchResult): Promise<ScriptResult> {
