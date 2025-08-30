@@ -81,9 +81,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Prompt is required" });
       }
 
-      // Increased timeout for OpenAI API calls
+      // Extended timeout for research models that need more processing time
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Service timeout')), 15000)
+        setTimeout(() => reject(new Error('Service timeout')), 35000)
       );
 
       try {
@@ -115,9 +115,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Prompt is required" });
       }
 
-      // Increased timeout for OpenAI API calls
+      // Extended timeout for research models that need more processing time
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Service timeout')), 15000)
+        setTimeout(() => reject(new Error('Service timeout')), 35000)
       );
 
       try {

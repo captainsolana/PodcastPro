@@ -50,9 +50,9 @@ export interface ScriptResult {
 export class OpenAIService {
   private async callOpenAIWithFallback<T>(apiCall: () => Promise<T>, fallbackData: T): Promise<T> {
     try {
-      // Use a much shorter timeout for quick fallback
+      // Increased timeout for deep research models which need more time
       const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('OpenAI timeout')), 5000)
+        setTimeout(() => reject(new Error('OpenAI timeout')), 30000)
       );
       
       const result = await Promise.race([apiCall(), timeoutPromise]);
@@ -128,43 +128,25 @@ export class OpenAIService {
     };
 
     return this.callOpenAIWithFallback(async () => {
-      // Try using Responses API first for better research capabilities
-      try {
-        const response = await openai.responses.create({
-          model: "o4-mini-deep-research", // specialized research model
-          input: `Conduct comprehensive research for this podcast topic: "${refinedPrompt}". I need detailed sources, key insights, statistics with citations, and a structured outline. Focus on credible, recent information and provide practical examples.`,
-          tools: [{ type: "web_search" }], // Enable web search for real research
-          store: true
-        });
+      // Use Chat Completions API with gpt-4o (confirmed working)
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o", // using confirmed working model
+        messages: [
+          {
+            role: "system",
+            content: "You are a deep research specialist. Conduct comprehensive research on topics for podcast creation. Provide credible sources, key statistics with proper citations, and compelling insights. Focus on recent developments and real-world data."
+          },
+          {
+            role: "user",
+            content: `Conduct in-depth research for this podcast topic: "${refinedPrompt}". Provide comprehensive research data in JSON format: { "sources": [{"title": string, "url": string, "summary": string}], "keyPoints": string[], "statistics": [{"fact": string, "source": string}], "outline": string[] }`
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.7,
+        max_completion_tokens: 2000
+      });
 
-        // Parse the response to match our expected format
-        const content = response.output_text;
-        
-        // If the response contains structured data, try to extract it
-        // Otherwise, convert the text response to our format
-        return this.parseResearchResponse(content);
-        
-      } catch (responsesApiError: any) {
-        console.log("Responses API failed, falling back to Chat Completions:", responsesApiError?.message || "Unknown error");
-        
-        // Fallback to Chat Completions with o4-mini
-        const response = await openai.chat.completions.create({
-          model: "o4-mini", // use o4-mini instead of gpt-4o
-          messages: [
-            {
-              role: "system",
-              content: "You are a deep research specialist. Conduct comprehensive research on topics for podcast creation. Use web search capabilities when available. Provide credible sources, key statistics with proper citations, and compelling insights."
-            },
-            {
-              role: "user",
-              content: `Conduct in-depth research for this podcast topic: "${refinedPrompt}". Provide research data in JSON format: { "sources": [{"title": string, "url": string, "summary": string}], "keyPoints": string[], "statistics": [{"fact": string, "source": string}], "outline": string[] }`
-            }
-          ],
-          response_format: { type: "json_object" },
-        });
-
-        return JSON.parse(response.choices[0].message.content || "{}");
-      }
+      return JSON.parse(response.choices[0].message.content || "{}");
     }, fallbackResult);
   }
 
