@@ -81,9 +81,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Prompt is required" });
       }
 
-      // Very extended timeout for deep research models (can take 2-4 minutes)
+      // Very extended timeout for deep research models (can take up to 6 minutes)
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Service timeout')), 180000)
+        setTimeout(() => reject(new Error('Service timeout')), 360000)
       );
 
       try {
@@ -115,9 +115,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Prompt is required" });
       }
 
-      // Very extended timeout for deep research models (can take 2-4 minutes)
+      // Very extended timeout for deep research models (can take up to 6 minutes)
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Service timeout')), 180000)
+        setTimeout(() => reject(new Error('Service timeout')), 360000)
       );
 
       try {

@@ -50,9 +50,9 @@ export interface ScriptResult {
 export class OpenAIService {
   private async callOpenAIWithFallback<T>(apiCall: () => Promise<T>, fallbackData: T): Promise<T> {
     try {
-      // Very extended timeout for deep research models (can take 2-4 minutes)
+      // Extended timeout for deep research models (can take up to 6 minutes)
       const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('Research timeout')), 180000)
+        setTimeout(() => reject(new Error('Research timeout')), 360000)
       );
       
       const result = await Promise.race([apiCall(), timeoutPromise]);
@@ -129,8 +129,8 @@ export class OpenAIService {
     };
 
     return this.callOpenAIWithFallback(async () => {
-      // Use Perplexity's async API for deep research to handle long processing times
-      const asyncResponse = await fetch('https://api.perplexity.ai/async/chat/completions', {
+      // Use Perplexity's synchronous API with extended timeout for deep research
+      const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`,
@@ -161,49 +161,22 @@ Please format your response as valid JSON with this structure:
         })
       });
 
-      if (!asyncResponse.ok) {
-        throw new Error(`Perplexity async API error: ${asyncResponse.status}`);
+      if (!perplexityResponse.ok) {
+        const errorText = await perplexityResponse.text();
+        throw new Error(`Perplexity API error: ${perplexityResponse.status} - ${errorText}`);
       }
 
-      const asyncData = await asyncResponse.json();
-      const requestId = asyncData.id;
-
-      // Poll for results with exponential backoff
-      let attempts = 0;
-      const maxAttempts = 30; // Up to 5 minutes of polling
+      const data = await perplexityResponse.json();
+      const content = data.choices[0].message.content;
       
-      while (attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, Math.min(5000 + attempts * 1000, 15000))); // 5s to 15s delay
-        
-        const resultResponse = await fetch(`https://api.perplexity.ai/async/chat/completions/${requestId}`, {
-          headers: {
-            'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`,
-          }
-        });
-
-        if (resultResponse.ok) {
-          const result = await resultResponse.json();
-          
-          if (result.status === 'completed' && result.choices) {
-            const content = result.choices[0].message.content;
-            
-            // Try to extract JSON from the response
-            const jsonMatch = content.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-              return JSON.parse(jsonMatch[0]);
-            }
-            
-            return this.parseResearchResponse(content);
-          } else if (result.status === 'failed') {
-            throw new Error('Perplexity research failed');
-          }
-          // If still processing, continue polling
-        }
-        
-        attempts++;
+      // Try to extract JSON from the response
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
       }
       
-      throw new Error('Research timeout - please try again');
+      // If no JSON found, parse the text content
+      return this.parseResearchResponse(content);
     }, fallbackResult);
   }
 
