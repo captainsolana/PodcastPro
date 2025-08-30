@@ -97,10 +97,21 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
     }
 
     try {
-      await generateAudio({
+      const result = await generateAudio({
         scriptContent: project.scriptContent,
         voiceSettings,
       });
+      
+      // Automatically update the project with the new audio URL
+      if (result.audioUrl) {
+        await updateProject({
+          id: project.id,
+          updates: {
+            voiceSettings,
+            audioUrl: result.audioUrl,
+          },
+        });
+      }
       
       toast({
         title: "Audio Generated",
