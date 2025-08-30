@@ -128,22 +128,23 @@ export class OpenAIService {
     };
 
     return this.callOpenAIWithFallback(async () => {
-      // Use Chat Completions API with gpt-4o (confirmed working)
+      // Use o4-mini-deep-research model with web search capabilities
       const response = await openai.chat.completions.create({
-        model: "gpt-4o", // using confirmed working model
+        model: "o4-mini-deep-research", // specialized research model
         messages: [
           {
-            role: "system",
-            content: "You are a deep research specialist. Conduct comprehensive research on topics for podcast creation. Provide credible sources, key statistics with proper citations, and compelling insights. Focus on recent developments and real-world data."
+            role: "developer", // Use developer role for model behavior configuration
+            content: "You are a deep research specialist for podcast creation. Use web search to gather current, credible information. Focus on recent developments, statistics with proper citations, and comprehensive analysis."
           },
           {
             role: "user",
-            content: `Conduct in-depth research for this podcast topic: "${refinedPrompt}". Provide comprehensive research data in JSON format: { "sources": [{"title": string, "url": string, "summary": string}], "keyPoints": string[], "statistics": [{"fact": string, "source": string}], "outline": string[] }`
+            content: `Conduct comprehensive research for this podcast topic: "${refinedPrompt}". Use web search to find current information and provide research data in JSON format: { "sources": [{"title": string, "url": string, "summary": string}], "keyPoints": string[], "statistics": [{"fact": string, "source": string}], "outline": string[] }`
           }
         ],
+        // Note: Web search is built into o4-mini-deep-research model
         response_format: { type: "json_object" },
-        temperature: 0.7,
-        max_completion_tokens: 2000
+        temperature: 0.3, // Lower temperature for more focused research
+        max_completion_tokens: 3000 // Increased for comprehensive research
       });
 
       return JSON.parse(response.choices[0].message.content || "{}");
