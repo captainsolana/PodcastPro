@@ -50,15 +50,16 @@ export interface ScriptResult {
 export class OpenAIService {
   private async callOpenAIWithFallback<T>(apiCall: () => Promise<T>, fallbackData: T): Promise<T> {
     try {
-      // Increased timeout for deep research models which need more time
+      // Very extended timeout for deep research models (can take 2-4 minutes)
       const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('OpenAI timeout')), 30000)
+        setTimeout(() => reject(new Error('Research timeout')), 180000)
       );
       
       const result = await Promise.race([apiCall(), timeoutPromise]);
       return result;
     } catch (error) {
-      console.warn('OpenAI API unavailable, using fallback data:', (error as Error).message);
+      console.warn('Research API error, using fallback data:', (error as Error).message);
+      console.warn('Full error details:', error);
       return fallbackData;
     }
   }
@@ -128,26 +129,46 @@ export class OpenAIService {
     };
 
     return this.callOpenAIWithFallback(async () => {
-      // Use o4-mini-deep-research model with web search capabilities
-      const response = await openai.chat.completions.create({
-        model: "o4-mini-deep-research", // specialized research model
-        messages: [
-          {
-            role: "developer", // Use developer role for model behavior configuration
-            content: "You are a deep research specialist for podcast creation. Use web search to gather current, credible information. Focus on recent developments, statistics with proper citations, and comprehensive analysis."
-          },
-          {
-            role: "user",
-            content: `Conduct comprehensive research for this podcast topic: "${refinedPrompt}". Use web search to find current information and provide research data in JSON format: { "sources": [{"title": string, "url": string, "summary": string}], "keyPoints": string[], "statistics": [{"fact": string, "source": string}], "outline": string[] }`
-          }
-        ],
-        // Note: Web search is built into o4-mini-deep-research model
-        response_format: { type: "json_object" },
-        temperature: 0.3, // Lower temperature for more focused research
-        max_completion_tokens: 3000 // Increased for comprehensive research
+      // Use Perplexity's chat completions API with sonar model
+      const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: "sonar-deep-research", // Use Perplexity's deep research model
+          messages: [
+            {
+              role: "system",
+              content: "You are a deep research specialist for podcast creation. Conduct thorough research using current web sources and provide comprehensive, well-cited information with real URLs and current statistics."
+            },
+            {
+              role: "user",
+              content: `Conduct comprehensive research for this podcast topic: "${refinedPrompt}". Use current web sources to provide detailed research data in JSON format: { "sources": [{"title": string, "url": string, "summary": string}], "keyPoints": string[], "statistics": [{"fact": string, "source": string}], "outline": string[] }`
+            }
+          ],
+          max_tokens: 3000,
+          temperature: 0.2,
+          reasoning_effort: "medium" // Balanced approach for comprehensive research
+        })
       });
 
-      return JSON.parse(response.choices[0].message.content || "{}");
+      if (!perplexityResponse.ok) {
+        throw new Error(`Perplexity API error: ${perplexityResponse.status}`);
+      }
+
+      const data = await perplexityResponse.json();
+      const content = data.choices[0].message.content;
+      
+      // Try to extract JSON from the response
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+      
+      // If no JSON found, parse the text content
+      return this.parseResearchResponse(content);
     }, fallbackResult);
   }
 
