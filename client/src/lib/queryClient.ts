@@ -8,17 +8,36 @@ async function throwIfResNotOk(res: Response) {
 }
 
 export async function apiRequest(
-  method: string,
-  url: string,
+  urlOrMethod: string,
+  urlOrOptions?: string | RequestInit,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const res = await fetch(url, {
-    method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-  });
+  let method: string;
+  let url: string;
+  let options: RequestInit = {};
 
+  // Handle both signatures: apiRequest(url) and apiRequest(method, url, data)
+  if (typeof urlOrOptions === 'string') {
+    // apiRequest(method, url, data) format
+    method = urlOrMethod;
+    url = urlOrOptions;
+    options = {
+      method,
+      headers: data ? { "Content-Type": "application/json" } : {},
+      body: data ? JSON.stringify(data) : undefined,
+      credentials: "include",
+    };
+  } else {
+    // apiRequest(url) format for queries
+    url = urlOrMethod;
+    options = {
+      method: "GET",
+      credentials: "include",
+      ...urlOrOptions,
+    };
+  }
+
+  const res = await fetch(url, options);
   await throwIfResNotOk(res);
   return res;
 }

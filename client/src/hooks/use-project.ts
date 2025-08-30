@@ -122,7 +122,7 @@ export function useProjects(userId?: string) {
   });
 
   return {
-    projects: (projects as Project[]) || [],
+    projects: Array.isArray(projects) ? projects as Project[] : [],
     isLoading,
     error,
   };

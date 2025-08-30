@@ -4,7 +4,8 @@ import path from "path";
 
 // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
 const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_KEY || "sk-test-key"
+  apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_KEY || "sk-test-key",
+  timeout: 60000, // 60 second timeout
 });
 
 export interface PromptRefinementResult {
@@ -49,20 +50,23 @@ export interface ScriptResult {
 export class OpenAIService {
   async refinePrompt(originalPrompt: string): Promise<PromptRefinementResult> {
     try {
-      const response = await openai.chat.completions.create({
-        model: "gpt-5", // the newest OpenAI model is "gpt-5" which was released August 7, 2025
-        messages: [
-          {
-            role: "system",
-            content: "You are a podcast creation expert. Refine user prompts to create engaging 15-20 minute podcast episodes. Focus on making topics accessible, engaging, and well-structured. Respond with JSON."
-          },
-          {
-            role: "user",
-            content: `Refine this podcast idea and provide structure: "${originalPrompt}". Include refined prompt, focus areas, suggested duration, and target audience in JSON format: { "refinedPrompt": string, "focusAreas": string[], "suggestedDuration": number, "targetAudience": string }`
-          }
-        ],
-        response_format: { type: "json_object" },
-      });
+      const response = await Promise.race([
+        openai.chat.completions.create({
+          model: "gpt-5", // the newest OpenAI model is "gpt-5" which was released August 7, 2025
+          messages: [
+            {
+              role: "system",
+              content: "You are a podcast creation expert. Refine user prompts to create engaging 15-20 minute podcast episodes. Focus on making topics accessible, engaging, and well-structured. Respond with JSON."
+            },
+            {
+              role: "user",
+              content: `Refine this podcast idea and provide structure: "${originalPrompt}". Include refined prompt, focus areas, suggested duration, and target audience in JSON format: { "refinedPrompt": string, "focusAreas": string[], "suggestedDuration": number, "targetAudience": string }`
+            }
+          ],
+          response_format: { type: "json_object" },
+        }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), 45000))
+      ]) as any;
 
       return JSON.parse(response.choices[0].message.content || "{}");
     } catch (error) {
