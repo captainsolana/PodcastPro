@@ -248,6 +248,11 @@ export default function PromptResearch({ project }: PromptResearchProps) {
 
               {researchResult && (
                 <div className="space-y-6">
+                  {/* Debug Info */}
+                  <div className="bg-blue-50 p-2 rounded text-xs">
+                    <p>Debug: Research data available - Sources: {researchResult.sources?.length || 0}, Key Points: {researchResult.keyPoints?.length || 0}</p>
+                  </div>
+                  
                   {/* Research Results Display */}
                   <div>
                     <h4 className="font-semibold text-sm mb-3">Research Completed Successfully!</h4>
