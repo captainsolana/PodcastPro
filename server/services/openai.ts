@@ -129,46 +129,81 @@ export class OpenAIService {
     };
 
     return this.callOpenAIWithFallback(async () => {
-      // Use Perplexity's chat completions API with sonar model
-      const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
+      // Use Perplexity's async API for deep research to handle long processing times
+      const asyncResponse = await fetch('https://api.perplexity.ai/async/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: "sonar-deep-research", // Use Perplexity's deep research model
+          model: "sonar-deep-research",
           messages: [
             {
-              role: "system",
-              content: "You are a deep research specialist for podcast creation. Conduct thorough research using current web sources and provide comprehensive, well-cited information with real URLs and current statistics."
-            },
-            {
               role: "user",
-              content: `Conduct comprehensive research for this podcast topic: "${refinedPrompt}". Use current web sources to provide detailed research data in JSON format: { "sources": [{"title": string, "url": string, "summary": string}], "keyPoints": string[], "statistics": [{"fact": string, "source": string}], "outline": string[] }`
+              content: `Conduct comprehensive research for this podcast topic: "${refinedPrompt}". 
+
+Research requirements:
+- Use current web sources and real data
+- Provide detailed insights with proper citations
+- Include recent statistics and trends
+- Focus on practical, engaging information for a podcast audience
+
+Please format your response as valid JSON with this structure:
+{
+  "sources": [{"title": "source title", "url": "actual URL", "summary": "brief summary of key insights"}],
+  "keyPoints": ["main point 1", "main point 2", "etc"],
+  "statistics": [{"fact": "statistic with numbers", "source": "where this came from"}],
+  "outline": ["introduction topic", "main discussion point", "conclusion topic"]
+}`
             }
-          ],
-          max_tokens: 3000,
-          temperature: 0.2,
-          reasoning_effort: "medium" // Balanced approach for comprehensive research
+          ]
         })
       });
 
-      if (!perplexityResponse.ok) {
-        throw new Error(`Perplexity API error: ${perplexityResponse.status}`);
+      if (!asyncResponse.ok) {
+        throw new Error(`Perplexity async API error: ${asyncResponse.status}`);
       }
 
-      const data = await perplexityResponse.json();
-      const content = data.choices[0].message.content;
+      const asyncData = await asyncResponse.json();
+      const requestId = asyncData.id;
+
+      // Poll for results with exponential backoff
+      let attempts = 0;
+      const maxAttempts = 30; // Up to 5 minutes of polling
       
-      // Try to extract JSON from the response
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+      while (attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, Math.min(5000 + attempts * 1000, 15000))); // 5s to 15s delay
+        
+        const resultResponse = await fetch(`https://api.perplexity.ai/async/chat/completions/${requestId}`, {
+          headers: {
+            'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`,
+          }
+        });
+
+        if (resultResponse.ok) {
+          const result = await resultResponse.json();
+          
+          if (result.status === 'completed' && result.choices) {
+            const content = result.choices[0].message.content;
+            
+            // Try to extract JSON from the response
+            const jsonMatch = content.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              return JSON.parse(jsonMatch[0]);
+            }
+            
+            return this.parseResearchResponse(content);
+          } else if (result.status === 'failed') {
+            throw new Error('Perplexity research failed');
+          }
+          // If still processing, continue polling
+        }
+        
+        attempts++;
       }
       
-      // If no JSON found, parse the text content
-      return this.parseResearchResponse(content);
+      throw new Error('Research timeout - please try again');
     }, fallbackResult);
   }
 
