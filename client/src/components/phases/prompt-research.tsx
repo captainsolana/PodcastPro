@@ -174,8 +174,15 @@ export default function PromptResearch({ project }: PromptResearchProps) {
               <CardTitle>AI-Refined Prompt</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="bg-primary/5 p-4 rounded-lg border-l-4 border-primary mb-4">
-                <p className="text-sm leading-relaxed">{refinedPrompt}</p>
+              <div className="space-y-4">
+                <Textarea
+                  value={refinedPrompt}
+                  onChange={(e) => setRefinedPrompt(e.target.value)}
+                  placeholder="Your refined podcast prompt..."
+                  rows={4}
+                  className="mb-4"
+                  data-testid="textarea-refined-prompt"
+                />
               </div>
               
               {refinePromptResult && (
