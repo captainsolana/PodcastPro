@@ -242,16 +242,66 @@ export default function PromptResearch({ project }: PromptResearchProps) {
               )}
 
               {researchResult && !showEpisodePlanner && !episodePlan && (
-                <div className="text-center py-8">
-                  <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-muted-foreground mb-4">Research completed! Now let's plan your episode structure.</p>
-                  <Button 
-                    onClick={() => setShowEpisodePlanner(true)}
-                    data-testid="button-plan-episodes"
-                  >
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Plan Episodes
-                  </Button>
+                <div className="space-y-6">
+                  {/* Research Results Display */}
+                  <div>
+                    <h4 className="font-semibold text-sm mb-3">Research Completed Successfully!</h4>
+                    
+                    {/* Key Points */}
+                    <div className="mb-6">
+                      <h4 className="font-semibold text-sm mb-3">Key Points</h4>
+                      <div className="space-y-2">
+                        {researchResult.keyPoints?.map((point: string, index: number) => (
+                          <div key={index} className="flex items-start space-x-2">
+                            <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></div>
+                            <p className="text-sm text-foreground">{point}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Statistics */}
+                    {researchResult.statistics && researchResult.statistics.length > 0 && (
+                      <div className="mb-6">
+                        <h4 className="font-semibold text-sm mb-3">Key Statistics</h4>
+                        <div className="space-y-2">
+                          {researchResult.statistics.map((stat: any, index: number) => (
+                            <div key={index} className="bg-accent/10 p-3 rounded-lg">
+                              <p className="text-sm font-medium text-foreground">{stat.fact}</p>
+                              <p className="text-xs text-muted-foreground mt-1">Source: {stat.source}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Sources */}
+                    {researchResult.sources && researchResult.sources.length > 0 && (
+                      <div className="mb-6">
+                        <h4 className="font-semibold text-sm mb-3">Research Sources</h4>
+                        <div className="space-y-2">
+                          {researchResult.sources.map((source: any, index: number) => (
+                            <div key={index} className="bg-muted/50 p-3 rounded-lg">
+                              <h5 className="font-medium text-sm text-foreground">{source.title}</h5>
+                              <p className="text-xs text-muted-foreground mt-1">{source.summary}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Next Step Button */}
+                  <div className="text-center py-4 border-t border-border">
+                    <p className="text-muted-foreground mb-4">Ready to plan your episode structure!</p>
+                    <Button 
+                      onClick={() => setShowEpisodePlanner(true)}
+                      data-testid="button-plan-episodes"
+                    >
+                      <Calendar className="w-4 h-4 mr-2" />
+                      Plan Episodes
+                    </Button>
+                  </div>
                 </div>
               )}
 
