@@ -246,7 +246,7 @@ export default function PromptResearch({ project }: PromptResearchProps) {
                 </div>
               )}
 
-              {researchResult && !showEpisodePlanner && !episodePlan && (
+              {researchResult && (
                 <div className="space-y-6">
                   {/* Research Results Display */}
                   <div>
