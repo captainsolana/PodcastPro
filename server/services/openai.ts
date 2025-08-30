@@ -128,112 +128,74 @@ export class OpenAIService {
       ]
     };
 
-    // Try Perplexity first, then OpenAI, then fallback
-    try {
-      if (process.env.PERPLEXITY_API_KEY) {
-        try {
-          const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              model: "sonar-reasoning",
-              messages: [
-                {
-                  role: "user",
-                  content: `Conduct comprehensive research for this podcast topic: "${refinedPrompt}". 
-
-Research requirements:
-- Use current web sources and real data
-- Provide detailed insights with proper citations
-- Include recent statistics and trends
-- Focus on practical, engaging information for a podcast audience
-
-Please format your response as valid JSON with this structure:
-{
-  "sources": [{"title": "source title", "url": "actual URL", "summary": "brief summary of key insights"}],
-  "keyPoints": ["main point 1", "main point 2", "etc"],
-  "statistics": [{"fact": "statistic with numbers", "source": "where this came from"}],
-  "outline": ["introduction topic", "main discussion point", "conclusion topic"]
-}`
-                }
-              ]
-            })
-          });
-
-          if (perplexityResponse.ok) {
-            const data = await perplexityResponse.json();
-            
-            if (data.choices && data.choices[0] && data.choices[0].message) {
-              const content = data.choices[0].message.content;
-              const cleanedContent = content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-              
-              const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
-              if (jsonMatch) {
-                try {
-                  console.log('Successfully got research from Perplexity');
-                  return JSON.parse(jsonMatch[0]);
-                } catch (parseError) {
-                  // Continue to OpenAI fallback
-                }
-              }
-              
-              return this.parseResearchResponse(cleanedContent);
-            }
-          }
-        } catch (perplexityError) {
-          console.log('Perplexity API not available, trying OpenAI');
-        }
-      }
-
-      // Try OpenAI for research
-      console.log('Using OpenAI for research');
-      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-      const response = await openai.chat.completions.create({
-        model: "gpt-5", // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
+    // Use Perplexity sonar-reasoning model exclusively
+    console.log('Using Perplexity sonar-reasoning model for analysis');
+    
+    const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: "sonar-reasoning",
         messages: [
           {
-            role: "system",
-            content: "You are a research specialist for podcast creation. Conduct thorough research and provide comprehensive, well-researched information with realistic examples and current insights."
-          },
-          {
             role: "user",
-            content: `Conduct comprehensive research for this podcast topic: "${refinedPrompt}". 
+            content: `Analyze and provide insights for this podcast topic: "${refinedPrompt}". 
 
-Research requirements:
-- Provide detailed insights and realistic information
-- Include current trends and developments
-- Focus on practical, engaging information for a podcast audience
+Please provide a comprehensive analysis that includes:
+- Key insights and important points to discuss
+- Current trends and developments in this area
+- Interesting facts and statistics (with context)
+- A suggested structure for a podcast episode
 
-Please respond with valid JSON in this structure:
+Format your response as valid JSON:
 {
-  "sources": [{"title": "source title", "url": "realistic URL", "summary": "brief summary of key insights"}],
-  "keyPoints": ["main point 1", "main point 2", "etc"],
-  "statistics": [{"fact": "statistic with context", "source": "where this came from"}],
+  "sources": [{"title": "insight source", "url": "reference link", "summary": "key insight summary"}],
+  "keyPoints": ["important point 1", "important point 2", "etc"],
+  "statistics": [{"fact": "relevant statistic", "source": "context/source"}],
   "outline": ["introduction topic", "main discussion point", "conclusion topic"]
 }`
           }
-        ],
-        response_format: { type: "json_object" }
-      });
+        ]
+      })
+    });
 
-      const content = response.choices[0].message.content;
-      if (content) {
-        try {
-          console.log('Successfully got research from OpenAI');
-          return JSON.parse(content);
-        } catch (parseError) {
-          return this.parseResearchResponse(content);
-        }
-      }
-
-      throw new Error('No content received from research API');
-    } catch (error) {
-      console.warn('All research APIs failed, using fallback data:', (error as Error).message);
-      return fallbackResult;
+    if (!perplexityResponse.ok) {
+      const errorText = await perplexityResponse.text();
+      console.error('Perplexity API failed:', perplexityResponse.status, errorText);
+      throw new Error(`Perplexity API authentication failed. Please verify your API key and account status.`);
     }
+
+    const data = await perplexityResponse.json();
+    console.log('Perplexity response received successfully');
+    
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      throw new Error('Invalid response format from Perplexity API');
+    }
+    
+    const content = data.choices[0].message.content;
+    
+    // Clean the content - remove any thinking tags
+    const cleanedContent = content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+    
+    // Try to extract JSON from the response
+    const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        const parsed = JSON.parse(jsonMatch[0]);
+        console.log('Successfully parsed Perplexity response as JSON');
+        return parsed;
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError);
+        return this.parseResearchResponse(cleanedContent);
+      }
+    }
+    
+    // If no JSON found, parse the text content
+    console.log('No JSON found, parsing as text');
+    return this.parseResearchResponse(cleanedContent);
   }
 
   private parseResearchResponse(content: string): ResearchResult {
