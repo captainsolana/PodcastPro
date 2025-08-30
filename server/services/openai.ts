@@ -312,31 +312,55 @@ export class OpenAIService {
   private async performPerplexityQuery(prompt: string): Promise<string> {
     console.log('Making Perplexity API call for focused research');
     
+    // Check if API key exists
+    if (!process.env.PERPLEXITY_API_KEY) {
+      throw new Error('PERPLEXITY_API_KEY environment variable is not set');
+    }
+    
+    // Log API key status (first 8 chars only for security)
+    const keyPreview = process.env.PERPLEXITY_API_KEY.substring(0, 8) + '...';
+    console.log('Using Perplexity API key:', keyPreview);
+    
     const response = await fetch('https://api.perplexity.ai/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       },
       body: JSON.stringify({
-        model: "sonar-reasoning",
+        model: "llama-3.1-sonar-small-128k-online",
         messages: [
           {
             role: "user",
             content: prompt
           }
-        ]
+        ],
+        max_tokens: 1000,
+        temperature: 0.2,
+        top_p: 0.9,
+        return_citations: true,
+        search_domain_filter: ["perplexity.ai"],
+        return_images: false,
+        return_related_questions: false,
+        search_recency_filter: "month",
+        top_k: 0,
+        stream: false,
+        presence_penalty: 0,
+        frequency_penalty: 1
       })
     });
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Perplexity API failed:', response.status, errorText);
+      console.error('Response headers:', Object.fromEntries(response.headers.entries()));
       throw new Error(`Perplexity API failed: ${response.status}`);
     }
 
     const data = await response.json();
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error('Invalid response format:', data);
       throw new Error('Invalid response format from Perplexity API');
     }
     
