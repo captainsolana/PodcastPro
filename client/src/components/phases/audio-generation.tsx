@@ -86,6 +86,35 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
     }
   };
 
+  const handleGenerateWithNewSettings = async () => {
+    if (!project.scriptContent) {
+      toast({
+        title: "Error", 
+        description: "No script content available to generate audio.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await generateAudio({
+        scriptContent: project.scriptContent,
+        voiceSettings,
+      });
+      
+      toast({
+        title: "Audio Generated",
+        description: `New audio generated with ${voiceSettings.model} voice at ${voiceSettings.speed}x speed!`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate audio with new settings.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDownload = () => {
     if (project.audioUrl || audioResult?.audioUrl) {
       const url = project.audioUrl || audioResult?.audioUrl;
@@ -259,14 +288,34 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
                 </div>
               </div>
 
-              <Button
-                variant="outline"
-                onClick={handleSaveSettings}
-                className="w-full"
-                data-testid="button-save-voice-settings"
-              >
-                Save Settings
-              </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleSaveSettings}
+                  className="w-full"
+                  data-testid="button-save-voice-settings"
+                >
+                  Save Settings
+                </Button>
+                <Button
+                  onClick={handleGenerateWithNewSettings}
+                  disabled={isGeneratingAudio}
+                  className="w-full"
+                  data-testid="button-generate-with-settings"
+                >
+                  {isGeneratingAudio ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Volume2 className="w-4 h-4 mr-2" />
+                      Generate Audio
+                    </>
+                  )}
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
