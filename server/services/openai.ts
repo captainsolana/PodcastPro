@@ -128,20 +128,22 @@ export class OpenAIService {
       ]
     };
 
-    return this.callOpenAIWithFallback(async () => {
-      // Use Perplexity's synchronous API with extended timeout for deep research
-      const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: "sonar-deep-research",
-          messages: [
-            {
-              role: "user",
-              content: `Conduct comprehensive research for this podcast topic: "${refinedPrompt}". 
+    // Try Perplexity first, then OpenAI, then fallback
+    try {
+      if (process.env.PERPLEXITY_API_KEY) {
+        try {
+          const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              model: "sonar-deep-research",
+              messages: [
+                {
+                  role: "user",
+                  content: `Conduct comprehensive research for this podcast topic: "${refinedPrompt}". 
 
 Research requirements:
 - Use current web sources and real data
@@ -156,28 +158,83 @@ Please format your response as valid JSON with this structure:
   "statistics": [{"fact": "statistic with numbers", "source": "where this came from"}],
   "outline": ["introduction topic", "main discussion point", "conclusion topic"]
 }`
+                }
+              ]
+            })
+          });
+
+          if (perplexityResponse.ok) {
+            const data = await perplexityResponse.json();
+            
+            if (data.choices && data.choices[0] && data.choices[0].message) {
+              const content = data.choices[0].message.content;
+              const cleanedContent = content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+              
+              const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
+              if (jsonMatch) {
+                try {
+                  console.log('Successfully got research from Perplexity');
+                  return JSON.parse(jsonMatch[0]);
+                } catch (parseError) {
+                  // Continue to OpenAI fallback
+                }
+              }
+              
+              return this.parseResearchResponse(cleanedContent);
             }
-          ]
-        })
+          }
+        } catch (perplexityError) {
+          console.log('Perplexity API not available, trying OpenAI');
+        }
+      }
+
+      // Try OpenAI for research
+      console.log('Using OpenAI for research');
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const response = await openai.chat.completions.create({
+        model: "gpt-5", // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
+        messages: [
+          {
+            role: "system",
+            content: "You are a research specialist for podcast creation. Conduct thorough research and provide comprehensive, well-researched information with realistic examples and current insights."
+          },
+          {
+            role: "user",
+            content: `Conduct comprehensive research for this podcast topic: "${refinedPrompt}". 
+
+Research requirements:
+- Provide detailed insights and realistic information
+- Include current trends and developments
+- Focus on practical, engaging information for a podcast audience
+
+Please respond with valid JSON in this structure:
+{
+  "sources": [{"title": "source title", "url": "realistic URL", "summary": "brief summary of key insights"}],
+  "keyPoints": ["main point 1", "main point 2", "etc"],
+  "statistics": [{"fact": "statistic with context", "source": "where this came from"}],
+  "outline": ["introduction topic", "main discussion point", "conclusion topic"]
+}`
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.3
       });
 
-      if (!perplexityResponse.ok) {
-        const errorText = await perplexityResponse.text();
-        throw new Error(`Perplexity API error: ${perplexityResponse.status} - ${errorText}`);
+      const content = response.choices[0].message.content;
+      if (content) {
+        try {
+          console.log('Successfully got research from OpenAI');
+          return JSON.parse(content);
+        } catch (parseError) {
+          return this.parseResearchResponse(content);
+        }
       }
 
-      const data = await perplexityResponse.json();
-      const content = data.choices[0].message.content;
-      
-      // Try to extract JSON from the response
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
-      }
-      
-      // If no JSON found, parse the text content
-      return this.parseResearchResponse(content);
-    }, fallbackResult);
+      throw new Error('No content received from research API');
+    } catch (error) {
+      console.warn('All research APIs failed, using fallback data:', (error as Error).message);
+      return fallbackResult;
+    }
   }
 
   private parseResearchResponse(content: string): ResearchResult {
