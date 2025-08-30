@@ -36,6 +36,10 @@ export default function PromptResearch({ project }: PromptResearchProps) {
     }
   }, [refinePromptResult]);
 
+  useEffect(() => {
+    console.log("Research result updated:", researchResult);
+  }, [researchResult]);
+
   const handleRefinePrompt = async () => {
     if (!prompt.trim()) {
       toast({
@@ -72,8 +76,9 @@ export default function PromptResearch({ project }: PromptResearchProps) {
     }
 
     try {
+      console.log("Starting research with prompt:", refinedPrompt);
       await conductResearch(refinedPrompt);
-      setShowEpisodePlanner(true);
+      console.log("Research completed, result:", researchResult);
       toast({
         title: "Research Complete",
         description: "AI has gathered comprehensive research data.",
