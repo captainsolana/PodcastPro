@@ -497,11 +497,20 @@ export class OpenAIService {
 
   async generateAudio(scriptContent: string, voiceSettings: { model: string; speed: number }): Promise<{ audioUrl: string; duration: number }> {
     try {
+      // Map the voice model to OpenAI's voice names
+      const voiceMap: { [key: string]: string } = {
+        'nova': 'nova',
+        'shimmer': 'shimmer', 
+        'alloy': 'alloy',
+        'coral': 'nova', // coral is not available in OpenAI, using nova as closest alternative
+      };
+      
       const mp3 = await openai.audio.speech.create({
-        model: "tts-1",
-        voice: "nova", // Using nova as coral is not available, nova has similar characteristics
+        model: "tts-1-hd", // Using high-definition model for better quality
+        voice: voiceMap[voiceSettings.model] || "nova",
         input: scriptContent,
         speed: voiceSettings.speed,
+        response_format: "mp3"
       });
 
       // Save audio file

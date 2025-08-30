@@ -234,6 +234,7 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
                     <SelectItem value="nova">Nova (Balanced)</SelectItem>
                     <SelectItem value="shimmer">Shimmer (Warm)</SelectItem>
                     <SelectItem value="alloy">Alloy (Professional)</SelectItem>
+                    <SelectItem value="coral">Coral (Energetic)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
