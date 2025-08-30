@@ -45,10 +45,31 @@ export default function WaveformVisualizer({ audioUrl, className = "" }: Wavefor
       setIsPlaying(false);
     } else {
       try {
+        console.log('Attempting to play audio from URL:', audioUrl);
+        console.log('Audio element ready state:', audio.readyState);
+        console.log('Audio element src:', audio.src);
+        
+        // Wait for the audio to be ready to play
+        if (audio.readyState < 3) {
+          console.log('Audio not ready, loading...');
+          await new Promise((resolve) => {
+            const onCanPlay = () => {
+              audio.removeEventListener('canplay', onCanPlay);
+              resolve(true);
+            };
+            audio.addEventListener('canplay', onCanPlay);
+            audio.load();
+          });
+        }
+        
         await audio.play();
         setIsPlaying(true);
+        console.log('Audio playing successfully');
       } catch (error) {
         console.error('Failed to play audio:', error);
+        console.error('Audio URL:', audioUrl);
+        console.error('Audio src:', audio.src);
+        console.error('Audio error:', audio.error);
         // Reset playing state if play fails
         setIsPlaying(false);
       }

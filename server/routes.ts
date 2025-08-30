@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import express from "express";
 import { createServer, type Server } from "http";
 import path from "path";
 import fs from "fs";
@@ -271,13 +272,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Serve static audio files
-  app.use("/audio", (req, res, next) => {
-    const audioPath = path.join(process.cwd(), "public", "audio");
-    if (!fs.existsSync(audioPath)) {
-      fs.mkdirSync(audioPath, { recursive: true });
+  app.use("/audio", express.static(path.join(process.cwd(), "public", "audio"), {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.mp3')) {
+        res.setHeader('Content-Type', 'audio/mpeg');
+        res.setHeader('Accept-Ranges', 'bytes');
+      }
     }
-    next();
-  });
+  }));
 
   const httpServer = createServer(app);
   return httpServer;
