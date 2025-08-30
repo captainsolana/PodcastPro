@@ -139,7 +139,7 @@ export class OpenAIService {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              model: "sonar-deep-research",
+              model: "sonar-reasoning",
               messages: [
                 {
                   role: "user",
@@ -216,8 +216,7 @@ Please respond with valid JSON in this structure:
 }`
           }
         ],
-        response_format: { type: "json_object" },
-        temperature: 0.3
+        response_format: { type: "json_object" }
       });
 
       const content = response.choices[0].message.content;
