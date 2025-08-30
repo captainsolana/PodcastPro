@@ -36,7 +36,7 @@ export default function WaveformVisualizer({ audioUrl, className = "" }: Wavefor
     };
   }, [audioUrl]);
 
-  const togglePlayPause = () => {
+  const togglePlayPause = async () => {
     const audio = audioRef.current;
     if (!audio) return;
 
@@ -44,8 +44,14 @@ export default function WaveformVisualizer({ audioUrl, className = "" }: Wavefor
       audio.pause();
       setIsPlaying(false);
     } else {
-      audio.play();
-      setIsPlaying(true);
+      try {
+        await audio.play();
+        setIsPlaying(true);
+      } catch (error) {
+        console.error('Failed to play audio:', error);
+        // Reset playing state if play fails
+        setIsPlaying(false);
+      }
     }
   };
 
