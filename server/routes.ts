@@ -204,9 +204,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Script content is required" });
       }
 
+      console.log('Route: Starting audio generation...');
+      console.log('Route: Script content length:', scriptContent.length);
+      console.log('Route: Voice settings:', voiceSettings);
+      
       const result = await openAIService.generateAudio(scriptContent, voiceSettings || { model: "nova", speed: 1.0 });
+      console.log('Route: Audio generation completed:', result);
       res.json(result);
     } catch (error) {
+      console.error('Route: Audio generation error:', error);
       res.status(500).json({ message: (error as Error).message || "Failed to generate audio" });
     }
   });

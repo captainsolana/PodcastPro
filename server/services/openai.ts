@@ -547,6 +547,9 @@ Return this JSON format:
 
   async generateAudio(scriptContent: string, voiceSettings: { model: string; speed: number }): Promise<{ audioUrl: string; duration: number }> {
     try {
+      console.log('Audio generation - Script length:', scriptContent.length, 'characters');
+      console.log('Audio generation - Voice settings:', voiceSettings);
+      
       // Map the voice model to OpenAI's voice names (all 11 voices available in gpt-4o-mini-tts)
       const voiceMap: { [key: string]: string } = {
         'alloy': 'alloy',
@@ -561,18 +564,23 @@ Return this JSON format:
         'shimmer': 'shimmer',
       };
       
+      const selectedVoice = voiceMap[voiceSettings.model] || "nova";
+      console.log('Making TTS API call with gpt-4o-mini-tts, voice:', selectedVoice);
+      
       const mp3 = await openai.audio.speech.create({
         model: "gpt-4o-mini-tts", // Using the new gpt-4o-mini-tts model
-        voice: voiceMap[voiceSettings.model] || "nova",
+        voice: selectedVoice,
         input: scriptContent,
         speed: voiceSettings.speed,
-        instructions: "Speak in a natural, engaging podcast host tone with clear enunciation and appropriate pacing for audio content.",
         response_format: "mp3"
       });
 
+      console.log('TTS API call successful, processing audio file...');
+      
       // Save audio file
       const audioDir = path.join(process.cwd(), "public", "audio");
       if (!fs.existsSync(audioDir)) {
+        console.log('Creating audio directory:', audioDir);
         fs.mkdirSync(audioDir, { recursive: true });
       }
 
@@ -580,16 +588,21 @@ Return this JSON format:
       const filePath = path.join(audioDir, fileName);
       const buffer = Buffer.from(await mp3.arrayBuffer());
       fs.writeFileSync(filePath, buffer);
+      
+      console.log('Audio file saved:', fileName, 'Size:', buffer.length, 'bytes');
 
       // Estimate duration (rough calculation: ~150 words per minute)
       const wordCount = scriptContent.split(/\s+/).length;
       const estimatedDuration = Math.round((wordCount / 150) * 60); // in seconds
 
+      console.log('Audio generation completed - Duration:', estimatedDuration, 'seconds');
+      
       return {
         audioUrl: `/audio/${fileName}`,
         duration: estimatedDuration
       };
     } catch (error) {
+      console.error('Audio generation error:', error);
       throw new Error(`Failed to generate audio: ${(error as Error).message}`);
     }
   }
