@@ -496,32 +496,48 @@ export class OpenAIService {
       console.log('Script generation - Key points count:', research.keyPoints?.length || 0);
       console.log('Script generation - Statistics count:', research.statistics?.length || 0);
       
-      const response = await openai.responses.create({
-        model: "gpt-5",
-        reasoning: { effort: "medium" }, // Balanced effort for creative script writing
-        instructions: "You are an expert podcast script writer. Create engaging podcast scripts that thoroughly incorporate the provided research data. Include specific statistics, facts, and key points from the research in natural conversation flow.",
-        input: `Create a podcast script for: "${prompt}". 
+      console.log('Making GPT-4o API call for script generation...');
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert podcast script writer. Create engaging podcast scripts that incorporate the provided research data. Return only valid JSON."
+          },
+          {
+            role: "user",
+            content: `Create a podcast script for: "${prompt}". 
 
-Use the following research data and incorporate the specific statistics, facts, and key points into the script:
+Use this research data: ${JSON.stringify(research, null, 2)}
 
-${JSON.stringify(research)}
-
-Make sure to:
-- Reference specific statistics and numbers from the research
-- Include the key points as discussion topics
-- Use the factual data to make the content informative
-- Create natural conversation flow with [pause], [thoughtful pause], [emphasis], etc.
-- Make it engaging while being factually accurate
-
-Format as JSON: { "content": string, "sections": [{"type": string, "content": string, "duration": number}], "totalDuration": number, "analytics": {"wordCount": number, "readingTime": number, "speechTime": number, "pauseCount": number} }`,
+Return ONLY this JSON format:
+{
+  "content": "Full script text with [pause] markers",
+  "sections": [{"type": "intro", "content": "Section text", "duration": 60}],
+  "totalDuration": 900,
+  "analytics": {"wordCount": 500, "readingTime": 5, "speechTime": 15, "pauseCount": 10}
+}`
+          }
+        ],
+        response_format: { type: "json_object" },
+        timeout: 30000 // 30 second timeout
       });
 
-      const result = JSON.parse(response.output_text || "{}");
+      console.log('GPT-4o response received');
+      const responseText = response.choices[0]?.message?.content;
+      
+      if (!responseText) {
+        throw new Error('No response content received from GPT-4o');
+      }
+
+      console.log('GPT-4o output preview:', responseText.substring(0, 200) + '...');
+      const result = JSON.parse(responseText);
       console.log('Script generated - Word count:', result.analytics?.wordCount || 0);
       console.log('Script generated - Total duration:', result.totalDuration || 0);
       
       return result;
     } catch (error) {
+      console.error('Script generation error:', error);
       throw new Error(`Failed to generate script: ${(error as Error).message}`);
     }
   }

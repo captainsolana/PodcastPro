@@ -185,9 +185,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Prompt and research data are required" });
       }
 
+      console.log('Route: Starting script generation...');
       const result = await openAIService.generateScript(prompt, research);
+      console.log('Route: Script generation completed, sending response...');
+      console.log('Route: Response data preview:', JSON.stringify(result).substring(0, 200) + '...');
       res.json(result);
+      console.log('Route: Response sent successfully');
     } catch (error) {
+      console.error('Route: Script generation error:', error);
       res.status(500).json({ message: (error as Error).message || "Failed to generate script" });
     }
   });
