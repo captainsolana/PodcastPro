@@ -501,34 +501,32 @@ export class OpenAIService {
         timeout: 120000 // Increased to 2 minutes for GPT-5
       });
       
+      console.log('Input length:', JSON.stringify(research).length, 'characters');
+      
       console.log('Making GPT-5 responses API call for script generation...');
       const response = await scriptOpenAI.responses.create({
         model: "gpt-5",
-        reasoning: { effort: "medium" }, // Balanced effort for creative script writing
-        input: `Create a podcast script for: "${prompt}". 
+        reasoning: { effort: "medium" },
+        instructions: "You are an expert podcast script writer. Create engaging podcast scripts using the provided research data. Return only valid JSON.",
+        input: `Create a podcast script about: "${prompt}". 
 
-Use the following research data and incorporate the specific statistics, facts, and key points into the script:
+Research data: ${JSON.stringify(research)}
 
-${JSON.stringify(research)}
-
-Make sure to:
-- Reference specific statistics and numbers from the research
-- Include the key points as discussion topics
-- Use the factual data to make the content informative
-- Create natural conversation flow with [pause], [thoughtful pause], [emphasis], etc.
-- Make it engaging while being factually accurate
-
-Return ONLY this JSON format:
+Return this JSON format:
 {
-  "content": "Full script text with [pause] markers",
-  "sections": [{"type": "intro", "content": "Section text", "duration": 60}],
+  "content": "Script with [pause] markers",
+  "sections": [{"type": "intro", "content": "text", "duration": 60}],
   "totalDuration": 900,
   "analytics": {"wordCount": 500, "readingTime": 5, "speechTime": 15, "pauseCount": 10}
-}`,
-        instructions: "You are an expert podcast script writer. Create engaging podcast scripts that thoroughly incorporate the provided research data. Include specific statistics, facts, and key points from the research in natural conversation flow. Return only valid JSON."
+}`
       });
 
       console.log('GPT-5 response received');
+      console.log('Full response object keys:', Object.keys(response));
+      console.log('Response status:', response.status);
+      console.log('Response output_text length:', response.output_text?.length || 0);
+      console.log('Response output array:', response.output?.length || 0, 'items');
+      
       const responseText = response.output_text;
       
       if (!responseText) {
