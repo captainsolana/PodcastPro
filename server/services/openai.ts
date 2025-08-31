@@ -180,19 +180,12 @@ export class OpenAIService {
         sources: [{
           title: `${refinedPrompt} - Comprehensive Research`,
           url: "#",
-          summary: researchContent.substring(0, 300) + "..."
+          summary: researchContent, // Pass the full content instead of truncating
+          fullContent: researchContent // Add full content field
         }],
         keyPoints,
         statistics,
-        outline: [
-          "Introduction and background context",
-          "Historical evolution and key milestones",
-          "Current landscape and market dynamics", 
-          "Practical applications and case studies",
-          "Innovation trends and emerging developments",
-          "Future outlook and strategic implications",
-          "Conclusion and key insights"
-        ]
+        outline: this.extractOutline(researchContent)
       };
       
     } catch (error) {

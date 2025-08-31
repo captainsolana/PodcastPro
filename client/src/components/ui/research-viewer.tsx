@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 
 interface ResearchViewerProps {
   researchResult: {
-    sources: Array<{ title: string; url: string; summary: string }>;
+    sources: Array<{ title: string; url: string; summary: string; fullContent?: string }>;
     keyPoints: string[];
     statistics: Array<{ fact: string; source: string }>;
     outline: string[];
@@ -19,17 +19,18 @@ interface ResearchViewerProps {
 
 export function ResearchViewer({ researchResult, className }: ResearchViewerProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'detailed' | 'raw'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'detailed' | 'raw'>('raw');
 
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: FileText },
-    { id: 'detailed', label: 'Detailed View', icon: List },
-    { id: 'raw', label: 'Raw Content', icon: BarChart3 }
+    { id: 'raw', label: 'Full Research', icon: FileText },
+    { id: 'overview', label: 'Overview', icon: List },
+    { id: 'detailed', label: 'Structured View', icon: BarChart3 }
   ];
 
-  // Get the full research content from sources summary
-  const fullContent = researchResult.sources[0]?.summary || "";
-  const isContentTruncated = fullContent.includes("...");
+  // Get the full research content from sources
+  const fullContent = researchResult.sources[0]?.fullContent || researchResult.sources[0]?.summary || "";
+  const displaySummary = researchResult.sources[0]?.summary || "";
+  const isContentTruncated = displaySummary.includes("...") && displaySummary.length < fullContent.length;
 
   return (
     <Card className={cn("w-full", className)}>
@@ -207,23 +208,23 @@ export function ResearchViewer({ researchResult, className }: ResearchViewerProp
                 <div>
                   <h4 className="font-semibold text-sm mb-3 flex items-center">
                     <ExternalLink className="w-4 h-4 mr-2 text-primary" />
-                    Research Sources
+                    Full Research Content
                   </h4>
                   <div className="space-y-3">
                     {researchResult.sources?.map((source: any, index: number) => (
                       <div key={index} className="border rounded-lg p-4">
-                        <h5 className="font-medium text-sm text-foreground mb-2">{source.title}</h5>
-                        <div className="bg-muted/50 p-3 rounded-md">
-                          <p className="text-xs text-muted-foreground font-mono leading-relaxed whitespace-pre-wrap">
-                            {source.summary}
-                          </p>
+                        <h5 className="font-medium text-sm text-foreground mb-3">{source.title}</h5>
+                        <div className="bg-muted/50 p-4 rounded-md max-h-96 overflow-y-auto">
+                          <div className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+                            {fullContent || source.summary}
+                          </div>
                         </div>
-                        {isContentTruncated && (
-                          <p className="text-xs text-amber-600 mt-2 flex items-center">
-                            <BarChart3 className="w-3 h-3 mr-1" />
-                            Content truncated for display - full content used for script generation
-                          </p>
-                        )}
+                        <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+                          <span>Character count: {(fullContent || source.summary).length}</span>
+                          {fullContent && (
+                            <span className="text-green-600">✓ Full research content available</span>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
