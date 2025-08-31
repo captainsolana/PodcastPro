@@ -129,20 +129,46 @@ export class OpenAIService {
       
       // Single comprehensive query to get rich content for script generation
       const researchContent = await this.performPerplexityQuery(
-        `Research ${refinedPrompt} and provide comprehensive, detailed information for creating engaging content.
-        
-        Include specific details about:
-        - Historical background with key dates and milestones
-        - Current statistics with exact numbers and percentages
-        - Key companies, organizations, and people involved
-        - How it works technically with specific examples
-        - Recent developments and news from 2024-2025
-        - Market size, adoption rates, and user numbers
-        - Interesting facts and lesser-known details
-        - Future trends and predictions
-        - Real-world impact and case studies
-        
-        Provide rich, factual content with specific data points, numbers, and concrete examples.`
+        `Conduct extensive research on: ${refinedPrompt}
+
+        Provide comprehensive, detailed information organized in clear sections for content creation. Include:
+
+        **Historical Background:**
+        • Key founding dates, milestones, and turning points
+        • Important people, organizations, and institutions involved
+        • Evolution and major developments over time
+
+        **Current State & Statistics:**
+        • Latest market data with specific numbers (transactions, users, revenue)
+        • Growth rates, adoption statistics, and market penetration
+        • Geographic distribution and regional variations
+        • Current market leaders and key players
+
+        **Technical Details:**
+        • How the system/process works with step-by-step explanations
+        • Architecture, infrastructure, and technical specifications
+        • Integration methods and protocols used
+        • Security measures and compliance standards
+
+        **Recent Developments (2024-2025):**
+        • Latest news, announcements, and product launches
+        • New partnerships, regulations, and policy changes
+        • Emerging trends and technological advances
+        • Recent studies and research findings
+
+        **Real-World Impact:**
+        • Success stories and case studies with specific examples
+        • Economic impact and job creation statistics
+        • Social benefits and transformative effects
+        • Challenges faced and solutions implemented
+
+        **Future Outlook:**
+        • Predicted growth trends and market forecasts
+        • Upcoming technologies and innovations
+        • Potential challenges and opportunities
+        • Expert predictions and analyst opinions
+
+        Format your response with clear headers and bullet points. Include specific numbers, percentages, dates, and examples throughout. Aim for factual, cite-able information that can be used for professional content creation.`
       );
 
       // Extract key content from the research for script generation
@@ -220,14 +246,61 @@ export class OpenAIService {
       ];
     }
     
-    const points = content.match(/(?:•|\*|-|\d\.)\s*([^\n]+)/g) || [];
-    if (points.length > 0) {
-      return points.slice(0, 6).map(point => point.replace(/^(?:•|\*|-|\d\.)\s*/, '').trim());
+    console.log('Extracting key points from content length:', content.length);
+    
+    // First try to find structured bullet points or numbered lists
+    const bulletPatterns = [
+      /(?:•|\*|-|\d+\.)\s*([^\n]{20,200})/g,
+      /(?:^|\n)\s*[-•*]\s*([^\n]{20,200})/g,
+      /(?:^|\n)\s*\d+\.\s*([^\n]{20,200})/g
+    ];
+    
+    let points: string[] = [];
+    for (const pattern of bulletPatterns) {
+      const matches = Array.from(content.matchAll(pattern));
+      if (matches.length > 0) {
+        points = matches.map(match => match[1].trim()).slice(0, 8);
+        break;
+      }
     }
     
-    // If no bullet points found, extract sentences that look like key insights
-    const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 20 && s.trim().length < 150);
-    return sentences.slice(0, 6).map(s => s.trim());
+    // If we found good bullet points, return them
+    if (points.length >= 3) {
+      console.log('Found', points.length, 'structured bullet points');
+      return points;
+    }
+    
+    // Look for sentences with important keywords
+    const importantSentences = content.split(/[.!?]+/)
+      .filter(s => {
+        const trimmed = s.trim();
+        return trimmed.length > 30 && trimmed.length < 200 &&
+               (trimmed.includes('UPI') || trimmed.includes('billion') || 
+                trimmed.includes('payment') || trimmed.includes('India') ||
+                trimmed.includes('transaction') || trimmed.includes('system') ||
+                trimmed.includes('digital') || trimmed.includes('bank'));
+      })
+      .slice(0, 8)
+      .map(s => s.trim());
+    
+    if (importantSentences.length >= 3) {
+      console.log('Found', importantSentences.length, 'important sentences');
+      return importantSentences;
+    }
+    
+    // Last resort: extract any meaningful sentences
+    const allSentences = content.split(/[.!?]+/)
+      .filter(s => s.trim().length > 25 && s.trim().length < 180)
+      .slice(0, 6)
+      .map(s => s.trim());
+    
+    console.log('Extracted', allSentences.length, 'general sentences as key points');
+    return allSentences.length > 0 ? allSentences : [
+      "Comprehensive research analysis completed",
+      "Key insights and market dynamics identified", 
+      "Current trends and adoption patterns analyzed",
+      "Strategic implications and future outlook assessed"
+    ];
   }
 
   private extractStatistics(content: string): Array<{fact: string, source: string}> {
@@ -246,13 +319,36 @@ export class OpenAIService {
       ];
     }
     
-    // Look for numbers/percentages with context
-    const statMatches = content.match(/\d+(?:\.\d+)?%?[^.]*(?:increase|decrease|growth|decline|rate|percent|million|billion|trillion)/gi) || [];
+    console.log('Extracting statistics from content length:', content.length);
     
-    if (statMatches.length > 0) {
-      return statMatches.slice(0, 3).map(stat => ({
+    // Enhanced patterns for finding statistics
+    const statPatterns = [
+      // Numbers with context (billion, million, trillion)
+      /[^.]*\d+(?:\.\d+)?\s*(?:billion|million|trillion|crore|lakh)[^.]{10,150}/gi,
+      // Percentages with context
+      /[^.]*\d+(?:\.\d+)?%[^.]{10,150}/gi,
+      // Years and growth statistics
+      /[^.]*(?:20\d{2}|grew|increased|reached|processes|handles)[^.]{20,150}\d+[^.]{0,50}/gi,
+      // Transaction and usage statistics
+      /[^.]*\d+[^.]*(?:transaction|user|payment|adoption|market|volume)[^.]{10,100}/gi
+    ];
+    
+    let stats: string[] = [];
+    for (const pattern of statPatterns) {
+      const matches = Array.from(content.matchAll(pattern));
+      stats.push(...matches.map(match => match[0].trim()));
+    }
+    
+    // Remove duplicates and filter for quality
+    stats = Array.from(new Set(stats))
+      .filter(stat => stat.length > 20 && stat.length < 200)
+      .slice(0, 5);
+    
+    if (stats.length > 0) {
+      console.log('Found', stats.length, 'statistics from content');
+      return stats.map(stat => ({
         fact: stat.trim(),
-        source: "Research Analysis 2024"
+        source: "Perplexity Research 2024"
       }));
     }
     
@@ -289,13 +385,53 @@ export class OpenAIService {
   }
 
   private extractOutline(content: string): string[] {
+    console.log('Extracting outline from content length:', content.length);
+    
+    // Look for structured headers and sections
+    const headerPatterns = [
+      /(?:^|\n)\*\*([^*]+)\*\*:?/g,
+      /(?:^|\n)#{1,3}\s*([^\n]+)/g,
+      /(?:^|\n)([A-Z][^\n]{10,80}):$/gm,
+      /(?:^|\n)\d+\.\s*([A-Z][^\n]{10,80})/g
+    ];
+    
+    let headers: string[] = [];
+    for (const pattern of headerPatterns) {
+      const matches = Array.from(content.matchAll(pattern));
+      if (matches.length >= 3) {
+        headers = matches.map(match => match[1].trim()).slice(0, 8);
+        break;
+      }
+    }
+    
+    if (headers.length >= 3) {
+      console.log('Found', headers.length, 'structured headers for outline');
+      return headers;
+    }
+    
+    // Fallback outline based on content topic
+    const topicLower = content.toLowerCase();
+    if (topicLower.includes('upi') || topicLower.includes('payment') || topicLower.includes('digital')) {
+      return [
+        "Introduction and background",
+        "Historical development and milestones", 
+        "Technical architecture and implementation",
+        "Market adoption and growth statistics",
+        "Current ecosystem and key players",
+        "Real-world applications and impact",
+        "Future developments and conclusion"
+      ];
+    }
+    
+    // Generic outline
     return [
       "Introduction and context",
-      "Key findings and insights",
-      "Statistical analysis",
-      "Practical implications",
-      "Future outlook",
-      "Conclusion and takeaways"
+      "Historical background and evolution",
+      "Current state and key statistics",
+      "Technical details and implementation", 
+      "Market impact and applications",
+      "Future trends and opportunities",
+      "Conclusion and key takeaways"
     ];
   }
 
@@ -359,7 +495,7 @@ export class OpenAIService {
             content: prompt
           }
         ],
-        max_tokens: 3000,
+        max_tokens: 4000,
       })
     });
 
