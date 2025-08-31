@@ -496,19 +496,30 @@ export class OpenAIService {
       console.log('Script generation - Key points count:', research.keyPoints?.length || 0);
       console.log('Script generation - Statistics count:', research.statistics?.length || 0);
       
-      console.log('Making GPT-4o API call for script generation...');
+      console.log('Making GPT-5 API call for script generation...');
       const response = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-5",
+        reasoning_effort: "medium", // Balanced effort for creative script writing
+        verbosity: "medium", // Balanced detail level
         messages: [
           {
             role: "system",
-            content: "You are an expert podcast script writer. Create engaging podcast scripts that incorporate the provided research data. Return only valid JSON."
+            content: "You are an expert podcast script writer. Create engaging podcast scripts that thoroughly incorporate the provided research data. Include specific statistics, facts, and key points from the research in natural conversation flow. Return only valid JSON."
           },
           {
             role: "user",
             content: `Create a podcast script for: "${prompt}". 
 
-Use this research data: ${JSON.stringify(research, null, 2)}
+Use the following research data and incorporate the specific statistics, facts, and key points into the script:
+
+${JSON.stringify(research)}
+
+Make sure to:
+- Reference specific statistics and numbers from the research
+- Include the key points as discussion topics
+- Use the factual data to make the content informative
+- Create natural conversation flow with [pause], [thoughtful pause], [emphasis], etc.
+- Make it engaging while being factually accurate
 
 Return ONLY this JSON format:
 {
@@ -520,17 +531,18 @@ Return ONLY this JSON format:
           }
         ],
         response_format: { type: "json_object" },
-        timeout: 30000 // 30 second timeout
+        max_completion_tokens: 5000,
+        temperature: 0.7
       });
 
-      console.log('GPT-4o response received');
+      console.log('GPT-5 response received');
       const responseText = response.choices[0]?.message?.content;
       
       if (!responseText) {
-        throw new Error('No response content received from GPT-4o');
+        throw new Error('No response content received from GPT-5');
       }
 
-      console.log('GPT-4o output preview:', responseText.substring(0, 200) + '...');
+      console.log('GPT-5 output preview:', responseText.substring(0, 200) + '...');
       const result = JSON.parse(responseText);
       console.log('Script generated - Word count:', result.analytics?.wordCount || 0);
       console.log('Script generated - Total duration:', result.totalDuration || 0);
@@ -593,14 +605,24 @@ Return ONLY this JSON format:
 
   async generateScriptSuggestions(scriptContent: string): Promise<Array<{ type: string; suggestion: string; targetSection: string }>> {
     try {
-      const response = await openai.responses.create({
+      const response = await openai.chat.completions.create({
         model: "gpt-5",
-        reasoning: { effort: "low" }, // Fast analysis for suggestions
-        instructions: "You are a podcast editing expert. Analyze scripts and provide specific improvement suggestions for flow, engagement, and clarity.",
-        input: `Analyze this podcast script and provide improvement suggestions: "${scriptContent}". Format as JSON: { "suggestions": [{"type": string, "suggestion": string, "targetSection": string}] }`,
+        reasoning_effort: "low", // Fast analysis for suggestions
+        verbosity: "medium",
+        messages: [
+          {
+            role: "system",
+            content: "You are a podcast editing expert. Analyze scripts and provide specific improvement suggestions for flow, engagement, and clarity."
+          },
+          {
+            role: "user",
+            content: `Analyze this podcast script and provide improvement suggestions: "${scriptContent}". Format as JSON: { "suggestions": [{"type": string, "suggestion": string, "targetSection": string}] }`
+          }
+        ],
+        response_format: { type: "json_object" },
       });
 
-      const result = JSON.parse(response.output_text || "{}");
+      const result = JSON.parse(response.choices[0]?.message?.content || "{}");
       return result.suggestions || [];
     } catch (error) {
       throw new Error(`Failed to generate suggestions: ${(error as Error).message}`);
@@ -609,20 +631,30 @@ Return ONLY this JSON format:
 
   async analyzeForEpisodeBreakdown(prompt: string, research: ResearchResult): Promise<EpisodePlanResult> {
     try {
-      const response = await openai.responses.create({
+      const response = await openai.chat.completions.create({
         model: "gpt-5",
-        reasoning: { effort: "medium" }, // Thoughtful analysis for episode planning
-        instructions: "You are a podcast series planning expert. Analyze research content and determine if it would benefit from being split into multiple 15-20 minute episodes. Consider content depth, natural topic divisions, and audience engagement.",
-        input: `Analyze this podcast topic and research to determine if it should be a single episode or multiple episodes: 
+        reasoning_effort: "medium", // Thoughtful analysis for episode planning
+        verbosity: "medium",
+        messages: [
+          {
+            role: "system",
+            content: "You are a podcast series planning expert. Analyze research content and determine if it would benefit from being split into multiple 15-20 minute episodes. Consider content depth, natural topic divisions, and audience engagement."
+          },
+          {
+            role: "user",
+            content: `Analyze this podcast topic and research to determine if it should be a single episode or multiple episodes: 
 
 Topic: "${prompt}"
 
 Research: ${JSON.stringify(research)}
 
-Provide analysis in JSON format: { "isMultiEpisode": boolean, "totalEpisodes": number, "episodes": [{"episodeNumber": number, "title": string, "description": string, "keyTopics": string[], "estimatedDuration": number}], "reasoning": string }`,
+Provide analysis in JSON format: { "isMultiEpisode": boolean, "totalEpisodes": number, "episodes": [{"episodeNumber": number, "title": string, "description": string, "keyTopics": string[], "estimatedDuration": number}], "reasoning": string }`
+          }
+        ],
+        response_format: { type: "json_object" },
       });
 
-      return JSON.parse(response.output_text || "{}");
+      return JSON.parse(response.choices[0]?.message?.content || "{}");
     } catch (error) {
       throw new Error(`Failed to analyze episode breakdown: ${(error as Error).message}`);
     }
