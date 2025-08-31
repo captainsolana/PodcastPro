@@ -1,6 +1,7 @@
 import { useLocation } from "wouter";
 import { useProjects } from "@/hooks/use-project";
-import { Mic, Check, Calendar, Clock } from "lucide-react";
+import { Mic, Check, Calendar, Clock, ArrowRight } from "lucide-react";
+import { ExpandableText } from "@/components/ui/expandable-text";
 import type { Project } from "@shared/schema";
 
 interface SidebarProps {
@@ -36,65 +37,99 @@ export default function Sidebar({ project }: SidebarProps) {
   };
 
   return (
-    <div className="w-64 bg-card border-r border-border shadow-sm">
+    <div className="w-72 bg-card/50 backdrop-blur-sm border-r border-border/50 shadow-lg">
       <div className="p-6">
         <div 
-          className="flex items-center space-x-3 mb-8 cursor-pointer hover:opacity-80 transition-opacity"
+          className="group flex items-center space-x-3 mb-8 cursor-pointer hover:scale-105 transition-all duration-300"
           onClick={() => setLocation("/")}
           data-testid="link-home"
         >
-          <div className="gradient-bg w-10 h-10 rounded-lg flex items-center justify-center">
-            <Mic className="text-white w-5 h-5" />
+          <div className="gradient-bg w-12 h-12 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300">
+            <Mic className="text-white w-6 h-6" />
           </div>
-          <h1 className="text-xl font-bold text-foreground">Podcast Maker</h1>
+          <div>
+            <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Podcast Maker</h1>
+            <p className="text-xs text-muted-foreground">AI-Powered Creation</p>
+          </div>
+        </div>
+
+        {/* Current Project Info */}
+        <div className="card-enhanced p-4 mb-6 animate-fade-in-up">
+          <h3 className="font-semibold text-foreground mb-2 truncate">{project.title}</h3>
+          <ExpandableText maxLines={2} showButton={false}>
+            <p className="text-sm text-muted-foreground">
+              {project.description}
+            </p>
+          </ExpandableText>
         </div>
 
         {/* Progress Steps */}
-        <div className="space-y-4 mb-8">
-          {phases.map((phase) => (
+        <div className="space-y-3 mb-8">
+          <h3 className="text-sm font-semibold text-foreground mb-4">Progress Steps</h3>
+          {phases.map((phase, index) => (
             <div
               key={phase.number}
-              className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors ${getPhaseStyle(phase.number)}`}
+              className={`group flex items-center space-x-3 p-4 rounded-xl cursor-pointer transition-all duration-300 ${getPhaseStyle(phase.number)} animate-fade-in-up`}
+              style={{ animationDelay: `${index * 0.1}s` }}
               data-testid={`phase-${phase.number}`}
             >
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shadow-sm">
                 {phase.number < project.phase ? (
-                  <Check className="w-4 h-4" />
+                  <Check className="w-5 h-5" />
                 ) : (
                   phase.number
                 )}
               </div>
-              <div>
-                <p className="font-medium text-sm">{phase.title}</p>
-                <p className="text-xs opacity-75">{phase.description}</p>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm">{phase.title}</p>
+                <p className="text-xs opacity-90 leading-relaxed">{phase.description}</p>
               </div>
+              {phase.number === project.phase && (
+                <ArrowRight className="w-4 h-4 opacity-60 group-hover:translate-x-1 transition-transform duration-300" />
+              )}
             </div>
           ))}
         </div>
 
         {/* Recent Projects */}
         <div>
-          <h3 className="text-sm font-medium text-muted-foreground mb-3">Recent Projects</h3>
-          <div className="space-y-2">
-            {projects.slice(0, 3).map((proj) => (
+          <h3 className="text-sm font-semibold text-foreground mb-4">Recent Projects</h3>
+          <div className="space-y-3">
+            {projects.slice(0, 3).map((proj, index) => (
               <div
                 key={proj.id}
-                className={`p-3 rounded-lg hover:bg-muted cursor-pointer transition-colors ${
-                  proj.id === project.id ? "bg-muted" : "bg-muted/50"
+                className={`group card-enhanced p-3 cursor-pointer transition-all duration-300 animate-fade-in-up ${
+                  proj.id === project.id ? "ring-2 ring-primary/20 bg-primary/5" : ""
                 }`}
+                style={{ animationDelay: `${index * 0.1}s` }}
                 onClick={() => setLocation(`/project/${proj.id}`)}
                 data-testid={`card-recent-project-${proj.id}`}
               >
-                <p className="text-sm font-medium text-foreground truncate">{proj.title}</p>
-                <div className="flex items-center space-x-2 mt-1">
-                  <div className="flex items-center space-x-1 text-xs text-muted-foreground">
-                    <Clock className="w-3 h-3" />
-                    <span>Phase {proj.phase}</span>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+                      {proj.title}
+                    </p>
+                    <div className="flex items-center space-x-3 mt-2">
+                      <div className="flex items-center space-x-1">
+                        <div className={`w-2 h-2 rounded-full ${
+                          proj.phase === 1 ? 'bg-primary' :
+                          proj.phase === 2 ? 'bg-warning' :
+                          'bg-success'
+                        }`} />
+                        <span className="text-xs font-medium text-muted-foreground">
+                          Phase {proj.phase}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-1 text-xs text-muted-foreground">
+                        <Calendar className="w-3 h-3" />
+                        <span>{new Date(proj.updatedAt || "").toLocaleDateString()}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-1 text-xs text-muted-foreground">
-                    <Calendar className="w-3 h-3" />
-                    <span>{new Date(proj.updatedAt || "").toLocaleDateString()}</span>
-                  </div>
+                  {proj.id !== project.id && (
+                    <ArrowRight className="w-3 h-3 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all duration-300 flex-shrink-0 ml-2" />
+                  )}
                 </div>
               </div>
             ))}
