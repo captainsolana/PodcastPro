@@ -511,42 +511,22 @@ export class OpenAIService {
         messages: [
           {
             role: "system",
-            content: "You are an expert podcast script writer specializing in long-form, detailed content. You MUST create comprehensive 15-20 minute scripts (2000-3000 words minimum) that extensively use ALL provided research data. Every statistic, fact, and key point from the research must be included and expanded upon with detailed explanations."
+            content: "You are an expert podcast script writer. Create engaging podcast scripts that thoroughly incorporate the provided research data. Include specific statistics, facts, and key points from the research in natural conversation flow."
           },
           {
             role: "user",
-            content: `Create a comprehensive, detailed podcast script for: "${prompt}". 
+            content: `Create a podcast script for: "${prompt}". 
 
-CRITICAL REQUIREMENTS:
-- MINIMUM 2000-3000 words (this is non-negotiable)
-- USE EVERY SINGLE key point from the research - expand on each one extensively
-- INCLUDE ALL statistics with context and explanation
-- Quote specific numbers, percentages, and data points from the research
-- Create detailed conversations between hosts about each research point
-- Include background context, implications, and analysis for each fact
-- Make each section substantial with deep dives into the research content
+Use the following research data and incorporate the specific statistics, facts, and key points into the script:
 
-Research Data to use extensively: ${JSON.stringify(research)}
+${JSON.stringify(research)}
 
-SCRIPT STRUCTURE (MANDATORY - each section MUST be 350-450 words):
-1. Introduction (350+ words - discuss the significance of the topic in detail)
-2. Historical Context (400+ words - detailed background from research)
-3. Current Statistics and Market Analysis (450+ words - use ALL numbers and data extensively)
-4. Key Developments and Breakthroughs (400+ words - expand on ALL key points thoroughly)
-5. Industry Impact and Applications (350+ words - detailed examples with explanations)
-6. Future Projections (350+ words - use research predictions extensively)
-7. Conclusion and Key Takeaways (200+ words)
-
-WORD COUNT VERIFICATION: Your response must contain AT LEAST 2500 words total.
-
-Each section must include:
-- Specific statistics from the research
-- Detailed explanations and context
-- Natural conversation elements [pause], [thoughtful pause], [emphasis]
-- Host interactions and discussions
-- Real examples and case studies from the data
-
-Target: 20 minutes = 2500+ words (speaking pace: ~125 words per minute)
+Make sure to:
+- Reference specific statistics and numbers from the research
+- Include the key points as discussion topics
+- Use the factual data to make the content informative
+- Create natural conversation flow with [pause], [thoughtful pause], [emphasis], etc.
+- Make it engaging while being factually accurate
 
 Format as JSON: { "content": string, "sections": [{"type": string, "content": string, "duration": number}], "totalDuration": number, "analytics": {"wordCount": number, "readingTime": number, "speechTime": number, "pauseCount": number} }`
           }
