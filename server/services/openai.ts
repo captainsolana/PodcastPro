@@ -500,22 +500,65 @@ export class OpenAIService {
 
   async generateScript(prompt: string, research: ResearchResult): Promise<ScriptResult> {
     try {
+      console.log('Script generation - Research data preview:', JSON.stringify(research).substring(0, 500) + '...');
+      console.log('Script generation - Key points count:', research.keyPoints?.length || 0);
+      console.log('Script generation - Statistics count:', research.statistics?.length || 0);
+      
       const response = await openai.chat.completions.create({
         model: "gpt-4o", // using gpt-4o
+        max_tokens: 4000, // Allow for longer scripts
+        temperature: 0.7, // Slightly more creative for detailed content
         messages: [
           {
             role: "system",
-            content: "You are an expert podcast script writer. Create engaging 15-20 minute scripts with natural conversation flow, including pauses, fillers, and transitions. Make content accessible and compelling."
+            content: "You are an expert podcast script writer specializing in long-form, detailed content. You MUST create comprehensive 15-20 minute scripts (2000-3000 words minimum) that extensively use ALL provided research data. Every statistic, fact, and key point from the research must be included and expanded upon with detailed explanations."
           },
           {
             role: "user",
-            content: `Create a podcast script for: "${prompt}". Use this research: ${JSON.stringify(research)}. Include natural conversation elements like [pause], [thoughtful pause], [emphasis], etc. Format as JSON: { "content": string, "sections": [{"type": string, "content": string, "duration": number}], "totalDuration": number, "analytics": {"wordCount": number, "readingTime": number, "speechTime": number, "pauseCount": number} }`
+            content: `Create a comprehensive, detailed podcast script for: "${prompt}". 
+
+CRITICAL REQUIREMENTS:
+- MINIMUM 2000-3000 words (this is non-negotiable)
+- USE EVERY SINGLE key point from the research - expand on each one extensively
+- INCLUDE ALL statistics with context and explanation
+- Quote specific numbers, percentages, and data points from the research
+- Create detailed conversations between hosts about each research point
+- Include background context, implications, and analysis for each fact
+- Make each section substantial with deep dives into the research content
+
+Research Data to use extensively: ${JSON.stringify(research)}
+
+SCRIPT STRUCTURE (MANDATORY - each section MUST be 350-450 words):
+1. Introduction (350+ words - discuss the significance of the topic in detail)
+2. Historical Context (400+ words - detailed background from research)
+3. Current Statistics and Market Analysis (450+ words - use ALL numbers and data extensively)
+4. Key Developments and Breakthroughs (400+ words - expand on ALL key points thoroughly)
+5. Industry Impact and Applications (350+ words - detailed examples with explanations)
+6. Future Projections (350+ words - use research predictions extensively)
+7. Conclusion and Key Takeaways (200+ words)
+
+WORD COUNT VERIFICATION: Your response must contain AT LEAST 2500 words total.
+
+Each section must include:
+- Specific statistics from the research
+- Detailed explanations and context
+- Natural conversation elements [pause], [thoughtful pause], [emphasis]
+- Host interactions and discussions
+- Real examples and case studies from the data
+
+Target: 20 minutes = 2500+ words (speaking pace: ~125 words per minute)
+
+Format as JSON: { "content": string, "sections": [{"type": string, "content": string, "duration": number}], "totalDuration": number, "analytics": {"wordCount": number, "readingTime": number, "speechTime": number, "pauseCount": number} }`
           }
         ],
         response_format: { type: "json_object" },
       });
 
-      return JSON.parse(response.choices[0].message.content || "{}");
+      const result = JSON.parse(response.choices[0].message.content || "{}");
+      console.log('Script generated - Word count:', result.analytics?.wordCount || 0);
+      console.log('Script generated - Total duration:', result.totalDuration || 0);
+      
+      return result;
     } catch (error) {
       throw new Error(`Failed to generate script: ${(error as Error).message}`);
     }
