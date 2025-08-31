@@ -249,70 +249,19 @@ export default function PromptResearch({ project }: PromptResearchProps) {
 
               {researchResult && (
                 <div className="space-y-6">
-                  {/* Research Results Display */}
-                  <div>
-                    <h4 className="font-semibold text-sm mb-3">Research Completed Successfully!</h4>
-                    
-                    {/* Key Points */}
-                    <div className="mb-6">
-                      <h4 className="font-semibold text-sm mb-3">Key Points</h4>
-                      <div className="space-y-2">
-                        {researchResult.keyPoints?.map((point: string, index: number) => (
-                          <div key={index} className="flex items-start space-x-2">
-                            <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                            <p className="text-sm text-foreground">{point}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Episode Outline */}
-                    {researchResult.outline && researchResult.outline.length > 0 && (
-                      <div className="mb-6">
-                        <h4 className="font-semibold text-sm mb-3">Suggested Episode Outline</h4>
-                        <div className="space-y-2">
-                          {researchResult.outline.map((item: string, index: number) => (
-                            <div key={index} className="flex items-center space-x-3">
-                              <div className="w-6 h-6 bg-primary/10 text-primary rounded-full flex items-center justify-center text-xs font-medium">
-                                {index + 1}
-                              </div>
-                              <p className="text-sm text-foreground">{item}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Statistics */}
-                    {researchResult.statistics && researchResult.statistics.length > 0 && (
-                      <div className="mb-6">
-                        <h4 className="font-semibold text-sm mb-3">Key Statistics</h4>
-                        <div className="space-y-2">
-                          {researchResult.statistics.map((stat: any, index: number) => (
-                            <div key={index} className="bg-accent/10 p-3 rounded-lg">
-                              <p className="text-sm font-medium text-foreground">{stat.fact}</p>
-                              <p className="text-xs text-muted-foreground mt-1">Source: {stat.source}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Sources */}
-                    {researchResult.sources && researchResult.sources.length > 0 && (
-                      <div className="mb-6">
-                        <h4 className="font-semibold text-sm mb-3">Research Sources</h4>
-                        <div className="space-y-2">
-                          {researchResult.sources.map((source: any, index: number) => (
-                            <div key={index} className="bg-muted/50 p-3 rounded-lg">
-                              <h5 className="font-medium text-sm text-foreground">{source.title}</h5>
-                              <p className="text-xs text-muted-foreground mt-1">{source.summary}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                  {/* Success Message */}
+                  <div className="bg-success/10 p-4 rounded-lg border-l-4 border-success">
+                    <h4 className="font-semibold text-sm mb-2">Research Completed Successfully!</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Comprehensive research has been completed. Review the findings below and proceed to episode planning.
+                    </p>
                   </div>
+                  
+                  {/* Scrollable Research Viewer */}
+                  <ResearchViewer 
+                    researchResult={researchResult}
+                    className="mb-6"
+                  />
 
                   {/* Next Step Button */}
                   <div className="text-center py-4 border-t border-border">
