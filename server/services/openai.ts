@@ -495,43 +495,41 @@ export class OpenAIService {
       console.log('Script generation - Key points count:', research.keyPoints?.length || 0);
       console.log('Script generation - Statistics count:', research.statistics?.length || 0);
       
-      // Create a fresh OpenAI client for this request to avoid any cached settings
+      // Create a fresh OpenAI client for this request with increased timeout
       const scriptOpenAI = new OpenAI({ 
         apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_KEY || "sk-test-key",
-        timeout: 60000
+        timeout: 120000 // Increased to 2 minutes for GPT-5
       });
       
-      console.log('Making GPT-5-mini API call for script generation...');
-      const response = await scriptOpenAI.chat.completions.create({
-        model: "gpt-5-mini",
-        reasoning_effort: "low", // Fast generation for reliability
-        verbosity: "low", // Concise responses
-        messages: [
-          {
-            role: "system",
-            content: "You are a podcast script writer. Create scripts that use the research data. Return only valid JSON."
-          },
-          {
-            role: "user",
-            content: `Create a podcast script about: "${prompt}". 
+      console.log('Making GPT-5 responses API call for script generation...');
+      const response = await scriptOpenAI.responses.create({
+        model: "gpt-5",
+        reasoning: { effort: "medium" }, // Balanced effort for creative script writing
+        input: `Create a podcast script for: "${prompt}". 
 
-Research data: ${JSON.stringify(research)}
+Use the following research data and incorporate the specific statistics, facts, and key points into the script:
 
-Return this JSON format:
+${JSON.stringify(research)}
+
+Make sure to:
+- Reference specific statistics and numbers from the research
+- Include the key points as discussion topics
+- Use the factual data to make the content informative
+- Create natural conversation flow with [pause], [thoughtful pause], [emphasis], etc.
+- Make it engaging while being factually accurate
+
+Return ONLY this JSON format:
 {
-  "content": "Script with [pause] markers",
-  "sections": [{"type": "intro", "content": "text", "duration": 60}],
-  "totalDuration": 600,
-  "analytics": {"wordCount": 400, "readingTime": 3, "speechTime": 10, "pauseCount": 5}
-}`
-          }
-        ],
-        response_format: { type: "json_object" },
-        max_completion_tokens: 3000
+  "content": "Full script text with [pause] markers",
+  "sections": [{"type": "intro", "content": "Section text", "duration": 60}],
+  "totalDuration": 900,
+  "analytics": {"wordCount": 500, "readingTime": 5, "speechTime": 15, "pauseCount": 10}
+}`,
+        instructions: "You are an expert podcast script writer. Create engaging podcast scripts that thoroughly incorporate the provided research data. Include specific statistics, facts, and key points from the research in natural conversation flow. Return only valid JSON."
       });
 
       console.log('GPT-5 response received');
-      const responseText = response.choices[0]?.message?.content;
+      const responseText = response.output_text;
       
       if (!responseText) {
         throw new Error('No response content received from GPT-5');
