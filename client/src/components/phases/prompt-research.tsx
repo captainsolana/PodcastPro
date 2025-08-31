@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useProject } from "@/hooks/use-project";
 import { useToast } from "@/hooks/use-toast";
 import EpisodePlanner from "./episode-planner";
+import { ResearchViewer } from "@/components/ui/research-viewer";
 import { ArrowRight, RefreshCw, Search, FileText, Calendar } from "lucide-react";
 import type { Project } from "@shared/schema";
 
@@ -348,67 +349,11 @@ export default function PromptResearch({ project }: PromptResearchProps) {
                     </p>
                   </div>
 
-                  {/* Research Summary */}
-                  <div className="space-y-6">
-                  {/* Key Points */}
-                  <div>
-                    <h4 className="font-semibold text-sm mb-3">Key Points</h4>
-                    <div className="space-y-2">
-                      {researchResult.keyPoints?.map((point: string, index: number) => (
-                        <div key={index} className="flex items-start space-x-2">
-                          <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                          <p className="text-sm text-foreground">{point}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Episode Outline */}
-                  {researchResult.outline && researchResult.outline.length > 0 && (
-                    <div>
-                      <h4 className="font-semibold text-sm mb-3">Episode Outline</h4>
-                      <div className="space-y-2">
-                        {researchResult.outline.map((item: string, index: number) => (
-                          <div key={index} className="flex items-center space-x-3">
-                            <div className="w-6 h-6 bg-primary/10 text-primary rounded-full flex items-center justify-center text-xs font-medium">
-                              {index + 1}
-                            </div>
-                            <p className="text-sm text-foreground">{item}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Statistics */}
-                  {researchResult.statistics && researchResult.statistics.length > 0 && (
-                    <div>
-                      <h4 className="font-semibold text-sm mb-3">Key Statistics</h4>
-                      <div className="space-y-2">
-                        {researchResult.statistics.map((stat: any, index: number) => (
-                          <div key={index} className="bg-accent/10 p-3 rounded-lg">
-                            <p className="text-sm font-medium text-foreground">{stat.fact}</p>
-                            <p className="text-xs text-muted-foreground mt-1">Source: {stat.source}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Sources */}
-                  {researchResult.sources && researchResult.sources.length > 0 && (
-                    <div>
-                      <h4 className="font-semibold text-sm mb-3">Research Sources</h4>
-                      <div className="space-y-2">
-                        {researchResult.sources.map((source: any, index: number) => (
-                          <div key={index} className="bg-muted/50 p-3 rounded-lg">
-                            <h5 className="font-medium text-sm text-foreground">{source.title}</h5>
-                            <p className="text-xs text-muted-foreground mt-1">{source.summary}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  {/* Research Viewer with scrollable content */}
+                  <ResearchViewer 
+                    researchResult={researchResult}
+                    className="mb-6"
+                  />
 
                   {/* Proceed Button */}
                   <div className="pt-4 border-t border-border">
@@ -420,7 +365,6 @@ export default function PromptResearch({ project }: PromptResearchProps) {
                       <ArrowRight className="w-4 h-4 mr-2" />
                       {episodePlan?.isMultiEpisode ? "Start Episode 1 Script" : "Proceed to Script Generation"}
                     </Button>
-                  </div>
                   </div>
                 </div>
               )}
