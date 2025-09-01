@@ -36,14 +36,28 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
   useEffect(() => {
     if (scriptResult) {
       setScriptContent(scriptResult.content);
+      // Show success notification after content is set
+      setTimeout(() => {
+        toast({
+          title: "Script Generated",
+          description: "Your podcast script has been created successfully!",
+        });
+      }, 100);
     }
-  }, [scriptResult]);
+  }, [scriptResult, toast]);
 
   useEffect(() => {
     if (episodeScriptResult) {
       setScriptContent(episodeScriptResult.content);
+      // Show success notification after content is set
+      setTimeout(() => {
+        toast({
+          title: "Script Generated",
+          description: `Episode ${currentEpisode} script has been created successfully!`,
+        });
+      }, 100);
     }
-  }, [episodeScriptResult]);
+  }, [episodeScriptResult, currentEpisode, toast]);
 
   const handleGenerateScript = async () => {
     if (!project.refinedPrompt || !project.researchData) {
@@ -70,12 +84,8 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
         });
       }
       
-      toast({
-        title: "Script Generated",
-        description: isMultiEpisode 
-          ? `Episode ${currentEpisode} script has been created successfully!` 
-          : "Your podcast script has been created successfully!",
-      });
+      // Success notification is now handled in useEffect hooks
+      // to ensure it shows after the content is actually rendered
     } catch (error) {
       toast({
         title: "Error",

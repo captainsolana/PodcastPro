@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import fs from "fs";
 import path from "path";
-import { researchDataSchema } from "@shared/schema";
+import { researchDataSchema } from "../../shared/schema.js";
 
 // Using gpt-5 model with new Responses API
 const openai = new OpenAI({ 
@@ -17,7 +17,7 @@ export interface PromptRefinementResult {
 }
 
 export interface ResearchResult {
-  sources: Array<{ title: string; url: string; summary: string }>;
+  sources: Array<{ title: string; url: string; summary: string; fullContent?: string }>;
   keyPoints: string[];
   statistics: Array<{ fact: string; source: string }>;
   outline: string[];
@@ -57,15 +57,19 @@ export class OpenAIService {
       );
       
       const result = await Promise.race([apiCall(), timeoutPromise]);
+      console.log('✅ API CALL SUCCESSFUL - returning real data');
       return result;
     } catch (error) {
-      console.warn('Research API error, using fallback data:', (error as Error).message);
-      console.warn('Full error details:', error);
+      console.error('❌ API CALL FAILED - using fallback data:', (error as Error).message);
+      console.error('Full error details:', error);
       return fallbackData;
     }
   }
 
   async refinePrompt(originalPrompt: string): Promise<PromptRefinementResult> {
+    console.log('🔥 ATTEMPTING REAL OPENAI API CALL for prompt refinement');
+    console.log('🔑 OpenAI API Key status:', process.env.OPENAI_API_KEY ? 'SET' : 'NOT SET');
+    
     const fallbackResult: PromptRefinementResult = {
       refinedPrompt: `Enhanced podcast episode: ${originalPrompt}. This episode will explore the key concepts, practical applications, and insights that make this topic engaging for listeners.`,
       focusAreas: ["Introduction and Context", "Key Concepts", "Practical Examples", "Audience Insights"],
@@ -74,6 +78,7 @@ export class OpenAIService {
     };
 
     return this.callOpenAIWithFallback(async () => {
+      console.log('🚀 Making REAL OpenAI API call now...');
       const response = await openai.responses.create({
         model: "gpt-5",
         reasoning: { effort: "low" }, // Fast response for prompt refinement
@@ -81,6 +86,7 @@ export class OpenAIService {
         input: `Refine this podcast idea and provide structure: "${originalPrompt}". Include refined prompt, focus areas, suggested duration, and target audience in JSON format: { "refinedPrompt": string, "focusAreas": string[], "suggestedDuration": number, "targetAudience": string }`,
       });
 
+      console.log('✅ REAL OpenAI API call SUCCESS! Got response:', response.output_text?.substring(0, 100) + '...');
       return JSON.parse(response.output_text || "{}");
     }, fallbackResult);
   }
@@ -462,6 +468,8 @@ export class OpenAIService {
   }
 
   private async performPerplexityQuery(prompt: string): Promise<string> {
+    console.log('🔥 ATTEMPTING REAL PERPLEXITY API CALL for research');
+    console.log('🔑 Perplexity API Key status:', process.env.PERPLEXITY_API_KEY ? 'SET' : 'NOT SET');
     console.log('Making Perplexity API call for focused research');
     
     // Check if API key exists
@@ -473,6 +481,7 @@ export class OpenAIService {
     const keyPreview = process.env.PERPLEXITY_API_KEY.substring(0, 8) + '...';
     console.log('Using Perplexity API key:', keyPreview);
     
+    console.log('🚀 Making REAL Perplexity API call now...');
     const response = await fetch('https://api.perplexity.ai/chat/completions', {
       method: 'POST',
       headers: {
@@ -635,7 +644,7 @@ export class OpenAIService {
       console.log('Making GPT-5 responses API call for script generation...');
       const response = await scriptOpenAI.responses.create({
         model: "gpt-5",
-        reasoning: { effort: "medium" },
+        reasoning: { effort: "low" }, // Changed from "medium" to "low" for faster response
         instructions: "You are an expert podcast script writer. Create engaging podcast scripts using the provided research data. Return only valid JSON.",
         input: `Create a podcast script about: "${prompt}". 
 
@@ -696,29 +705,82 @@ Return this JSON format:
       const selectedVoice = voiceMap[voiceSettings.model] || "nova";
       console.log('Making TTS API call with gpt-4o-mini-tts, voice:', selectedVoice);
       
-      const mp3 = await openai.audio.speech.create({
-        model: "gpt-4o-mini-tts", // Using the new gpt-4o-mini-tts model
-        voice: selectedVoice,
-        input: scriptContent,
-        speed: voiceSettings.speed,
-        response_format: "mp3"
-      });
-
-      console.log('TTS API call successful, processing audio file...');
+      // Check if content needs to be chunked (OpenAI TTS has 2000 token limit)
+      // Rough estimate: ~4 characters per token, so 8000 characters is about 2000 tokens
+      const maxChars = 7500; // Conservative limit to stay under 2000 tokens
       
-      // Save audio file
-      const audioDir = path.join(process.cwd(), "public", "audio");
-      if (!fs.existsSync(audioDir)) {
-        console.log('Creating audio directory:', audioDir);
-        fs.mkdirSync(audioDir, { recursive: true });
+      let audioBuffers: Buffer[] = [];
+      
+      if (scriptContent.length <= maxChars) {
+        // Content is short enough, process normally
+        console.log('Content fits in single chunk, processing normally');
+        const mp3 = await openai.audio.speech.create({
+          model: "gpt-4o-mini-tts",
+          voice: selectedVoice,
+          input: scriptContent,
+          speed: voiceSettings.speed,
+          response_format: "mp3",
+          instructions: "Speak in a clear, professional podcast host voice with appropriate pacing and emphasis for storytelling."
+        });
+        
+        audioBuffers.push(Buffer.from(await mp3.arrayBuffer()));
+      } else {
+        // Content is too long, need to chunk it
+        console.log('Content too long, chunking into smaller pieces');
+        const chunks = this.chunkTextForTTS(scriptContent, maxChars);
+        console.log(`Split content into ${chunks.length} chunks`);
+        
+        for (let i = 0; i < chunks.length; i++) {
+          console.log(`Processing chunk ${i + 1}/${chunks.length} (${chunks[i].length} chars)`);
+          const mp3 = await openai.audio.speech.create({
+            model: "gpt-4o-mini-tts",
+            voice: selectedVoice,
+            input: chunks[i],
+            speed: voiceSettings.speed,
+            response_format: "mp3",
+            instructions: `Speak in a clear, professional podcast host voice with appropriate pacing and emphasis for storytelling. This is part ${i + 1} of ${chunks.length} of a continuous narrative - maintain consistent tone and energy.`
+          });
+          
+          audioBuffers.push(Buffer.from(await mp3.arrayBuffer()));
+        }
+        
+        console.log(`Successfully generated ${audioBuffers.length} audio chunks`);
       }
 
-      const fileName = `podcast_${Date.now()}.mp3`;
-      const filePath = path.join(audioDir, fileName);
-      const buffer = Buffer.from(await mp3.arrayBuffer());
-      fs.writeFileSync(filePath, buffer);
+      console.log('TTS API call(s) successful, processing audio file...');
       
-      console.log('Audio file saved:', fileName, 'Size:', buffer.length, 'bytes');
+      // Combine all audio buffers if multiple chunks
+      const finalBuffer = audioBuffers.length === 1 
+        ? audioBuffers[0] 
+        : Buffer.concat(audioBuffers);
+      
+      const fileName = `podcast_${Date.now()}.mp3`;
+      
+      // Check if we should use Azure storage or local storage
+      const storageType = process.env.STORAGE_TYPE || 'memory';
+      let audioUrl: string;
+      
+      if (storageType === 'azure') {
+        console.log('Uploading audio to Azure Blob Storage...');
+        try {
+          const { createStorage } = await import('../storage');
+          const storage = createStorage();
+          
+          // Check if storage has uploadAudioFile method (Azure implementation)
+          if ('uploadAudioFile' in storage && typeof storage.uploadAudioFile === 'function') {
+            audioUrl = await storage.uploadAudioFile(finalBuffer, fileName);
+            console.log('Audio uploaded to Azure Blob Storage:', audioUrl);
+          } else {
+            throw new Error('Azure storage does not support audio file uploads');
+          }
+        } catch (error) {
+          console.warn('Azure upload failed, falling back to local storage:', error);
+          audioUrl = await this.saveAudioLocally(finalBuffer, fileName);
+        }
+      } else {
+        // Local storage
+        audioUrl = await this.saveAudioLocally(finalBuffer, fileName);
+      }
 
       // Estimate duration (rough calculation: ~150 words per minute)
       const wordCount = scriptContent.split(/\s+/).length;
@@ -727,13 +789,77 @@ Return this JSON format:
       console.log('Audio generation completed - Duration:', estimatedDuration, 'seconds');
       
       return {
-        audioUrl: `/audio/${fileName}`,
+        audioUrl,
         duration: estimatedDuration
       };
     } catch (error) {
       console.error('Audio generation error:', error);
       throw new Error(`Failed to generate audio: ${(error as Error).message}`);
     }
+  }
+
+  private chunkTextForTTS(text: string, maxChars: number): string[] {
+    const chunks: string[] = [];
+    
+    // Split by paragraphs first to maintain natural breaks
+    const paragraphs = text.split('\n\n');
+    let currentChunk = '';
+    
+    for (const paragraph of paragraphs) {
+      // If adding this paragraph would exceed the limit, save current chunk and start new one
+      if (currentChunk.length + paragraph.length + 2 > maxChars && currentChunk.length > 0) {
+        chunks.push(currentChunk.trim());
+        currentChunk = paragraph;
+      } else {
+        // Add paragraph to current chunk
+        if (currentChunk.length > 0) {
+          currentChunk += '\n\n' + paragraph;
+        } else {
+          currentChunk = paragraph;
+        }
+      }
+      
+      // If a single paragraph is too long, split it by sentences
+      if (currentChunk.length > maxChars) {
+        const sentences = currentChunk.split(/[.!?]+\s+/);
+        let sentenceChunk = '';
+        
+        for (let i = 0; i < sentences.length; i++) {
+          const sentence = sentences[i] + (i < sentences.length - 1 ? '. ' : '');
+          
+          if (sentenceChunk.length + sentence.length > maxChars && sentenceChunk.length > 0) {
+            chunks.push(sentenceChunk.trim());
+            sentenceChunk = sentence;
+          } else {
+            sentenceChunk += sentence;
+          }
+        }
+        
+        currentChunk = sentenceChunk;
+      }
+    }
+    
+    // Add the last chunk if it exists
+    if (currentChunk.trim().length > 0) {
+      chunks.push(currentChunk.trim());
+    }
+    
+    return chunks.filter(chunk => chunk.length > 0);
+  }
+
+  private async saveAudioLocally(buffer: Buffer, fileName: string): Promise<string> {
+    // Save audio file locally
+    const audioDir = path.join(process.cwd(), "public", "audio");
+    if (!fs.existsSync(audioDir)) {
+      console.log('Creating audio directory:', audioDir);
+      fs.mkdirSync(audioDir, { recursive: true });
+    }
+
+    const filePath = path.join(audioDir, fileName);
+    fs.writeFileSync(filePath, buffer);
+    
+    console.log('Audio file saved locally:', fileName, 'Size:', buffer.length, 'bytes');
+    return `/audio/${fileName}`;
   }
 
   async generateScriptSuggestions(scriptContent: string): Promise<Array<{ type: string; suggestion: string; targetSection: string }>> {
@@ -766,7 +892,7 @@ Return this JSON format:
     try {
       const response = await openai.chat.completions.create({
         model: "gpt-5",
-        reasoning_effort: "medium", // Thoughtful analysis for episode planning
+        reasoning_effort: "low", // Changed from "medium" to "low" for faster response
         verbosity: "medium",
         messages: [
           {

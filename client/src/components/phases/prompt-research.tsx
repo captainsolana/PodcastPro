@@ -41,6 +41,30 @@ export default function PromptResearch({ project }: PromptResearchProps) {
     console.log("Research result updated:", researchResult);
   }, [researchResult]);
 
+  // Show prompt refined notification when result is available
+  useEffect(() => {
+    if (refinePromptResult && !isRefiningPrompt) {
+      setTimeout(() => {
+        toast({
+          title: "Prompt Refined",
+          description: "Your prompt has been refined by AI.",
+        });
+      }, 100);
+    }
+  }, [refinePromptResult, isRefiningPrompt, toast]);
+
+  // Show research complete notification when result is available
+  useEffect(() => {
+    if (researchResult && !isResearching) {
+      setTimeout(() => {
+        toast({
+          title: "Research Complete",
+          description: "AI has gathered comprehensive research data.",
+        });
+      }, 100);
+    }
+  }, [researchResult, isResearching, toast]);
+
   const handleRefinePrompt = async () => {
     if (!prompt.trim()) {
       toast({
@@ -53,10 +77,6 @@ export default function PromptResearch({ project }: PromptResearchProps) {
 
     try {
       await refinePrompt(prompt);
-      toast({
-        title: "Prompt Refined",
-        description: "Your prompt has been refined by AI.",
-      });
     } catch (error) {
       toast({
         title: "Error",
@@ -79,11 +99,7 @@ export default function PromptResearch({ project }: PromptResearchProps) {
     try {
       console.log("Starting research with prompt:", refinedPrompt);
       await conductResearch(refinedPrompt);
-      console.log("Research completed, result:", researchResult);
-      toast({
-        title: "Research Complete",
-        description: "AI has gathered comprehensive research data.",
-      });
+      console.log("Research API call completed");
     } catch (error) {
       toast({
         title: "Error",

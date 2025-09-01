@@ -5,7 +5,7 @@ import {
   type InsertProject,
   type AiSuggestion,
   type InsertAiSuggestion 
-} from "@shared/schema";
+} from "../shared/schema.js";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -126,3 +126,40 @@ export class MemStorage implements IStorage {
 }
 
 export const storage = new MemStorage();
+
+// Factory function to create appropriate storage instance
+export async function createStorage(): Promise<IStorage> {
+  const storageType = process.env.STORAGE_TYPE || 'memory';
+  const environment = process.env.NODE_ENV || 'development';
+  
+  console.log(`🔧 Creating storage: type=${storageType}, env=${environment}`);
+  
+  switch (storageType) {
+    case 'azure':
+      try {
+        // Dynamic ES module import instead of require
+        const { AzureCosmosStorage } = await import('./storage-azure.js');
+        
+        if (environment === 'development') {
+          console.log('🔍 Development mode: Checking for production data access...');
+          
+          if (process.env.DEV_ACCESS_PROD_DATA === 'true') {
+            console.log('📊 Development configured to access production data (read-only)');
+            console.log('🛡️ New data will be created in development containers for safety');
+          } else {
+            console.log('🔧 Development using separate development containers');
+          }
+        }
+        
+        return new AzureCosmosStorage();
+      } catch (error) {
+        console.warn('⚠️ Azure storage dependencies not available, falling back to memory storage');
+        console.warn('Error details:', error);
+        return new MemStorage();
+      }
+    case 'memory':
+    default:
+      console.log('💾 Using in-memory storage (data will not persist)');
+      return new MemStorage();
+  }
+}

@@ -9,6 +9,7 @@ import { ExpandableText } from "@/components/ui/expandable-text";
 import { useProject, useProjects } from "@/hooks/use-project";
 import { Mic, Plus, Clock, Calendar, Sparkles, Zap, HeadphonesIcon, ArrowRight, TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import APP_CONFIG from "@/lib/config";
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -16,7 +17,7 @@ export default function Home() {
   const [title, setTitle] = useState("");
   const { toast } = useToast();
   const { createProject, isCreating } = useProject();
-  const { projects, isLoading: isLoadingProjects } = useProjects("demo-user"); // Using demo user for now
+  const { projects, isLoading: isLoadingProjects } = useProjects(); // Simplified - no userId needed
 
   const handleCreateProject = async () => {
     if (!prompt.trim() || !title.trim()) {
@@ -29,7 +30,7 @@ export default function Home() {
     }
 
     createProject({
-      userId: "demo-user",
+      userId: APP_CONFIG.DEFAULT_USER_ID,
       title: title.trim(),
       description: prompt.trim(),
       phase: 1,

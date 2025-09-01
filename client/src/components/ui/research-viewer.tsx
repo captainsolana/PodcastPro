@@ -33,7 +33,7 @@ export function ResearchViewer({ researchResult, className }: ResearchViewerProp
   const isContentTruncated = displaySummary.includes("...") && displaySummary.length < fullContent.length;
 
   return (
-    <Card className={cn("w-full", className)}>
+    <Card className={cn("w-full research-viewer-container", className)}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
@@ -85,9 +85,13 @@ export function ResearchViewer({ researchResult, className }: ResearchViewerProp
       <CardContent className="pt-0">
         <div className={cn(
           "transition-all duration-300 ease-in-out",
-          isExpanded ? "max-h-[600px]" : "max-h-[200px]"
+          isExpanded ? "max-h-[800px]" : "max-h-[300px]"
         )}>
-          <ScrollArea className="h-full w-full">
+          <ScrollArea className={cn(
+            "w-full scroll-area-content",
+            isExpanded ? "h-[800px]" : "h-[300px]"
+          )}>
+            <div className="research-content research-text">
             {activeTab === 'overview' && (
               <div className="space-y-4">
                 {/* Key Points Preview */}
@@ -100,7 +104,7 @@ export function ResearchViewer({ researchResult, className }: ResearchViewerProp
                     {researchResult.keyPoints?.slice(0, isExpanded ? undefined : 3).map((point: string, index: number) => (
                       <div key={index} className="flex items-start space-x-2 text-sm">
                         <div className="w-1.5 h-1.5 bg-primary/60 rounded-full mt-2 flex-shrink-0" />
-                        <p className="text-foreground leading-relaxed">{point}</p>
+                        <p className="text-foreground leading-relaxed break-words overflow-wrap-anywhere">{point}</p>
                       </div>
                     ))}
                     {!isExpanded && (researchResult.keyPoints?.length || 0) > 3 && (
@@ -122,7 +126,7 @@ export function ResearchViewer({ researchResult, className }: ResearchViewerProp
                     <div className="space-y-2">
                       {researchResult.statistics.slice(0, isExpanded ? undefined : 2).map((stat: any, index: number) => (
                         <div key={index} className="bg-accent/10 p-3 rounded-lg">
-                          <p className="text-sm font-medium text-foreground">{stat.fact}</p>
+                          <p className="text-sm font-medium text-foreground break-words overflow-wrap-anywhere">{stat.fact}</p>
                           <p className="text-xs text-muted-foreground mt-1">Source: {stat.source}</p>
                         </div>
                       ))}
@@ -151,7 +155,7 @@ export function ResearchViewer({ researchResult, className }: ResearchViewerProp
                         <div className="w-6 h-6 bg-primary/10 text-primary rounded-full flex items-center justify-center text-xs font-medium mt-0.5">
                           {index + 1}
                         </div>
-                        <p className="text-sm text-foreground leading-relaxed">{point}</p>
+                        <p className="text-sm text-foreground leading-relaxed break-words overflow-wrap-anywhere">{point}</p>
                       </div>
                     ))}
                   </div>
@@ -169,7 +173,7 @@ export function ResearchViewer({ researchResult, className }: ResearchViewerProp
                       <div className="space-y-3">
                         {researchResult.statistics.map((stat: any, index: number) => (
                           <div key={index} className="bg-accent/10 p-4 rounded-lg border-l-4 border-primary">
-                            <p className="text-sm font-medium text-foreground">{stat.fact}</p>
+                            <p className="text-sm font-medium text-foreground break-words overflow-wrap-anywhere">{stat.fact}</p>
                             <p className="text-xs text-muted-foreground mt-2">Source: {stat.source}</p>
                           </div>
                         ))}
@@ -193,7 +197,7 @@ export function ResearchViewer({ researchResult, className }: ResearchViewerProp
                             <div className="w-6 h-6 bg-secondary text-secondary-foreground rounded-full flex items-center justify-center text-xs font-medium">
                               {index + 1}
                             </div>
-                            <p className="text-sm text-foreground">{item}</p>
+                            <p className="text-sm text-foreground break-words overflow-wrap-anywhere">{item}</p>
                           </div>
                         ))}
                       </div>
@@ -212,10 +216,10 @@ export function ResearchViewer({ researchResult, className }: ResearchViewerProp
                   </h4>
                   <div className="space-y-3">
                     {researchResult.sources?.map((source: any, index: number) => (
-                      <div key={index} className="border rounded-lg p-4">
+                      <div key={index} className="border rounded-lg p-4 space-y-3">
                         <h5 className="font-medium text-sm text-foreground mb-3">{source.title}</h5>
-                        <div className="bg-muted/50 p-4 rounded-md max-h-96 overflow-y-auto">
-                          <div className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+                        <div className="bg-muted/50 p-4 rounded-md">
+                          <div className="text-sm text-foreground leading-relaxed whitespace-pre-wrap break-words overflow-wrap-anywhere max-w-full">
                             {fullContent || source.summary}
                           </div>
                         </div>
@@ -231,6 +235,7 @@ export function ResearchViewer({ researchResult, className }: ResearchViewerProp
                 </div>
               </div>
             )}
+            </div>
           </ScrollArea>
         </div>
 

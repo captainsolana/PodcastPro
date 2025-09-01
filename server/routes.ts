@@ -3,21 +3,23 @@ import express from "express";
 import { createServer, type Server } from "http";
 import path from "path";
 import fs from "fs";
-import { storage } from "./storage";
-import { openAIService } from "./services/openai";
-import { insertProjectSchema, insertAiSuggestionSchema } from "@shared/schema";
+import { createStorage } from "./storage.js";
+import { openAIService } from "./services/openai.js";
+import { insertProjectSchema, insertAiSuggestionSchema } from "../shared/schema.js";
 import { z } from "zod";
 
+// Initialize storage asynchronously
+let dataStorage: Awaited<ReturnType<typeof createStorage>>;
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize storage
+  dataStorage = await createStorage();
+  
   // Projects routes
   app.get("/api/projects", async (req, res) => {
     try {
-      const userId = req.query.userId as string;
-      if (!userId) {
-        return res.status(400).json({ message: "User ID is required" });
-      }
-      
-      const projects = await storage.getProjectsByUserId(userId);
+      // Since you're the only user, just return all projects
+      const projects = await dataStorage.getProjectsByUserId('single-user');
       res.json(projects);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch projects" });
@@ -26,7 +28,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/projects/:id", async (req, res) => {
     try {
-      const project = await storage.getProject(req.params.id);
+      const project = await dataStorage.getProject(req.params.id);
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
@@ -39,7 +41,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/projects", async (req, res) => {
     try {
       const validatedData = insertProjectSchema.parse(req.body);
-      const project = await storage.createProject(validatedData);
+      const project = await dataStorage.createProject(validatedData);
       res.status(201).json(project);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -52,7 +54,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/projects/:id", async (req, res) => {
     try {
       const updates = req.body;
-      const project = await storage.updateProject(req.params.id, updates);
+      const project = await dataStorage.updateProject(req.params.id, updates);
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
@@ -64,7 +66,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/projects/:id", async (req, res) => {
     try {
-      const deleted = await storage.deleteProject(req.params.id);
+      const deleted = await dataStorage.deleteProject(req.params.id);
       if (!deleted) {
         return res.status(404).json({ message: "Project not found" });
       }
@@ -262,7 +264,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI Suggestions routes
   app.get("/api/suggestions/:projectId", async (req, res) => {
     try {
-      const suggestions = await storage.getAiSuggestionsByProjectId(req.params.projectId);
+      const suggestions = await dataStorage.getAiSuggestionsByProjectId(req.params.projectId);
       res.json(suggestions);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch suggestions" });
@@ -272,7 +274,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/suggestions", async (req, res) => {
     try {
       const validatedData = insertAiSuggestionSchema.parse(req.body);
-      const suggestion = await storage.createAiSuggestion(validatedData);
+      const suggestion = await dataStorage.createAiSuggestion(validatedData);
       res.status(201).json(suggestion);
     } catch (error) {
       if (error instanceof z.ZodError) {

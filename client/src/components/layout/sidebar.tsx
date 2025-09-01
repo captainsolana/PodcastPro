@@ -3,6 +3,7 @@ import { useProjects } from "@/hooks/use-project";
 import { Mic, Check, Calendar, Clock, ArrowRight } from "lucide-react";
 import { ExpandableText } from "@/components/ui/expandable-text";
 import type { Project } from "@shared/schema";
+import APP_CONFIG from "@/lib/config";
 
 interface SidebarProps {
   project: Project;
@@ -10,7 +11,7 @@ interface SidebarProps {
 
 export default function Sidebar({ project }: SidebarProps) {
   const [, setLocation] = useLocation();
-  const { projects } = useProjects(project.userId || "demo-user");
+  const { projects } = useProjects(); // Simplified - no userId needed
 
   const phases = [
     {

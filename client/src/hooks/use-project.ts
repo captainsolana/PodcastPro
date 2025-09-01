@@ -116,9 +116,11 @@ export function useProject(projectId?: string) {
 
 export function useProjects(userId?: string) {
   const { data: projects, isLoading, error } = useQuery({
-    queryKey: ["/api/projects", userId],
-    queryFn: () => apiRequest(`/api/projects?userId=${userId}`),
-    enabled: !!userId,
+    queryKey: ["/api/projects"],
+    queryFn: async () => {
+      const response = await apiRequest("/api/projects");
+      return response.json();
+    },
   });
 
   return {

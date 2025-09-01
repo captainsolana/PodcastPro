@@ -344,6 +344,39 @@
     background-clip: text;
   }
   
+  /* Research content styling for better text rendering */
+  .research-content {
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+    hyphens: auto;
+    line-height: 1.6;
+  }
+  
+  .research-content pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+  }
+
+  /* Ensure scroll areas handle content properly */
+  .scroll-area-content {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  /* Fix for overlapping content in research viewer */
+  .research-viewer-container {
+    contain: layout style;
+    isolation: isolate;
+  }
+
+  /* Improve readability of research content */
+  .research-text {
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.01ms !important;
