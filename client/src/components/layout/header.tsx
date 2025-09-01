@@ -1,6 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { BreadcrumbNav } from "@/components/ui/breadcrumb-nav";
 import { Save, Play, ArrowLeft, CheckCircle, Clock, Calendar } from "lucide-react";
+import { useProject } from "@/hooks/use-project";
+import { useToast } from "@/hooks/use-toast";
+import { LoadingState } from "@/components/ui/loading-state";
+import { useState } from "react";
 import type { Project } from "@shared/schema";
 import { useLocation } from "wouter";
 
@@ -10,6 +14,36 @@ interface HeaderProps {
 
 export default function Header({ project }: HeaderProps) {
   const [, setLocation] = useLocation();
+  const [isSaving, setIsSaving] = useState(false);
+  const { updateProject } = useProject(project.id);
+  const { toast } = useToast();
+
+  const handleSaveProgress = async () => {
+    if (isSaving) return;
+    
+    setIsSaving(true);
+    try {
+      await updateProject({
+        id: project.id,
+        updates: {
+          updatedAt: new Date(),
+        }
+      });
+      
+      toast({
+        title: "Progress Saved",
+        description: "Your project progress has been saved successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Save Failed",
+        description: "Failed to save progress. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const getPhaseTitle = () => {
     switch (project.phase) {
@@ -128,10 +162,22 @@ export default function Header({ project }: HeaderProps) {
             <Button 
               variant="outline" 
               size="sm"
+              onClick={handleSaveProgress}
+              disabled={isSaving}
               data-testid="button-save-progress"
             >
-              <Save className="w-4 h-4 mr-2" />
-              Save Progress
+              {isSaving ? (
+                <LoadingState 
+                  isLoading={true}
+                  loadingText="Saving..."
+                  size="sm"
+                />
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Progress
+                </>
+              )}
             </Button>
             {project.phase >= 2 && (
               <Button 

@@ -2,6 +2,8 @@ import OpenAI from "openai";
 import fs from "fs";
 import path from "path";
 import { researchDataSchema } from "../../shared/schema.js";
+import TopicAnalyzer, { TopicAnalysis, DomainExpertise } from './topic-analyzer';
+import ResearchIntegrator, { EnhancedResearchResult } from './research-integrator';
 
 // Using gpt-5 model with new Responses API
 const openai = new OpenAI({ 
@@ -14,6 +16,9 @@ export interface PromptRefinementResult {
   focusAreas: string[];
   suggestedDuration: number;
   targetAudience: string;
+  topicAnalysis?: TopicAnalysis;
+  domainExpertise?: DomainExpertise;
+  expertiseContext?: string;
 }
 
 export interface ResearchResult {
@@ -46,6 +51,20 @@ export interface ScriptResult {
     speechTime: number;
     pauseCount: number;
   };
+  researchUtilization?: {
+    dataPointsUsed: number;
+    totalDataPoints: number;
+    utilizationRate: number;
+    narrativeElements: string[];
+    evidenceElements: string[];
+    engagementElements: string[];
+  };
+  qualityMetrics?: {
+    contentDepth: number;
+    expertiseLevel: number;
+    audienceAlignment: number;
+    narrativeFlow: number;
+  };
 }
 
 export class OpenAIService {
@@ -67,31 +86,145 @@ export class OpenAIService {
   }
 
   async refinePrompt(originalPrompt: string): Promise<PromptRefinementResult> {
-    console.log('🔥 ATTEMPTING REAL OPENAI API CALL for prompt refinement');
+    console.log('🔥 ATTEMPTING DOMAIN-AWARE PROMPT REFINEMENT');
     console.log('🔑 OpenAI API Key status:', process.env.OPENAI_API_KEY ? 'SET' : 'NOT SET');
+    
+    // Initialize topic analyzer
+    const topicAnalyzer = new TopicAnalyzer(process.env.OPENAI_API_KEY || process.env.OPENAI_KEY || "sk-test-key");
     
     const fallbackResult: PromptRefinementResult = {
       refinedPrompt: `Enhanced podcast episode: ${originalPrompt}. This episode will explore the key concepts, practical applications, and insights that make this topic engaging for listeners.`,
       focusAreas: ["Introduction and Context", "Key Concepts", "Practical Examples", "Audience Insights"],
       suggestedDuration: 18,
-      targetAudience: "General audience interested in the topic"
+      targetAudience: "General audience interested in the topic",
+      topicAnalysis: undefined,
+      domainExpertise: undefined,
+      expertiseContext: undefined
     };
 
     return this.callOpenAIWithFallback(async () => {
-      console.log('🚀 Making REAL OpenAI API call now...');
-      const response = await openai.responses.create({
-        model: "gpt-5",
-        reasoning: { effort: "low" }, // Fast response for prompt refinement
-        instructions: "You are a podcast creation expert. Refine user prompts to create engaging 15-20 minute podcast episodes. Focus on making topics accessible, engaging, and well-structured. Respond with JSON.",
-        input: `Refine this podcast idea and provide structure: "${originalPrompt}". Include refined prompt, focus areas, suggested duration, and target audience in JSON format: { "refinedPrompt": string, "focusAreas": string[], "suggestedDuration": number, "targetAudience": string }`,
+      console.log('🚀 Step 1: Analyzing topic domain and characteristics...');
+      
+      // Phase 1: Analyze the topic to understand domain and requirements
+      const topicAnalysis = await topicAnalyzer.analyzeTopic(originalPrompt);
+      console.log('📊 Topic Analysis:', JSON.stringify(topicAnalysis, null, 2));
+      
+      // Phase 2: Get domain-specific expertise requirements
+      const domainExpertise = topicAnalyzer.getDomainExpertise(topicAnalysis.domain);
+      console.log('🎯 Domain Expertise:', domainExpertise.expertTitle);
+      
+      // Phase 3: Create expertise-informed refinement prompt
+      const expertiseContext = this.buildExpertiseContext(topicAnalysis, domainExpertise);
+      console.log('📝 Expertise Context Created');
+      
+      // Phase 4: Perform domain-aware prompt refinement
+      console.log('🚀 Step 2: Performing expert-level prompt refinement...');
+      const refinementPrompt = this.buildDomainAwareRefinementPrompt(originalPrompt, topicAnalysis, domainExpertise, expertiseContext);
+      
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [{ role: "user", content: refinementPrompt }],
+        temperature: 0.3, // Lower temperature for consistent refinement
+        max_tokens: 2000
       });
 
-      console.log('✅ REAL OpenAI API call SUCCESS! Got response:', response.output_text?.substring(0, 100) + '...');
-      return JSON.parse(response.output_text || "{}");
+      console.log('✅ DOMAIN-AWARE refinement SUCCESS! Processing response...');
+      
+      const responseContent = response.choices[0].message.content?.trim();
+      if (!responseContent) {
+        throw new Error('No refinement content received');
+      }
+      
+      // Clean JSON from potential markdown wrapping
+      let cleanContent = responseContent;
+      if (responseContent.includes('```json')) {
+        cleanContent = responseContent.replace(/```json\s*/g, '').replace(/```\s*$/g, '').trim();
+      } else if (responseContent.includes('```')) {
+        cleanContent = responseContent.replace(/```\s*/g, '').trim();
+      }
+      
+      const refinementData = JSON.parse(cleanContent);
+      
+      // Enhance result with domain analysis data
+      const result: PromptRefinementResult = {
+        ...refinementData,
+        topicAnalysis,
+        domainExpertise,
+        expertiseContext
+      };
+      
+      console.log('🎯 Enhanced refinement completed with domain expertise');
+      return result;
     }, fallbackResult);
   }
 
+  private buildExpertiseContext(analysis: TopicAnalysis, expertise: DomainExpertise): string {
+    return `
+DOMAIN ANALYSIS:
+- Primary Domain: ${analysis.domain}
+- Complexity Level: ${analysis.complexity}
+- Target Audience: ${analysis.audience}
+- Content Angle: ${analysis.angle}
+- Topic Scope: ${analysis.scope}
+- Expertise Required: ${analysis.expertiseLevel}
+
+KEY ELEMENTS TO ADDRESS:
+${analysis.keyElements.map(element => `• ${element}`).join('\n')}
+
+CONTENT GOALS:
+${analysis.contentGoals.map(goal => `• ${goal}`).join('\n')}
+
+EXPERT REQUIREMENTS:
+${expertise.requirements.map(req => `• ${req}`).join('\n')}
+
+EXPERT QUESTIONS TO EXPLORE:
+${expertise.keyQuestions.map(q => `• ${q}`).join('\n')}
+
+RECOMMENDED STRUCTURE: ${expertise.structureTemplate}
+`;
+  }
+
+  private buildDomainAwareRefinementPrompt(originalPrompt: string, analysis: TopicAnalysis, expertise: DomainExpertise, context: string): string {
+    return `
+You are a ${expertise.expertTitle} with deep expertise in ${expertise.description}. 
+
+Your task is to refine podcast prompts with domain-specific expertise to ensure professional-quality content that meets the highest standards of accuracy, engagement, and value for the intended audience.
+
+${expertise.audienceGuidance}
+
+ORIGINAL PODCAST IDEA: "${originalPrompt}"
+
+${context}
+
+As a ${expertise.expertTitle}, refine this podcast concept to create a compelling, accurate, and valuable episode that demonstrates deep domain expertise while remaining accessible to the ${analysis.audience} audience.
+
+Your refinement should:
+1. Demonstrate comprehensive understanding of the domain
+2. Structure content using the recommended framework: ${expertise.structureTemplate}
+3. Address all key elements identified in the analysis
+4. Incorporate expert-level insights and perspectives
+5. Ensure content meets professional standards for ${analysis.domain} content
+6. Make complex concepts accessible for ${analysis.audience} audience
+7. Create clear learning outcomes aligned with content goals
+
+Return ONLY valid JSON in this exact format:
+{
+  "refinedPrompt": "A comprehensive, expert-level refined prompt that incorporates domain expertise and ensures professional-quality content",
+  "focusAreas": ["area1", "area2", "area3", "area4", "area5"],
+  "suggestedDuration": number (15-25 minutes based on complexity),
+  "targetAudience": "Specific audience description based on analysis",
+  "expertPerspectives": ["perspective1", "perspective2", "perspective3"],
+  "keyInsights": ["insight1", "insight2", "insight3"],
+  "qualityFramework": "How this content meets professional standards for the domain"
+}
+
+Ensure the refined prompt is substantially enhanced with domain expertise, specific insights, and professional-quality structure that would make this episode valuable to both general listeners and domain experts.`;
+  }
+
   async conductResearch(refinedPrompt: string): Promise<ResearchResult> {
+    console.log('🔬 SERVICE: Starting research phase');
+    console.log('📝 SERVICE: Research prompt length:', refinedPrompt.length, 'characters');
+    
     const fallbackResult: ResearchResult = {
       sources: [
         {
@@ -131,7 +264,9 @@ export class OpenAIService {
     };
 
     try {
-      console.log('Starting comprehensive research with Perplexity');
+      console.log('🌐 SERVICE: Starting comprehensive research with Perplexity');
+      console.log('🔑 SERVICE: Perplexity API key status:', process.env.PERPLEXITY_API_KEY ? 'SET' : 'NOT SET');
+      console.log('🎯 SERVICE: Using Perplexity sonar-reasoning model');
       
       // Single comprehensive query to get rich content for script generation
       const researchContent = await this.performPerplexityQuery(
@@ -181,7 +316,11 @@ export class OpenAIService {
       const keyPoints = this.extractKeyPoints(researchContent);
       const statistics = this.extractStatistics(researchContent);
       
-      console.log('Research completed with rich content for script generation');
+      console.log('✅ SERVICE: Research completed with rich content for script generation');
+      console.log('📊 SERVICE: Research content length:', researchContent.length, 'characters');
+      console.log('📈 SERVICE: Key points extracted:', keyPoints.length);
+      console.log('📋 SERVICE: Statistics extracted:', statistics.length);
+      
       return {
         sources: [{
           title: `${refinedPrompt} - Comprehensive Research`,
@@ -468,9 +607,10 @@ export class OpenAIService {
   }
 
   private async performPerplexityQuery(prompt: string): Promise<string> {
-    console.log('🔥 ATTEMPTING REAL PERPLEXITY API CALL for research');
-    console.log('🔑 Perplexity API Key status:', process.env.PERPLEXITY_API_KEY ? 'SET' : 'NOT SET');
-    console.log('Making Perplexity API call for focused research');
+    console.log('🔥 SERVICE: ATTEMPTING REAL PERPLEXITY API CALL for research');
+    console.log('🔑 SERVICE: Perplexity API Key status:', process.env.PERPLEXITY_API_KEY ? 'SET' : 'NOT SET');
+    console.log('📝 SERVICE: Query length:', prompt.length, 'characters');
+    console.log('🎯 SERVICE: Using sonar-reasoning model with 4000 max tokens');
     
     // Check if API key exists
     if (!process.env.PERPLEXITY_API_KEY) {
@@ -479,9 +619,11 @@ export class OpenAIService {
     
     // Log API key status (first 8 chars only for security)
     const keyPreview = process.env.PERPLEXITY_API_KEY.substring(0, 8) + '...';
-    console.log('Using Perplexity API key:', keyPreview);
+    console.log('🔐 SERVICE: Using Perplexity API key:', keyPreview);
     
-    console.log('🚀 Making REAL Perplexity API call now...');
+    console.log('🚀 SERVICE: Making REAL Perplexity API call now...');
+    const startTime = Date.now();
+    
     const response = await fetch('https://api.perplexity.ai/chat/completions', {
       method: 'POST',
       headers: {
@@ -502,21 +644,30 @@ export class OpenAIService {
     });
 
     if (!response.ok) {
+      const duration = Date.now() - startTime;
       const errorText = await response.text();
-      console.error('Perplexity API failed:', response.status, errorText);
-      console.error('Response headers:', Object.fromEntries(response.headers.entries()));
+      console.error('❌ SERVICE: Perplexity API failed after', duration, 'ms:', response.status, errorText);
+      console.error('❌ SERVICE: Response headers:', Object.fromEntries(response.headers.entries()));
       throw new Error(`Perplexity API failed: ${response.status}`);
     }
 
+    const duration = Date.now() - startTime;
+    console.log('✅ SERVICE: Perplexity API call completed in', duration, 'ms');
+    
     const data = await response.json();
+    console.log('📊 SERVICE: Perplexity response received, processing...');
+    
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      console.error('Invalid response format:', data);
+      console.error('❌ SERVICE: Invalid response format:', data);
       throw new Error('Invalid response format from Perplexity API');
     }
     
     // Return just the content - we only need the research text
     const content = data.choices[0].message.content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-    console.log('Perplexity research content length:', content.length, 'characters');
+    console.log('✅ SERVICE: Perplexity research content processed, length:', content.length, 'characters');
+    console.log('📝 SERVICE: Content preview:', content.substring(0, 200) + '...');
+    console.log('✅ SERVICE: Perplexity research content processed, length:', content.length, 'characters');
+    console.log('📝 SERVICE: Content preview:', content.substring(0, 200) + '...');
     return content;
   }
 
@@ -627,26 +778,300 @@ export class OpenAIService {
     return sources.slice(0, 5); // Limit to top 5 most relevant sources
   }
 
-  async generateScript(prompt: string, research: ResearchResult): Promise<ScriptResult> {
+  async generateScript(prompt: string, research: ResearchResult, refinementResult?: PromptRefinementResult): Promise<ScriptResult> {
+    console.log('🎬 STARTING ENHANCED SCRIPT GENERATION');
+    console.log('📊 Research data size:', JSON.stringify(research).length, 'characters');
+    console.log('📝 Key points available:', research.keyPoints?.length || 0);
+    console.log('📈 Statistics available:', research.statistics?.length || 0);
+    
     try {
-      console.log('Script generation - Research data preview:', JSON.stringify(research).substring(0, 500) + '...');
-      console.log('Script generation - Key points count:', research.keyPoints?.length || 0);
-      console.log('Script generation - Statistics count:', research.statistics?.length || 0);
+      // Phase 1: Initialize enhanced components
+      const researchIntegrator = new ResearchIntegrator(process.env.OPENAI_API_KEY || process.env.OPENAI_KEY || "sk-test-key");
       
-      // Create a fresh OpenAI client for this request with increased timeout
-      const scriptOpenAI = new OpenAI({ 
-        apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_KEY || "sk-test-key",
-        timeout: 120000 // Increased to 2 minutes for GPT-5
-      });
+      // Get topic analysis and domain expertise (from refinement or analyze fresh)
+      let topicAnalysis: TopicAnalysis;
+      let domainExpertise: DomainExpertise;
       
-      console.log('Input length:', JSON.stringify(research).length, 'characters');
+      if (refinementResult?.topicAnalysis && refinementResult?.domainExpertise) {
+        topicAnalysis = refinementResult.topicAnalysis;
+        domainExpertise = refinementResult.domainExpertise;
+        console.log('📋 Using existing domain analysis:', topicAnalysis.domain);
+      } else {
+        console.log('🔍 Analyzing topic for script generation...');
+        const topicAnalyzer = new TopicAnalyzer(process.env.OPENAI_API_KEY || process.env.OPENAI_KEY || "sk-test-key");
+        topicAnalysis = await topicAnalyzer.analyzeTopic(prompt);
+        domainExpertise = topicAnalyzer.getDomainExpertise(topicAnalysis.domain);
+        console.log('📋 Fresh domain analysis completed:', topicAnalysis.domain);
+      }
       
-      console.log('Making GPT-5 responses API call for script generation...');
-      const response = await scriptOpenAI.responses.create({
-        model: "gpt-5",
-        reasoning: { effort: "low" }, // Changed from "medium" to "low" for faster response
-        instructions: "You are an expert podcast script writer. Create engaging podcast scripts using the provided research data. Return only valid JSON.",
-        input: `Create a podcast script about: "${prompt}". 
+      // Phase 2: Enhance research data with intelligent extraction
+      console.log('🔬 Enhancing research with intelligent extraction...');
+      const enhancedResearch = await researchIntegrator.enhanceResearchData(research, topicAnalysis, domainExpertise);
+      console.log('📊 Research enhancement metrics:', enhancedResearch.contentRichness);
+      
+      // Phase 3: Generate domain-aware script with enhanced research
+      console.log('✍️ Generating script with domain expertise and enhanced research...');
+      const scriptResult = await this.generateEnhancedScript(prompt, enhancedResearch, topicAnalysis, domainExpertise);
+      
+      console.log('🎯 Enhanced script generation completed successfully');
+      return scriptResult;
+      
+    } catch (error) {
+      console.error('❌ Enhanced script generation failed, using fallback:', error);
+      return this.generateFallbackScript(prompt, research);
+    }
+  }
+
+  private async generateEnhancedScript(
+    prompt: string, 
+    enhancedResearch: EnhancedResearchResult, 
+    topicAnalysis: TopicAnalysis, 
+    domainExpertise: DomainExpertise
+  ): Promise<ScriptResult> {
+    
+    // Create comprehensive script generation prompt with domain expertise
+    const scriptPrompt = this.buildEnhancedScriptPrompt(prompt, enhancedResearch, topicAnalysis, domainExpertise);
+    
+    const scriptOpenAI = new OpenAI({ 
+      apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_KEY || "sk-test-key",
+      timeout: 180000 // 3 minutes for comprehensive script generation
+    });
+    
+    const response = await scriptOpenAI.responses.create({
+      model: "gpt-5",
+      reasoning: { effort: "low" }, // Low effort for faster script generation
+      instructions: `You are an expert ${domainExpertise.expertTitle} creating a professional podcast script. 
+
+Your expertise: ${domainExpertise.description}
+
+Audience guidance: ${domainExpertise.audienceGuidance}
+
+Create a compelling, research-rich script that demonstrates deep domain knowledge while remaining accessible to the ${topicAnalysis.audience} audience. Use the structured research data extensively to create engaging, authoritative content.
+
+Return only valid JSON.`,
+      input: scriptPrompt
+    });
+
+    const responseText = response.output_text;
+    if (!responseText) {
+      throw new Error('No enhanced script content received');
+    }
+
+    const scriptData = JSON.parse(responseText);
+    
+    // Calculate research utilization metrics
+    const utilizationMetrics = this.calculateResearchUtilization(scriptData.content, enhancedResearch);
+    
+    // Calculate quality metrics
+    const qualityMetrics = this.calculateQualityMetrics(scriptData, enhancedResearch, topicAnalysis);
+    
+    return {
+      ...scriptData,
+      researchUtilization: utilizationMetrics,
+      qualityMetrics: qualityMetrics
+    };
+  }
+
+  private buildEnhancedScriptPrompt(
+    prompt: string, 
+    enhancedResearch: EnhancedResearchResult, 
+    topicAnalysis: TopicAnalysis, 
+    domainExpertise: DomainExpertise
+  ): string {
+    const structured = enhancedResearch.structuredData;
+    const plan = enhancedResearch.utilizationPlan;
+    
+    return `
+PODCAST TOPIC: "${prompt}"
+
+DOMAIN CONTEXT:
+- Expert Role: ${domainExpertise.expertTitle}
+- Domain: ${topicAnalysis.domain}
+- Audience: ${topicAnalysis.audience}
+- Complexity: ${topicAnalysis.complexity}
+- Content Angle: ${topicAnalysis.angle}
+
+CONTENT STRUCTURE: ${domainExpertise.structureTemplate}
+
+ENHANCED RESEARCH DATA:
+
+KEY NARRATIVES:
+${structured.keyNarratives.map((n, i) => `${i+1}. ${n}`).join('\n')}
+
+CRITICAL STATISTICS:
+${structured.criticalStats.map((s, i) => `${i+1}. ${s.stat} (${s.source}) - Context: ${s.context}`).join('\n')}
+
+COMPELLING QUOTES:
+${structured.compellingQuotes.map((q, i) => `${i+1}. "${q.quote}" - ${q.speaker} (${q.context})`).join('\n')}
+
+TECHNICAL CONCEPTS:
+${structured.technicalConcepts.map((c, i) => `${i+1}. ${c.concept}: ${c.explanation} - Importance: ${c.importance}`).join('\n')}
+
+HUMAN IMPACT STORIES:
+${structured.humanImpactStories.map((s, i) => `${i+1}. ${s.story} - Impact: ${s.impact} - Relevance: ${s.relevance}`).join('\n')}
+
+TIMELINE EVENTS:
+${structured.timelineEvents.map((e, i) => `${i+1}. ${e.date}: ${e.event} - Significance: ${e.significance}`).join('\n')}
+
+FUTURE IMPLICATIONS:
+${structured.futureImplications.map((f, i) => `${i+1}. ${f}`).join('\n')}
+
+SURPRISING FACTS:
+${structured.surprisingFacts.map((f, i) => `${i+1}. ${f.fact} - Why surprising: ${f.why_surprising} (${f.source})`).join('\n')}
+
+EXPERT INSIGHTS:
+${structured.expertInsights.map((i, idx) => `${idx+1}. "${i.insight}" - ${i.expert} (${i.credibility})`).join('\n')}
+
+UTILIZATION PLAN:
+- Introduction Elements: ${plan.introElements.join(', ')}
+- Body Elements: ${plan.bodyElements.slice(0, 3).join(', ')}
+- Conclusion Elements: ${plan.conclusionElements.join(', ')}
+- Engagement Hooks: ${plan.engagementHooks.slice(0, 3).join(', ')}
+
+SCRIPT REQUIREMENTS:
+1. Use the domain structure: ${domainExpertise.structureTemplate}
+2. Incorporate multiple elements from each research category
+3. Maintain ${topicAnalysis.audience} audience accessibility
+4. Include specific statistics, quotes, and technical details
+5. Weave in human impact stories for engagement
+6. Reference timeline events for context
+7. Address future implications
+8. Use surprising facts as engagement hooks
+9. Include expert insights for authority
+10. Create natural flow between research elements
+
+TARGET: 15-20 minute episode (2,000-2,500 words) that maximizes research utilization while maintaining excellent narrative flow.
+
+Return this exact JSON format:
+{
+  "content": "Complete script with [pause] markers and research integration",
+  "sections": [
+    {"type": "intro", "content": "opening content", "duration": 120},
+    {"type": "main", "content": "main content", "duration": 600},
+    {"type": "conclusion", "content": "closing content", "duration": 180}
+  ],
+  "totalDuration": 1200,
+  "analytics": {
+    "wordCount": 2200,
+    "readingTime": 12,
+    "speechTime": 18,
+    "pauseCount": 25
+  }
+}
+
+Create a script that demonstrates expert knowledge while being engaging and accessible. Use the research data extensively to create authoritative, compelling content.`;
+  }
+
+  private calculateResearchUtilization(scriptContent: string, enhancedResearch: EnhancedResearchResult) {
+    const structured = enhancedResearch.structuredData;
+    let dataPointsUsed = 0;
+    let narrativeElements: string[] = [];
+    let evidenceElements: string[] = [];
+    let engagementElements: string[] = [];
+    
+    // Check for narrative elements
+    structured.keyNarratives.forEach(narrative => {
+      if (scriptContent.toLowerCase().includes(narrative.toLowerCase().substring(0, 20))) {
+        dataPointsUsed++;
+        narrativeElements.push(narrative.substring(0, 50) + '...');
+      }
+    });
+    
+    structured.humanImpactStories.forEach(story => {
+      if (scriptContent.toLowerCase().includes(story.story.toLowerCase().substring(0, 20))) {
+        dataPointsUsed++;
+        narrativeElements.push(story.story.substring(0, 50) + '...');
+      }
+    });
+    
+    // Check for evidence elements
+    structured.criticalStats.forEach(stat => {
+      if (scriptContent.toLowerCase().includes(stat.stat.toLowerCase().substring(0, 15))) {
+        dataPointsUsed++;
+        evidenceElements.push(stat.stat);
+      }
+    });
+    
+    structured.expertInsights.forEach(insight => {
+      if (scriptContent.toLowerCase().includes(insight.insight.toLowerCase().substring(0, 20))) {
+        dataPointsUsed++;
+        evidenceElements.push(insight.insight.substring(0, 50) + '...');
+      }
+    });
+    
+    // Check for engagement elements
+    structured.surprisingFacts.forEach(fact => {
+      if (scriptContent.toLowerCase().includes(fact.fact.toLowerCase().substring(0, 20))) {
+        dataPointsUsed++;
+        engagementElements.push(fact.fact);
+      }
+    });
+    
+    structured.compellingQuotes.forEach(quote => {
+      if (scriptContent.toLowerCase().includes(quote.quote.toLowerCase().substring(0, 20))) {
+        dataPointsUsed++;
+        engagementElements.push(quote.quote);
+      }
+    });
+    
+    const totalDataPoints = enhancedResearch.contentRichness.totalDataPoints;
+    const utilizationRate = totalDataPoints > 0 ? (dataPointsUsed / totalDataPoints) * 100 : 0;
+    
+    return {
+      dataPointsUsed,
+      totalDataPoints,
+      utilizationRate: Math.round(utilizationRate * 100) / 100,
+      narrativeElements,
+      evidenceElements,
+      engagementElements
+    };
+  }
+
+  private calculateQualityMetrics(scriptData: any, enhancedResearch: EnhancedResearchResult, topicAnalysis: TopicAnalysis) {
+    const content = scriptData.content || '';
+    const wordCount = scriptData.analytics?.wordCount || 0;
+    
+    // Content depth: based on word count and research utilization
+    const contentDepth = Math.min(10, (wordCount / 200) + (enhancedResearch.contentRichness.totalDataPoints / 5));
+    
+    // Expertise level: based on technical concepts and expert insights used
+    const expertiseLevel = Math.min(10, enhancedResearch.contentRichness.evidenceQuality);
+    
+    // Audience alignment: based on complexity match and engagement elements
+    const audienceAlignment = Math.min(10, 
+      (topicAnalysis.complexity === 'beginner' ? 8 : topicAnalysis.complexity === 'expert' ? 6 : 7) +
+      (enhancedResearch.contentRichness.engagementPotential / 3)
+    );
+    
+    // Narrative flow: based on section structure and pause markers
+    const pauseCount = (content.match(/\[pause\]/g) || []).length;
+    const narrativeFlow = Math.min(10, 
+      (scriptData.sections?.length >= 3 ? 5 : 3) + 
+      (pauseCount >= 10 ? 3 : pauseCount >= 5 ? 2 : 1) +
+      (wordCount >= 1800 ? 2 : wordCount >= 1200 ? 1 : 0)
+    );
+    
+    return {
+      contentDepth: Math.round(contentDepth * 100) / 100,
+      expertiseLevel: Math.round(expertiseLevel * 100) / 100,
+      audienceAlignment: Math.round(audienceAlignment * 100) / 100,
+      narrativeFlow: Math.round(narrativeFlow * 100) / 100
+    };
+  }
+
+  private async generateFallbackScript(prompt: string, research: ResearchResult): Promise<ScriptResult> {
+    console.log('📝 Generating fallback script...');
+    
+    const scriptOpenAI = new OpenAI({ 
+      apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_KEY || "sk-test-key",
+      timeout: 120000
+    });
+    
+    const response = await scriptOpenAI.responses.create({
+      model: "gpt-5",
+      reasoning: { effort: "low" },
+      instructions: "You are an expert podcast script writer. Create engaging podcast scripts using the provided research data. Return only valid JSON.",
+      input: `Create a podcast script about: "${prompt}". 
 
 Research data: ${JSON.stringify(research)}
 
@@ -657,32 +1082,15 @@ Return this JSON format:
   "totalDuration": 900,
   "analytics": {"wordCount": 500, "readingTime": 5, "speechTime": 15, "pauseCount": 10}
 }`
-      });
+    });
 
-      console.log('GPT-5 response received');
-      console.log('Full response object keys:', Object.keys(response));
-      console.log('Response status:', response.status);
-      console.log('Response output_text length:', response.output_text?.length || 0);
-      console.log('Response output array:', response.output?.length || 0, 'items');
-      
-      const responseText = response.output_text;
-      
-      if (!responseText) {
-        throw new Error('No response content received from GPT-5');
-      }
-
-      console.log('GPT-5 output preview:', responseText.substring(0, 200) + '...');
-      const result = JSON.parse(responseText);
-      console.log('Script generated - Word count:', result.analytics?.wordCount || 0);
-      console.log('Script generated - Total duration:', result.totalDuration || 0);
-      
-      return result;
-    } catch (error) {
-      console.error('Script generation error:', error);
-      throw new Error(`Failed to generate script: ${(error as Error).message}`);
+    const responseText = response.output_text;
+    if (!responseText) {
+      throw new Error('No fallback script content received');
     }
-  }
 
+    return JSON.parse(responseText);
+  }
   async generateAudio(scriptContent: string, voiceSettings: { model: string; speed: number }): Promise<{ audioUrl: string; duration: number }> {
     try {
       console.log('Audio generation - Script length:', scriptContent.length, 'characters');
@@ -889,7 +1297,15 @@ Return this JSON format:
   }
 
   async analyzeForEpisodeBreakdown(prompt: string, research: ResearchResult): Promise<EpisodePlanResult> {
+    console.log('🎭 SERVICE: Starting episode breakdown analysis');
+    console.log('📝 SERVICE: Analysis prompt:', prompt.substring(0, 100) + '...');
+    console.log('🧠 SERVICE: Using GPT-5 with low reasoning effort');
+    console.log('📊 SERVICE: Research input size:', JSON.stringify(research).length, 'characters');
+    
     try {
+      console.log('🚀 SERVICE: Making GPT-5 API call for episode analysis...');
+      const startTime = Date.now();
+      
       const response = await openai.chat.completions.create({
         model: "gpt-5",
         reasoning_effort: "low", // Changed from "medium" to "low" for faster response
@@ -913,8 +1329,17 @@ Provide analysis in JSON format: { "isMultiEpisode": boolean, "totalEpisodes": n
         response_format: { type: "json_object" },
       });
 
-      return JSON.parse(response.choices[0]?.message?.content || "{}");
+      const duration = Date.now() - startTime;
+      console.log('✅ SERVICE: GPT-5 episode analysis completed in', duration, 'ms');
+      
+      const result = JSON.parse(response.choices[0]?.message?.content || "{}");
+      console.log('📺 SERVICE: Multi-episode decision:', result.isMultiEpisode || false);
+      console.log('🔢 SERVICE: Total episodes planned:', result.totalEpisodes || 1);
+      console.log('📋 SERVICE: Episode breakdown created:', result.episodes?.length || 0, 'episodes');
+      
+      return result;
     } catch (error) {
+      console.error('❌ SERVICE: Episode analysis failed:', error);
       throw new Error(`Failed to analyze episode breakdown: ${(error as Error).message}`);
     }
   }

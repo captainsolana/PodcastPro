@@ -1,4 +1,5 @@
 import { useParams } from "wouter";
+import { useState } from "react";
 import { useProject } from "@/hooks/use-project";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
@@ -7,10 +8,16 @@ import ScriptGeneration from "@/components/phases/script-generation";
 import AudioGeneration from "@/components/phases/audio-generation";
 import { AlertCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Project() {
   const { id } = useParams();
-  const { project, isLoading, error } = useProject(id);
+  const { project, isLoading, error, updateProject } = useProject(id);
+  const [currentPhase, setCurrentPhase] = useState<number | null>(null);
+  const { toast } = useToast();
+
+  // Use currentPhase override if set, otherwise use project phase
+  const displayPhase = currentPhase || project?.phase || 1;
 
   if (isLoading) {
     return (
@@ -38,8 +45,29 @@ export default function Project() {
     );
   }
 
+  const handlePhaseChange = (targetPhase: number) => {
+    if (targetPhase > project.phase) {
+      toast({
+        title: "Cannot Navigate Forward",
+        description: "Complete the current phase to proceed to the next one.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (targetPhase < project.phase) {
+      // Allow navigation to previous phases for editing
+      toast({
+        title: "Navigating to Previous Phase",
+        description: "You can edit previous content. Changes won't affect subsequent phases until regenerated.",
+      });
+    }
+
+    setCurrentPhase(targetPhase);
+  };
+
   const renderPhaseContent = () => {
-    switch (project.phase) {
+    switch (displayPhase) {
       case 1:
         return <PromptResearch project={project} />;
       case 2:
@@ -53,7 +81,7 @@ export default function Project() {
 
   return (
     <div className="min-h-screen flex bg-background">
-      <Sidebar project={project} />
+      <Sidebar project={project} onPhaseChange={handlePhaseChange} />
       <div className="flex-1 flex flex-col">
         <Header project={project} />
         {renderPhaseContent()}

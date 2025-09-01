@@ -2,14 +2,16 @@ import { useLocation } from "wouter";
 import { useProjects } from "@/hooks/use-project";
 import { Mic, Check, Calendar, Clock, ArrowRight } from "lucide-react";
 import { ExpandableText } from "@/components/ui/expandable-text";
+import { ProjectStatus } from "@/components/ui/project-status";
 import type { Project } from "@shared/schema";
 import APP_CONFIG from "@/lib/config";
 
 interface SidebarProps {
   project: Project;
+  onPhaseChange?: (phase: number) => void;
 }
 
-export default function Sidebar({ project }: SidebarProps) {
+export default function Sidebar({ project, onPhaseChange }: SidebarProps) {
   const [, setLocation] = useLocation();
   const { projects } = useProjects(); // Simplified - no userId needed
 
@@ -35,6 +37,19 @@ export default function Sidebar({ project }: SidebarProps) {
     if (phaseNumber < project.phase) return "phase-completed";
     if (phaseNumber === project.phase) return "phase-active";
     return "phase-pending";
+  };
+
+  const canNavigateToPhase = (phaseNumber: number) => {
+    // Can always navigate to current phase or completed phases
+    return phaseNumber <= project.phase;
+  };
+
+  const handlePhaseNavigation = (phaseNumber: number) => {
+    if (!canNavigateToPhase(phaseNumber)) return;
+    
+    if (onPhaseChange) {
+      onPhaseChange(phaseNumber);
+    }
   };
 
   return (
@@ -70,8 +85,13 @@ export default function Sidebar({ project }: SidebarProps) {
           {phases.map((phase, index) => (
             <div
               key={phase.number}
-              className={`group flex items-center space-x-3 p-4 rounded-xl cursor-pointer transition-all duration-300 ${getPhaseStyle(phase.number)} animate-fade-in-up`}
+              className={`group flex items-center space-x-3 p-4 rounded-xl transition-all duration-300 ${getPhaseStyle(phase.number)} animate-fade-in-up ${
+                canNavigateToPhase(phase.number) 
+                  ? 'cursor-pointer hover:scale-105 hover:shadow-md' 
+                  : 'cursor-not-allowed opacity-60'
+              }`}
               style={{ animationDelay: `${index * 0.1}s` }}
+              onClick={() => handlePhaseNavigation(phase.number)}
               data-testid={`phase-${phase.number}`}
             >
               <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shadow-sm">
@@ -90,6 +110,11 @@ export default function Sidebar({ project }: SidebarProps) {
               )}
             </div>
           ))}
+        </div>
+
+        {/* Project Status */}
+        <div className="mt-6">
+          <ProjectStatus project={project} />
         </div>
 
         {/* Recent Projects */}

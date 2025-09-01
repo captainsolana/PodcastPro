@@ -8,7 +8,9 @@ import WaveformVisualizer from "@/components/audio/waveform-visualizer";
 import AudioPreviewModal from "@/components/audio/audio-preview-modal";
 import { useProject } from "@/hooks/use-project";
 import { useToast } from "@/hooks/use-toast";
-import { Play, Download, RefreshCw, Volume2, CheckCircle, FileAudio } from "lucide-react";
+import { useAutoSave } from "@/hooks/use-auto-save";
+import { LoadingState } from "@/components/ui/loading-state";
+import { Play, Download, RefreshCw, Volume2, CheckCircle, FileAudio, ChevronLeft, RotateCcw } from "lucide-react";
 import type { Project, VoiceSettings } from "@shared/schema";
 
 interface AudioGenerationProps {
@@ -33,6 +35,20 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
     audioResult
   } = useProject(project.id);
   const { toast } = useToast();
+
+  // Auto-save functionality for voice settings
+  const { isSaving } = useAutoSave({
+    data: { voiceSettings },
+    onSave: async (data) => {
+      await updateProject({
+        id: project.id,
+        updates: {
+          voiceSettings: data.voiceSettings,
+        }
+      });
+    },
+    enabled: JSON.stringify(voiceSettings) !== JSON.stringify(project.voiceSettings)
+  });
 
   // Automatically update project when audio is generated
   useEffect(() => {
@@ -147,7 +163,50 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
   const isAudioReady = !!audioUrl;
 
   return (
-    <div className="flex-1 p-6">
+    <div className="flex-1 flex flex-col">
+      {/* Navigation Bar */}
+      <div className="border-b border-border bg-card/50 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <FileAudio className="w-5 h-5 text-primary" />
+            <h2 className="text-lg font-semibold">Audio Generation</h2>
+            {isSaving && (
+              <LoadingState 
+                isLoading={true} 
+                loadingText="Saving..." 
+                size="sm"
+                className="text-xs text-muted-foreground"
+              />
+            )}
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => updateProject({ id: project.id, updates: { phase: 2 } })}
+              data-testid="button-back-to-script"
+            >
+              <ChevronLeft className="w-4 h-4 mr-2" />
+              Back to Script
+            </Button>
+            {isAudioReady && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleGenerateWithNewSettings}
+                disabled={isGeneratingAudio}
+                data-testid="button-regenerate-audio"
+              >
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Regenerate Audio
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 p-6">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Audio Generation Status */}
         <Card>
@@ -185,11 +244,20 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
             )}
 
             {isGeneratingAudio && (
-              <div className="text-center py-8">
-                <RefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
-                <h3 className="text-lg font-semibold mb-2">Generating Audio</h3>
-                <p className="text-muted-foreground">
-                  AI is converting your script to audio. This may take a few minutes...
+              <div className="text-center py-8 space-y-4">
+                <LoadingState 
+                  isLoading={true}
+                  loadingText="AI is converting your script to audio..."
+                  size="lg"
+                  className="justify-center"
+                />
+                <div className="text-sm text-muted-foreground space-y-1">
+                  <p>• Processing script content...</p>
+                  <p>• Applying voice settings...</p>
+                  <p>• Generating high-quality audio...</p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  This may take a few minutes depending on script length
                 </p>
               </div>
             )}
@@ -369,6 +437,7 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
           isRegenerating={isGeneratingAudio}
         />
       )}
+      </div>
     </div>
   );
 }

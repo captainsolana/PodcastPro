@@ -6,9 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useProject } from "@/hooks/use-project";
 import { useToast } from "@/hooks/use-toast";
+import { useAutoSave } from "@/hooks/use-auto-save";
+import { LoadingState } from "@/components/ui/loading-state";
 import EpisodePlanner from "./episode-planner";
 import { ResearchViewer } from "@/components/ui/research-viewer";
-import { ArrowRight, RefreshCw, Search, FileText, Calendar } from "lucide-react";
+import { ArrowRight, RefreshCw, Search, FileText, Calendar, ChevronLeft, RotateCcw, Save } from "lucide-react";
 import type { Project } from "@shared/schema";
 
 interface PromptResearchProps {
@@ -30,6 +32,21 @@ export default function PromptResearch({ project }: PromptResearchProps) {
     researchResult
   } = useProject(project.id);
   const { toast } = useToast();
+
+  // Auto-save functionality
+  const { isSaving } = useAutoSave({
+    data: { originalPrompt: prompt, refinedPrompt },
+    onSave: async (data) => {
+      await updateProject({
+        id: project.id,
+        updates: {
+          originalPrompt: data.originalPrompt,
+          refinedPrompt: data.refinedPrompt,
+        }
+      });
+    },
+    enabled: prompt !== project.originalPrompt || refinedPrompt !== project.refinedPrompt
+  });
 
   useEffect(() => {
     if (refinePromptResult) {
@@ -150,9 +167,52 @@ export default function PromptResearch({ project }: PromptResearchProps) {
   };
 
   return (
-    <div className="flex-1 p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* Original Prompt */}
+    <div className="flex-1 flex flex-col">
+      {/* Navigation Bar */}
+      <div className="border-b bg-muted/50 px-6 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <FileText className="w-5 h-5 text-primary" />
+            <h2 className="text-lg font-semibold">Prompt & Research</h2>
+            {isSaving && (
+              <LoadingState 
+                isLoading={true} 
+                loadingText="Saving..." 
+                size="sm"
+                className="text-xs text-muted-foreground"
+              />
+            )}
+          </div>
+          <div className="flex items-center space-x-2">
+            <LoadingState 
+              isLoading={isSaving}
+              loadingText=""
+              size="sm"
+              className="mr-2"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setPrompt(project.originalPrompt || "");
+                setRefinedPrompt("");
+                toast({
+                  title: "Reset",
+                  description: "Prompt has been reset to original",
+                });
+              }}
+              className="flex items-center space-x-1"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span>Reset</span>
+            </Button>
+          </div>
+        </div>
+      </div>
+      
+      <div className="flex-1 p-6">
+        <div className="max-w-4xl mx-auto space-y-6">
+          {/* Original Prompt */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
@@ -169,23 +229,38 @@ export default function PromptResearch({ project }: PromptResearchProps) {
               className="mb-4"
               data-testid="textarea-original-prompt"
             />
-            <Button 
-              onClick={handleRefinePrompt}
-              disabled={isRefiningPrompt || !prompt.trim()}
-              data-testid="button-refine-prompt"
-            >
-              {isRefiningPrompt ? (
-                <>
-                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  Refining with AI...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Refine with AI
-                </>
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleRefinePrompt}
+                disabled={isRefiningPrompt || !prompt.trim()}
+                data-testid="button-refine-prompt"
+              >
+                {isRefiningPrompt ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Refining with AI...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Refine with AI
+                  </>
+                )}
+              </Button>
+              {refinedPrompt && (
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    setPrompt(project.originalPrompt || "");
+                    setRefinedPrompt("");
+                  }}
+                  data-testid="button-reset-prompt"
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Reset
+                </Button>
               )}
-            </Button>
+            </div>
           </CardContent>
         </Card>
 
@@ -249,6 +324,7 @@ export default function PromptResearch({ project }: PromptResearchProps) {
                   <Button 
                     onClick={handleConductResearch}
                     data-testid="button-conduct-research"
+                    disabled={isResearching}
                   >
                     <Search className="w-4 h-4 mr-2" />
                     Start AI Research
@@ -257,20 +333,43 @@ export default function PromptResearch({ project }: PromptResearchProps) {
               )}
 
               {isResearching && (
-                <div className="text-center py-8">
-                  <RefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
-                  <p className="text-muted-foreground">AI is conducting deep research...</p>
+                <div className="text-center py-8 space-y-4">
+                  <LoadingState 
+                    isLoading={true}
+                    loadingText="AI is conducting deep research..."
+                    size="lg"
+                    className="justify-center"
+                  />
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    <p>• Analyzing your topic...</p>
+                    <p>• Gathering relevant sources...</p>
+                    <p>• Processing research data...</p>
+                  </div>
                 </div>
               )}
 
               {researchResult && (
                 <div className="space-y-6">
-                  {/* Success Message */}
+                  {/* Success Message with Actions */}
                   <div className="bg-success/10 p-4 rounded-lg border-l-4 border-success">
-                    <h4 className="font-semibold text-sm mb-2">Research Completed Successfully!</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Comprehensive research has been completed. Review the findings below and proceed to episode planning.
-                    </p>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-semibold text-sm mb-2">Research Completed Successfully!</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Comprehensive research has been completed. Review the findings below.
+                        </p>
+                      </div>
+                      <Button 
+                        variant="outline"
+                        size="sm"
+                        onClick={handleConductResearch}
+                        disabled={isResearching}
+                        data-testid="button-redo-research"
+                      >
+                        <RotateCcw className="w-4 h-4 mr-2" />
+                        Redo Research
+                      </Button>
+                    </div>
                   </div>
                   
                   {/* Scrollable Research Viewer */}
@@ -336,6 +435,7 @@ export default function PromptResearch({ project }: PromptResearchProps) {
             </CardContent>
           </Card>
         )}
+        </div>
       </div>
     </div>
   );

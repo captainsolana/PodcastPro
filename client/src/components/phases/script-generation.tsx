@@ -6,7 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useProject } from "@/hooks/use-project";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowRight, RefreshCw, FileText, Search, Lightbulb } from "lucide-react";
+import { useAutoSave } from "@/hooks/use-auto-save";
+import { LoadingState } from "@/components/ui/loading-state";
+import { ArrowRight, RefreshCw, FileText, Search, Lightbulb, ChevronLeft, RotateCcw } from "lucide-react";
 import type { Project } from "@shared/schema";
 
 interface ScriptGenerationProps {
@@ -28,6 +30,20 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
     suggestionsResult
   } = useProject(project.id);
   const { toast } = useToast();
+
+  // Auto-save functionality for script content
+  const { isSaving } = useAutoSave({
+    data: { scriptContent },
+    onSave: async (data) => {
+      await updateProject({
+        id: project.id,
+        updates: {
+          scriptContent: data.scriptContent,
+        }
+      });
+    },
+    enabled: scriptContent !== project.scriptContent
+  });
 
   const episodePlan = (project as any).episodePlan;
   const currentEpisode = (project as any).currentEpisode || 1;
@@ -152,7 +168,50 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
   };
 
   return (
-    <div className="flex-1 flex">
+    <div className="flex-1 flex flex-col">
+      {/* Navigation Bar */}
+      <div className="border-b border-border bg-card/50 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <FileText className="w-5 h-5 text-primary" />
+            <h2 className="text-lg font-semibold">Script Generation</h2>
+            {isSaving && (
+              <LoadingState 
+                isLoading={true} 
+                loadingText="Saving..." 
+                size="sm"
+                className="text-xs text-muted-foreground"
+              />
+            )}
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => updateProject({ id: project.id, updates: { phase: 1 } })}
+              data-testid="button-back-to-research"
+            >
+              <ChevronLeft className="w-4 h-4 mr-2" />
+              Back to Research
+            </Button>
+            {scriptContent && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleGenerateScript}
+                disabled={isGeneratingScript || isGeneratingEpisodeScript}
+                data-testid="button-regenerate-script"
+              >
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Regenerate Script
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex">
       {/* Main Content */}
       <div className="flex-1">
         <Tabs defaultValue="editor" className="h-full flex flex-col">
@@ -346,6 +405,7 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
         onGenerateSuggestions={() => generateSuggestions(scriptContent)}
         isGeneratingSuggestions={isGeneratingSuggestions}
       />
+      </div>
     </div>
   );
 }

@@ -118,16 +118,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Prompt is required" });
       }
 
+      console.log('📊 ROUTE: Starting research phase...');
+      console.log('📝 Research prompt:', prompt.substring(0, 100) + '...');
+
       // Very extended timeout for deep research models (can take up to 6 minutes)
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Service timeout')), 360000)
       );
 
       try {
+        console.log('🚀 ROUTE: Making research API call...');
+        const startTime = Date.now();
+        
         const result = await Promise.race([
           openAIService.conductResearch(prompt),
           timeoutPromise
         ]);
+        
+        const duration = Date.now() - startTime;
+        console.log('✅ ROUTE: Research completed successfully in', duration, 'ms');
+        console.log('📊 ROUTE: Research sources count:', (result as any).sources?.length || 0);
+        console.log('📈 ROUTE: Key points extracted:', (result as any).keyPoints?.length || 0);
+        console.log('📋 ROUTE: Statistics found:', (result as any).statistics?.length || 0);
+        
         res.json(result);
       } catch (timeoutError) {
         console.warn('Using fallback for research');
@@ -182,14 +195,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/ai/generate-script", async (req, res) => {
     try {
-      const { prompt, research } = req.body;
+      const { prompt, research, refinementResult } = req.body;
       if (!prompt || !research) {
         return res.status(400).json({ message: "Prompt and research data are required" });
       }
 
-      console.log('Route: Starting script generation...');
-      const result = await openAIService.generateScript(prompt, research);
-      console.log('Route: Script generation completed, sending response...');
+      console.log('Route: Starting enhanced script generation...');
+      console.log('Route: Refinement data available:', !!refinementResult);
+      const result = await openAIService.generateScript(prompt, research, refinementResult);
+      console.log('Route: Enhanced script generation completed, sending response...');
+      console.log('Route: Research utilization rate:', result.researchUtilization?.utilizationRate + '%' || 'N/A');
       console.log('Route: Response data preview:', JSON.stringify(result).substring(0, 200) + '...');
       res.json(result);
       console.log('Route: Response sent successfully');
@@ -240,9 +255,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Prompt and research data are required" });
       }
 
+      console.log('🎭 ROUTE: Starting content analysis phase...');
+      console.log('📝 Analysis prompt:', prompt.substring(0, 100) + '...');
+      console.log('📊 Research data size:', JSON.stringify(research).length, 'characters');
+      console.log('🧠 Using model: GPT-5 with low reasoning effort');
+      
+      const startTime = Date.now();
+      console.log('🚀 ROUTE: Making content analysis API call...');
+      
       const episodePlan = await openAIService.analyzeForEpisodeBreakdown(prompt, research);
+      
+      const duration = Date.now() - startTime;
+      console.log('✅ ROUTE: Content analysis completed in', duration, 'ms');
+      console.log('📺 ROUTE: Multi-episode result:', (episodePlan as any).isMultiEpisode || false);
+      console.log('🔢 ROUTE: Total episodes planned:', (episodePlan as any).totalEpisodes || 1);
+      console.log('📋 ROUTE: Episodes breakdown:', (episodePlan as any).episodes?.length || 0, 'episodes');
+      
       res.json(episodePlan);
     } catch (error) {
+      console.error('❌ ROUTE: Content analysis error:', error);
       res.status(500).json({ message: (error as Error).message || "Failed to analyze episodes" });
     }
   });
