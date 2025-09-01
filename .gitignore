@@ -5,11 +5,13 @@ server/public
 vite.config.ts.*
 *.tar.gz
 
-# Environment variables
+# Environment variables - DO NOT COMMIT
 .env
 .env.local
+.env.development
 .env.production
 .env.staging
+.env.azure
 
 # Log files
 *.log
@@ -18,3 +20,44 @@ logs/
 # Database
 *.sqlite
 *.sqlite3
+
+# Audio files (stored in Azure)
+public/audio/
+*.mp3
+*.wav
+*.m4a
+
+# Azure/Deployment specific files
+deploy-production-secure.sh
+migrate-audio-to-azure.js
+debug-azure-containers.js
+debug-audio-storage.js
+
+# Development/Testing files
+test-*.js
+debug-*.js
+context.md
+Context_summarized.md
+
+# Personal documentation (keep private)
+attached_assets/
+CHECKPOINT_*.md
+COMPREHENSIVE_*.md
+DOMAIN_AWARE_*.md
+PERFORMANCE_*.md
+RESEARCH_*.md
+CONTENT_ANALYSIS_*.md
+SAVE_PROGRESS_*.md
+WORKFLOW_IMPROVEMENTS*.md
+PHASE_2_UI_IMPROVEMENTS.md
+TESTING_CHECKLIST.md
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
