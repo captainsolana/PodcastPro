@@ -13,6 +13,7 @@ interface ScriptToolsPanelProps {
   suggestions?: any[];
   onSave: () => void;
   onGenerateSuggestions: () => void;
+  onApplySuggestion?: (suggestion: any) => void;
   isGeneratingSuggestions: boolean;
 }
 
@@ -23,6 +24,7 @@ export default function ScriptToolsPanel({
   suggestions,
   onSave,
   onGenerateSuggestions,
+  onApplySuggestion,
   isGeneratingSuggestions,
 }: ScriptToolsPanelProps) {
   const voiceSettings = project.voiceSettings as VoiceSettings || { model: "nova", speed: 1.0 };
@@ -50,22 +52,57 @@ export default function ScriptToolsPanel({
             </div>
             
             {suggestions && suggestions.length > 0 ? (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <p className="text-xs text-muted-foreground mb-3">
                   I've analyzed your script and have suggestions to improve flow and engagement.
                 </p>
-                {suggestions.slice(0, 2).map((suggestion, index) => (
-                  <Button
-                    key={index}
-                    variant="outline"
-                    size="sm"
-                    className="w-full text-left justify-start text-xs h-auto p-2"
-                    data-testid={`button-apply-suggestion-${index}`}
+                {suggestions.slice(0, 3).map((suggestion, index) => (
+                  <div
+                    key={suggestion.id || index}
+                    className="border rounded-lg p-3 space-y-2 bg-card hover:bg-accent/5 transition-colors"
                   >
-                    <span className="text-primary mr-2">+</span>
-                    {suggestion.suggestion.substring(0, 40)}...
-                  </Button>
+                    <div className="flex items-center justify-between">
+                      <h5 className="font-medium text-xs text-primary">{suggestion.type}</h5>
+                      {suggestion.priority && (
+                        <span className={`text-xs px-1.5 py-0.5 rounded ${
+                          suggestion.priority === 'high' ? 'bg-red-100 text-red-800' :
+                          suggestion.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-green-100 text-green-800'
+                        }`}>
+                          {suggestion.priority}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-foreground leading-relaxed">
+                      {suggestion.suggestion}
+                    </p>
+                    {suggestion.targetSection && (
+                      <p className="text-xs text-muted-foreground">
+                        Target: {suggestion.targetSection}
+                      </p>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-xs h-7"
+                      onClick={() => {
+                        if (onApplySuggestion) {
+                          onApplySuggestion(suggestion);
+                        } else {
+                          console.log('Apply suggestion:', suggestion);
+                        }
+                      }}
+                    >
+                      <span className="text-primary mr-1">↗</span>
+                      Apply Suggestion
+                    </Button>
+                  </div>
                 ))}
+                {suggestions.length > 3 && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    +{suggestions.length - 3} more suggestions in AI Insights tab
+                  </p>
+                )}
               </div>
             ) : (
               <div>

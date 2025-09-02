@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ScriptEditor from "@/components/script/script-editor";
 import ScriptToolsPanel from "@/components/script/script-tools-panel";
+import { EnhancedResearchViewer } from "@/components/ui/enhanced-research-viewer";
+import { EnhancedAIInsights } from "@/components/ui/enhanced-ai-insights";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useProject } from "@/hooks/use-project";
@@ -130,6 +132,61 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
         title: "Error",
         description: "Failed to save script.",
         variant: "destructive",
+      });
+    }
+  };
+
+  const handleApplySuggestion = async (suggestion: any) => {
+    try {
+      // Call the new API to apply the suggestion with actual content generation
+      const response = await fetch('/api/ai/apply-suggestion', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          scriptContent,
+          suggestion
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to apply suggestion');
+      }
+
+      const result = await response.json();
+      
+      // Update the script content with the AI-generated improved version
+      setScriptContent(result.updatedScript);
+      
+      // Save the updated content
+      setTimeout(async () => {
+        try {
+          await updateProject({
+            id: project.id,
+            updates: {
+              scriptContent: result.updatedScript,
+            },
+          });
+        } catch (saveError) {
+          console.error('Auto-save failed:', saveError);
+        }
+      }, 100);
+      
+      // Show success notification with location details
+      toast({
+        title: "✨ AI Enhancement Applied!",
+        description: `Generated improved content ${result.changeLocation}. Switch to the Script Editor tab to see the AI-enhanced version.`,
+        duration: 6000,
+      });
+
+    } catch (error) {
+      console.error('Failed to apply suggestion:', error);
+      toast({
+        title: "❌ Failed to Apply Suggestion",
+        description: "Unable to apply the AI suggestion. Please try again.",
+        variant: "destructive",
+        duration: 4000,
       });
     }
   };
@@ -275,103 +332,35 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
           </TabsContent>
 
           <TabsContent value="research" className="flex-1 p-6">
-            <Card className="h-full">
-              <CardHeader>
-                <CardTitle>Research Data</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {project.researchData ? (
-                  <div className="space-y-6">
-                    {(project.researchData as any)?.keyPoints && (
-                      <div>
-                        <h4 className="font-semibold mb-3">Key Points</h4>
-                        <div className="space-y-2">
-                          {(project.researchData as any).keyPoints.map((point: string, index: number) => (
-                            <div key={index} className="flex items-start space-x-2">
-                              <div className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                              <p className="text-sm">{point}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {(project.researchData as any)?.outline && (
-                      <div>
-                        <h4 className="font-semibold mb-3">Episode Outline</h4>
-                        <div className="space-y-2">
-                          {(project.researchData as any).outline.map((item: string, index: number) => (
-                            <div key={index} className="flex items-center space-x-3">
-                              <div className="w-6 h-6 bg-primary/10 text-primary rounded-full flex items-center justify-center text-xs font-medium">
-                                {index + 1}
-                              </div>
-                              <p className="text-sm">{item}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {(project.researchData as any)?.statistics && (
-                      <div>
-                        <h4 className="font-semibold mb-3">Statistics</h4>
-                        <div className="space-y-2">
-                          {(project.researchData as any).statistics.map((stat: any, index: number) => (
-                            <div key={index} className="bg-accent/10 p-3 rounded-lg">
-                              <p className="text-sm font-medium">{stat.fact}</p>
-                              <p className="text-xs text-muted-foreground mt-1">Source: {stat.source}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
+            {project.researchData ? (
+              <EnhancedResearchViewer 
+                researchResult={project.researchData as any}
+                className="h-full"
+              />
+            ) : (
+              <Card className="h-full">
+                <CardHeader>
+                  <CardTitle>No Research Data</CardTitle>
+                </CardHeader>
+                <CardContent>
                   <div className="text-center py-8">
                     <Search className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                    <p className="text-muted-foreground">No research data available</p>
+                    <p className="text-muted-foreground">Complete the research phase to see detailed research analysis here.</p>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="insights" className="flex-1 p-6">
-            <Card className="h-full">
-              <CardHeader>
-                <CardTitle>AI Insights</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {suggestionsResult ? (
-                  <div className="space-y-4">
-                    {suggestionsResult.map((suggestion: any, index: number) => (
-                      <div key={index} className="p-4 bg-muted/50 rounded-lg">
-                        <div className="flex items-start space-x-3">
-                          <Lightbulb className="w-5 h-5 text-accent mt-0.5" />
-                          <div className="flex-1">
-                            <h5 className="font-medium text-sm mb-1">{suggestion.type}</h5>
-                            <p className="text-sm text-muted-foreground">{suggestion.suggestion}</p>
-                            <p className="text-xs text-muted-foreground mt-2">Target: {suggestion.targetSection}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <Lightbulb className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                    <p className="text-muted-foreground mb-4">No AI insights generated yet</p>
-                    <Button
-                      onClick={() => generateSuggestions(scriptContent)}
-                      disabled={!scriptContent || isGeneratingSuggestions}
-                      data-testid="button-generate-insights"
-                    >
-                      {isGeneratingSuggestions ? "Generating..." : "Get AI Insights"}
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <EnhancedAIInsights
+              suggestions={suggestionsResult || []}
+              onApplySuggestion={handleApplySuggestion}
+              onGenerateSuggestions={() => generateSuggestions(scriptContent)}
+              isGeneratingSuggestions={isGeneratingSuggestions}
+              scriptContent={scriptContent}
+              className="h-full"
+            />
           </TabsContent>
         </Tabs>
 
@@ -403,6 +392,7 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
         suggestions={suggestionsResult}
         onSave={handleSaveScript}
         onGenerateSuggestions={() => generateSuggestions(scriptContent)}
+        onApplySuggestion={handleApplySuggestion}
         isGeneratingSuggestions={isGeneratingSuggestions}
       />
       </div>

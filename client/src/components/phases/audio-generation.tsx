@@ -4,29 +4,61 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import WaveformVisualizer from "@/components/audio/waveform-visualizer";
+import EnhancedAudioPlayer from "@/components/audio/enhanced-audio-player";
+import AdvancedVoiceCustomization, { type AdvancedVoiceSettings } from "@/components/audio/advanced-voice-customization";
+import IntelligentScriptEditor, { type ScriptAnalysis } from "@/components/script/intelligent-script-editor";
 import AudioPreviewModal from "@/components/audio/audio-preview-modal";
 import { useProject } from "@/hooks/use-project";
 import { useToast } from "@/hooks/use-toast";
 import { useAutoSave } from "@/hooks/use-auto-save";
 import { LoadingState } from "@/components/ui/loading-state";
-import { Play, Download, RefreshCw, Volume2, CheckCircle, FileAudio, ChevronLeft, RotateCcw } from "lucide-react";
-import type { Project, VoiceSettings } from "@shared/schema";
+import { Play, Download, RefreshCw, Volume2, CheckCircle, FileAudio, ChevronLeft, RotateCcw, Edit3, Save, Mic, FileText, Headphones } from "lucide-react";
+import type { Project, VoiceSettings, AudioChapter } from "@shared/schema";
 
 interface AudioGenerationProps {
   project: Project;
 }
 
 export default function AudioGeneration({ project }: AudioGenerationProps) {
-  const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>(
-    project.voiceSettings as VoiceSettings || { model: "nova", speed: 1.0 }
-  );
+  console.log('🔧 AudioGeneration component rendered with script length:', project.scriptContent?.length || 0);
+  
+  // Enhanced voice settings with backward compatibility
+  const [voiceSettings, setVoiceSettings] = useState<AdvancedVoiceSettings>(() => {
+    const defaultSettings = {
+      personality: "conversational",
+      model: "nova" as const,
+      speed: 1.0,
+      pitch: 0,
+      emphasis: 50,
+      pause_length: 1.5,
+      breathing: false,
+      emotions: {
+        enthusiasm: 50,
+        calmness: 50,
+        confidence: 70
+      },
+      pronunciation: {}
+    };
+    
+    return {
+      ...defaultSettings,
+      ...(project.voiceSettings as AdvancedVoiceSettings || {})
+    };
+  });
+  
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [audioState, setAudioState] = useState({
     isPlaying: false,
     currentTime: 0,
     duration: 0,
   });
+  const [isEditingScript, setIsEditingScript] = useState(false);
+  const [editedScript, setEditedScript] = useState(project.scriptContent || "");
+  const [scriptAnalysis, setScriptAnalysis] = useState<ScriptAnalysis | null>(null);
+  const [activeTab, setActiveTab] = useState("script");
 
   const { 
     updateProject,
@@ -35,6 +67,89 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
     audioResult
   } = useProject(project.id);
   const { toast } = useToast();
+
+  // Voice preview functionality
+  const handleVoicePreview = async (settings: AdvancedVoiceSettings, text: string): Promise<string> => {
+    try {
+      const response = await fetch('/api/ai/preview-voice', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: text,
+          voiceSettings: settings
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate voice preview');
+      }
+
+      const result = await response.json();
+      return result.audioUrl;
+    } catch (error) {
+      console.error('Voice preview failed:', error);
+      throw new Error('Failed to generate voice preview');
+    }
+  };
+
+  // Enhanced audio generation with new settings
+  const handleGenerateAudio = async () => {
+    const currentScript = isEditingScript ? editedScript : project.scriptContent;
+    
+    if (!currentScript || currentScript.trim().length === 0) {
+      toast({
+        title: "Error",
+        description: "No script content available to generate audio.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Save any script edits first
+      if (isEditingScript && editedScript !== project.scriptContent) {
+        await updateProject({
+          id: project.id,
+          updates: {
+            scriptContent: editedScript,
+          },
+        });
+      }
+
+      console.log('🎵 Starting enhanced audio generation...', { 
+        scriptLength: currentScript.length, 
+        voiceSettings,
+        analysis: scriptAnalysis 
+      });
+      
+      // Convert advanced settings to basic settings for API compatibility
+      const basicSettings = {
+        model: voiceSettings.model,
+        speed: voiceSettings.speed
+      };
+
+      await generateAudio({
+        scriptContent: currentScript,
+        voiceSettings: basicSettings,
+      });
+      
+      console.log('✅ Enhanced audio generation request sent');
+      
+      toast({
+        title: "✨ Audio Generation Started",
+        description: "Your enhanced podcast audio is being generated. This may take a few moments...",
+      });
+    } catch (error) {
+      console.error('❌ Enhanced audio generation failed:', error);
+      toast({
+        title: "❌ Audio Generation Failed",
+        description: `Failed to generate audio: ${(error as Error).message || 'Unknown error'}. Please try again.`,
+        variant: "destructive",
+      });
+    }
+  };
 
   // Auto-save functionality for voice settings
   const { isSaving } = useAutoSave({
@@ -50,6 +165,40 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
     enabled: JSON.stringify(voiceSettings) !== JSON.stringify(project.voiceSettings)
   });
 
+  // Handle audio generation result
+  useEffect(() => {
+    if (audioResult) {
+      console.log('📻 Audio generation completed:', audioResult);
+      
+      // Update project with audio URL and duration
+      const saveAudioResult = async () => {
+        try {
+          await updateProject({
+            id: project.id,
+            updates: {
+              audioUrl: audioResult.audioUrl,
+              audioChapters: audioResult.chapters || [],
+            },
+          });
+          
+          toast({
+            title: "✅ Audio Generated Successfully",
+            description: `Your podcast audio is ready! Click Preview to listen.`,
+          });
+        } catch (error) {
+          console.error('Failed to save audio URL:', error);
+          toast({
+            title: "⚠️ Audio Generated",
+            description: "Audio was generated but failed to save. Please try refreshing.",
+            variant: "destructive",
+          });
+        }
+      };
+      
+      saveAudioResult();
+    }
+  }, [audioResult, project.id, updateProject, toast]);
+
   // Automatically update project when audio is generated
   useEffect(() => {
     if (audioResult?.audioUrl) {
@@ -62,35 +211,6 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
       });
     }
   }, [audioResult, project.id, voiceSettings, updateProject]);
-
-  const handleGenerateAudio = async () => {
-    if (!project.scriptContent) {
-      toast({
-        title: "Error",
-        description: "No script content available. Please generate a script first.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      await generateAudio({
-        scriptContent: project.scriptContent,
-        voiceSettings,
-      });
-      
-      toast({
-        title: "Audio Generated",
-        description: "Your podcast audio has been created successfully!",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to generate audio. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleSaveSettings = async () => {
     try {
@@ -115,8 +235,38 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
     }
   };
 
+  const handleSaveScript = async () => {
+    try {
+      await updateProject({
+        id: project.id,
+        updates: {
+          scriptContent: editedScript,
+        },
+      });
+      
+      setIsEditingScript(false);
+      toast({
+        title: "Script Updated",
+        description: "Your script changes have been saved.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save script changes.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditedScript(project.scriptContent || "");
+    setIsEditingScript(false);
+  };
+
   const handleGenerateWithNewSettings = async () => {
-    if (!project.scriptContent) {
+    const currentScript = isEditingScript ? editedScript : project.scriptContent;
+    
+    if (!currentScript) {
       toast({
         title: "Error", 
         description: "No script content available to generate audio.",
@@ -126,22 +276,29 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
     }
 
     try {
+      // Save any script edits first
+      if (isEditingScript && editedScript !== project.scriptContent) {
+        await updateProject({
+          id: project.id,
+          updates: {
+            scriptContent: editedScript,
+          },
+        });
+      }
+
       await generateAudio({
-        scriptContent: project.scriptContent,
+        scriptContent: currentScript,
         voiceSettings,
       });
       
-      // The audio result will be available through audioResult from the hook
-      // We'll update the project in a useEffect when audioResult changes
-      
       toast({
         title: "Audio Generated",
-        description: `New audio generated with ${voiceSettings.model} voice at ${voiceSettings.speed}x speed!`,
+        description: `Audio generated with ${voiceSettings.model} voice at ${voiceSettings.speed}x speed!`,
       });
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to generate audio with new settings.",
+        description: "Failed to generate audio.",
         variant: "destructive",
       });
     }
@@ -207,221 +364,159 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
 
       {/* Main Content */}
       <div className="flex-1 p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Audio Generation Status */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <FileAudio className="w-5 h-5" />
-                <span>Audio Generation</span>
-              </div>
-              {isAudioReady && (
-                <Badge className="bg-success text-white">
-                  <CheckCircle className="w-3 h-3 mr-1" />
-                  Ready
-                </Badge>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {!isAudioReady && !isGeneratingAudio && (
-              <div className="text-center py-8">
-                <FileAudio className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-semibold mb-2">Ready to Generate Audio</h3>
-                <p className="text-muted-foreground mb-6">
-                  Convert your script to high-quality audio using AI voice synthesis.
-                </p>
-                <Button 
-                  onClick={handleGenerateAudio}
-                  size="lg"
-                  data-testid="button-generate-audio"
-                >
-                  <Volume2 className="w-4 h-4 mr-2" />
-                  Generate Audio
-                </Button>
-              </div>
-            )}
-
-            {isGeneratingAudio && (
-              <div className="text-center py-8 space-y-4">
-                <LoadingState 
-                  isLoading={true}
-                  loadingText="AI is converting your script to audio..."
-                  size="lg"
-                  className="justify-center"
-                />
-                <div className="text-sm text-muted-foreground space-y-1">
-                  <p>• Processing script content...</p>
-                  <p>• Applying voice settings...</p>
-                  <p>• Generating high-quality audio...</p>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  This may take a few minutes depending on script length
-                </p>
-              </div>
-            )}
-
-            {isAudioReady && (
-              <div className="space-y-6">
-                {/* Audio Player */}
-                <div className="bg-muted/30 rounded-lg p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h4 className="font-semibold">{project.title}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Duration: {Math.floor((audioResult?.duration || 0) / 60)}:{String((audioResult?.duration || 0) % 60).padStart(2, '0')}
-                      </p>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowPreviewModal(true)}
-                        data-testid="button-preview-audio"
-                      >
-                        <Play className="w-4 h-4 mr-2" />
-                        Preview
-                      </Button>
-                      <Button
-                        onClick={handleDownload}
-                        size="sm"
-                        data-testid="button-download-audio"
-                      >
-                        <Download className="w-4 h-4 mr-2" />
-                        Download
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Waveform Visualization */}
-                  <WaveformVisualizer audioUrl={audioUrl} />
-                </div>
-
-                {/* Generation Actions */}
-                <div className="flex space-x-4">
-                  <Button
-                    variant="outline"
-                    onClick={handleGenerateAudio}
-                    disabled={isGeneratingAudio}
-                    data-testid="button-regenerate-audio"
-                  >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Regenerate Audio
-                  </Button>
-                  
-                  <Button
-                    onClick={() => window.location.href = "/"}
-                    className="bg-success hover:bg-success/90"
-                    data-testid="button-complete-project"
-                  >
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Complete Project
-                  </Button>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Voice Settings */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* Enhanced Audio Generation with Tabs */}
           <Card>
             <CardHeader>
-              <CardTitle>Voice Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-foreground block mb-2">
-                  Voice Model
-                </label>
-                <Select
-                  value={voiceSettings.model}
-                  onValueChange={(value) => setVoiceSettings({ ...voiceSettings, model: value as any })}
-                  data-testid="select-voice-model"
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select voice model" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="alloy">Alloy (Neutral)</SelectItem>
-                    <SelectItem value="ash">Ash (Rich & Warm)</SelectItem>
-                    <SelectItem value="ballad">Ballad (Expressive)</SelectItem>
-                    <SelectItem value="coral">Coral (Bright & Clear)</SelectItem>
-                    <SelectItem value="echo">Echo (Deep & Resonant)</SelectItem>
-                    <SelectItem value="fable">Fable (Storytelling)</SelectItem>
-                    <SelectItem value="nova">Nova (Pleasant & Crisp)</SelectItem>
-                    <SelectItem value="onyx">Onyx (Professional)</SelectItem>
-                    <SelectItem value="sage">Sage (Wise & Measured)</SelectItem>
-                    <SelectItem value="shimmer">Shimmer (Gentle & Soft)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-foreground block mb-2">
-                  Speech Speed: {voiceSettings.speed}x
-                </label>
-                <Slider
-                  value={[voiceSettings.speed]}
-                  onValueChange={([value]) => setVoiceSettings({ ...voiceSettings, speed: value })}
-                  min={0.5}
-                  max={2.0}
-                  step={0.1}
-                  className="w-full"
-                  data-testid="slider-speech-speed"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                  <span>0.5x</span>
-                  <span>1.0x</span>
-                  <span>2.0x</span>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Headphones className="w-5 h-5" />
+                  <span>Enhanced Audio Production</span>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant="outline"
-                  onClick={handleSaveSettings}
-                  className="w-full"
-                  data-testid="button-save-voice-settings"
-                >
-                  Save Settings
-                </Button>
-                <Button
-                  onClick={handleGenerateWithNewSettings}
-                  disabled={isGeneratingAudio}
-                  className="w-full"
-                  data-testid="button-generate-with-settings"
-                >
-                  {isGeneratingAudio ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Volume2 className="w-4 h-4 mr-2" />
-                      Generate Audio
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Script Preview */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Script Preview</CardTitle>
+                {project.audioUrl && (
+                  <Badge className="bg-success text-white">
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    Audio Ready
+                  </Badge>
+                )}
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="bg-background rounded-lg p-4 max-h-60 overflow-y-auto border script-editor text-sm">
-                {project.scriptContent ? (
-                  <div className="whitespace-pre-wrap">{project.scriptContent.substring(0, 500)}...</div>
-                ) : (
-                  <p className="text-muted-foreground">No script content available</p>
-                )}
-              </div>
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="script" className="flex items-center space-x-2">
+                    <FileText className="w-4 h-4" />
+                    <span>Script Editor</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="voice" className="flex items-center space-x-2">
+                    <Mic className="w-4 h-4" />
+                    <span>Voice Settings</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="audio" className="flex items-center space-x-2">
+                    <Headphones className="w-4 h-4" />
+                    <span>Audio Player</span>
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* Script Editor Tab */}
+                <TabsContent value="script" className="space-y-4">
+                  <IntelligentScriptEditor
+                    content={isEditingScript ? editedScript : project.scriptContent || ""}
+                    onContentChange={(content) => {
+                      setEditedScript(content);
+                      if (!isEditingScript) {
+                        setIsEditingScript(true);
+                      }
+                    }}
+                    onAnalysisChange={setScriptAnalysis}
+                  />
+                  
+                  {isEditingScript && (
+                    <div className="flex items-center justify-end space-x-3 pt-4 border-t">
+                      <Button
+                        variant="outline"
+                        onClick={handleCancelEdit}
+                        disabled={isGeneratingAudio}
+                      >
+                        Cancel Changes
+                      </Button>
+                      <Button
+                        onClick={handleSaveScript}
+                        disabled={isGeneratingAudio}
+                      >
+                        <Save className="w-4 h-4 mr-2" />
+                        Save Script
+                      </Button>
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* Voice Customization Tab */}
+                <TabsContent value="voice" className="space-y-4">
+                  <AdvancedVoiceCustomization
+                    currentSettings={voiceSettings}
+                    onSettingsChange={setVoiceSettings}
+                    onPreview={handleVoicePreview}
+                  />
+                </TabsContent>
+
+                {/* Audio Player Tab */}
+                <TabsContent value="audio" className="space-y-4">
+                  {!project.audioUrl && !isGeneratingAudio && (
+                    <div className="text-center py-12 space-y-4">
+                      <FileAudio className="w-16 h-16 mx-auto text-muted-foreground" />
+                      <div>
+                        <h3 className="text-lg font-semibold mb-2">Ready to Generate Audio</h3>
+                        <p className="text-muted-foreground mb-6">
+                          Your script and voice settings are configured. Generate your podcast audio now!
+                        </p>
+                        {scriptAnalysis && (
+                          <div className="inline-flex items-center space-x-4 text-sm text-muted-foreground mb-6">
+                            <span>📝 {scriptAnalysis.timing.wordCount} words</span>
+                            <span>⏱️ ~{scriptAnalysis.timing.estimatedDuration}min</span>
+                            <span>🎯 {scriptAnalysis.engagement.score}% engagement</span>
+                          </div>
+                        )}
+                        <Button
+                          onClick={handleGenerateAudio}
+                          disabled={isGeneratingAudio || !project.scriptContent?.trim()}
+                          size="lg"
+                          className="bg-primary hover:bg-primary/90"
+                        >
+                          <Play className="w-5 h-5 mr-2" />
+                          Generate Audio
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {isGeneratingAudio && (
+                    <div className="text-center py-12 space-y-4">
+                      <LoadingState 
+                        isLoading={true}
+                        loadingText="Creating your enhanced podcast audio..."
+                        size="lg"
+                        className="justify-center"
+                      />
+                      <div className="text-sm text-muted-foreground space-y-1">
+                        <p>• Applying voice personality: {voiceSettings.personality}</p>
+                        <p>• Processing {project.scriptContent?.split(' ').length || 0} words</p>
+                        <p>• Optimizing audio quality</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {project.audioUrl && (
+                    <div className="space-y-6">
+                      <EnhancedAudioPlayer
+                        audioUrl={project.audioUrl}
+                        title={project.title || "Podcast Episode"}
+                        transcript={project.scriptContent || undefined}
+                        chapters={project.audioChapters || audioResult?.chapters || []}
+                      />
+                      
+                      <div className="flex items-center justify-center space-x-4">
+                        <Button
+                          variant="outline"
+                          onClick={handleGenerateAudio}
+                          disabled={isGeneratingAudio}
+                        >
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          Regenerate Audio
+                        </Button>
+                        
+                        <Button
+                          onClick={() => window.location.href = "/"}
+                          className="bg-success hover:bg-success/90"
+                        >
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          Complete Project
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
         </div>
@@ -437,7 +532,6 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
           isRegenerating={isGeneratingAudio}
         />
       )}
-      </div>
     </div>
   );
 }

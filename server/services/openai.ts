@@ -41,6 +41,14 @@ export interface EpisodePlanResult {
   reasoning: string;
 }
 
+export interface AudioChapter {
+  id: string;
+  title: string;
+  startTime: number;
+  endTime: number;
+  color: string;
+}
+
 export interface ScriptResult {
   content: string;
   sections: Array<{ type: string; content: string; duration: number }>;
@@ -316,12 +324,59 @@ Ensure the refined prompt is substantially enhanced with domain expertise, speci
       const keyPoints = this.extractKeyPoints(researchContent);
       const statistics = this.extractStatistics(researchContent);
       
+      // Try to enhance research with structured analysis
+      let enhancedResearch = null;
+      try {
+        // Create a simple topic analysis for research enhancement
+        const simpleTopicAnalysis = {
+          domain: refinedPrompt.toLowerCase().includes('tech') ? 'technology' : 
+                  refinedPrompt.toLowerCase().includes('finance') ? 'fintech' :
+                  refinedPrompt.toLowerCase().includes('health') ? 'healthcare' :
+                  refinedPrompt.toLowerCase().includes('business') ? 'business' : 'general',
+          angle: 'comprehensive',
+          audience: 'general',
+          complexity: 'intermediate'
+        };
+        
+        // Create basic domain expertise
+        const simpleDomainExpertise = {
+          expertTitle: 'Domain Expert',
+          description: 'Expert analysis and insights',
+          requirements: ['Comprehensive understanding', 'Current trends', 'Future implications']
+        };
+        
+        // Enhance the research if possible
+        const researchIntegrator = new ResearchIntegrator(process.env.OPENAI_API_KEY || process.env.OPENAI_KEY || "sk-test-key");
+        const basicResearchData = {
+          sources: [{
+            title: `${refinedPrompt} - Research`,
+            url: "#",
+            summary: researchContent,
+            fullContent: researchContent
+          }],
+          keyPoints,
+          statistics,
+          outline: this.extractOutline(researchContent)
+        };
+        
+        enhancedResearch = await researchIntegrator.enhanceResearchData(
+          basicResearchData, 
+          simpleTopicAnalysis as any, 
+          simpleDomainExpertise as any
+        );
+        
+        console.log('✨ SERVICE: Research enhanced with structured analysis');
+        
+      } catch (enhanceError) {
+        console.warn('Research enhancement failed, using basic structure:', enhanceError);
+      }
+      
       console.log('✅ SERVICE: Research completed with rich content for script generation');
       console.log('📊 SERVICE: Research content length:', researchContent.length, 'characters');
       console.log('📈 SERVICE: Key points extracted:', keyPoints.length);
       console.log('📋 SERVICE: Statistics extracted:', statistics.length);
       
-      return {
+      const result = {
         sources: [{
           title: `${refinedPrompt} - Comprehensive Research`,
           url: "#",
@@ -332,6 +387,27 @@ Ensure the refined prompt is substantially enhanced with domain expertise, speci
         statistics,
         outline: this.extractOutline(researchContent)
       };
+      
+      // Add structured research if enhancement succeeded
+      if (enhancedResearch) {
+        (result as any).structured = {
+          keyNarratives: enhancedResearch.structuredData.keyNarratives?.map(narrative => ({ narrative, context: 'Research analysis' })) || [],
+          humanImpactStories: enhancedResearch.structuredData.humanImpactStories || [],
+          timelineEvents: enhancedResearch.structuredData.timelineEvents || [],
+          criticalStatistics: enhancedResearch.structuredData.criticalStats || [],
+          expertInsights: enhancedResearch.structuredData.expertInsights || [],
+          technicalConcepts: enhancedResearch.structuredData.technicalConcepts || [],
+          compellingQuotes: enhancedResearch.structuredData.compellingQuotes || [],
+          surprisingFacts: enhancedResearch.structuredData.surprisingFacts || [],
+          futureImplications: enhancedResearch.structuredData.futureImplications?.map(implication => ({ 
+            implication, 
+            timeframe: 'Medium term', 
+            probability: 'High' 
+          })) || []
+        };
+      }
+      
+      return result;
       
     } catch (error) {
       console.warn('Enhanced research failed, using fallback data:', (error as Error).message);
@@ -1091,7 +1167,7 @@ Return this JSON format:
 
     return JSON.parse(responseText);
   }
-  async generateAudio(scriptContent: string, voiceSettings: { model: string; speed: number }): Promise<{ audioUrl: string; duration: number }> {
+  async generateAudio(scriptContent: string, voiceSettings: any): Promise<{ audioUrl: string; duration: number; chapters: AudioChapter[] }> {
     try {
       console.log('Audio generation - Script length:', scriptContent.length, 'characters');
       console.log('Audio generation - Voice settings:', voiceSettings);
@@ -1113,6 +1189,39 @@ Return this JSON format:
       const selectedVoice = voiceMap[voiceSettings.model] || "nova";
       console.log('Making TTS API call with gpt-4o-mini-tts, voice:', selectedVoice);
       
+      // Enhanced voice instructions based on personality and emotions
+      let instructions = "Speak in a clear, professional podcast host voice with appropriate pacing and emphasis for storytelling.";
+      
+      if (voiceSettings.personality) {
+        const personalityInstructions = {
+          'professional': 'Maintain an authoritative, clear, and formal tone suitable for business content.',
+          'conversational': 'Use a warm, friendly, and approachable tone as if speaking to a friend.',
+          'storytelling': 'Employ dramatic emphasis, varied pacing, and engaging narrative techniques.',
+          'educational': 'Speak clearly and methodically, emphasizing key concepts for learning.',
+          'energetic': 'Use dynamic energy, enthusiasm, and motivational emphasis.',
+          'calm': 'Maintain a gentle, soothing, and peaceful delivery style.'
+        };
+        
+        instructions = personalityInstructions[voiceSettings.personality as keyof typeof personalityInstructions] || instructions;
+      }
+      
+      // Add emotional modifiers
+      if (voiceSettings.emotions) {
+        const emotions = voiceSettings.emotions;
+        if (emotions.enthusiasm > 0.7) instructions += " Express high enthusiasm and excitement.";
+        if (emotions.warmth > 0.7) instructions += " Use a warm, caring tone.";
+        if (emotions.authority > 0.7) instructions += " Speak with confidence and authority.";
+        if (emotions.friendliness > 0.7) instructions += " Maintain a friendly, approachable manner.";
+      }
+      
+      // Add emphasis and pace modifiers
+      if (voiceSettings.emphasis && voiceSettings.emphasis !== 'normal') {
+        if (voiceSettings.emphasis === 'strong') instructions += " Use strong emphasis on key points.";
+        if (voiceSettings.emphasis === 'subtle') instructions += " Use subtle, nuanced emphasis.";
+      }
+      
+      console.log('Enhanced TTS instructions:', instructions);
+      
       // Check if content needs to be chunked (OpenAI TTS has 2000 token limit)
       // Rough estimate: ~4 characters per token, so 8000 characters is about 2000 tokens
       const maxChars = 7500; // Conservative limit to stay under 2000 tokens
@@ -1126,9 +1235,9 @@ Return this JSON format:
           model: "gpt-4o-mini-tts",
           voice: selectedVoice,
           input: scriptContent,
-          speed: voiceSettings.speed,
+          speed: voiceSettings.speed || 1.0,
           response_format: "mp3",
-          instructions: "Speak in a clear, professional podcast host voice with appropriate pacing and emphasis for storytelling."
+          instructions: instructions
         });
         
         audioBuffers.push(Buffer.from(await mp3.arrayBuffer()));
@@ -1144,9 +1253,9 @@ Return this JSON format:
             model: "gpt-4o-mini-tts",
             voice: selectedVoice,
             input: chunks[i],
-            speed: voiceSettings.speed,
+            speed: voiceSettings.speed || 1.0,
             response_format: "mp3",
-            instructions: `Speak in a clear, professional podcast host voice with appropriate pacing and emphasis for storytelling. This is part ${i + 1} of ${chunks.length} of a continuous narrative - maintain consistent tone and energy.`
+            instructions: `${instructions} This is part ${i + 1} of ${chunks.length} of a continuous narrative - maintain consistent tone and energy.`
           });
           
           audioBuffers.push(Buffer.from(await mp3.arrayBuffer()));
@@ -1194,15 +1303,78 @@ Return this JSON format:
       const wordCount = scriptContent.split(/\s+/).length;
       const estimatedDuration = Math.round((wordCount / 150) * 60); // in seconds
 
-      console.log('Audio generation completed - Duration:', estimatedDuration, 'seconds');
+      // Generate chapters from script content
+      const chapters = await this.generateChapters(scriptContent, estimatedDuration);
+
+      console.log('Audio generation completed - Duration:', estimatedDuration, 'seconds, Chapters:', chapters.length);
       
       return {
         audioUrl,
-        duration: estimatedDuration
+        duration: estimatedDuration,
+        chapters
       };
     } catch (error) {
       console.error('Audio generation error:', error);
       throw new Error(`Failed to generate audio: ${(error as Error).message}`);
+    }
+  }
+
+  private async generateChapters(scriptContent: string, totalDuration: number): Promise<AudioChapter[]> {
+    try {
+      console.log('Generating chapters for script...');
+      
+      // Split script into logical sections - look for paragraph breaks and section markers
+      const sections = scriptContent
+        .split(/\n\n+/)
+        .filter(section => section.trim().length > 50) // Filter out very short sections
+        .slice(0, 8); // Maximum 8 chapters for UX
+
+      if (sections.length === 0) {
+        return [];
+      }
+
+      const chapters: AudioChapter[] = [];
+      const sectionDuration = totalDuration / sections.length;
+      
+      // Predefined colors for chapters
+      const colors = [
+        '#3b82f6', '#10b981', '#f59e0b', '#ef4444',
+        '#8b5cf6', '#06b6d4', '#84cc16', '#f97316'
+      ];
+
+      for (let i = 0; i < sections.length; i++) {
+        const section = sections[i];
+        const startTime = Math.round(i * sectionDuration);
+        const endTime = Math.round((i + 1) * sectionDuration);
+        
+        // Extract first sentence or meaningful chunk as title
+        const sentences = section.split(/[.!?]+/);
+        const firstSentence = sentences[0]?.trim() || '';
+        
+        // Create a meaningful title from first sentence or section content
+        let title = firstSentence.length > 60 
+          ? firstSentence.substring(0, 57) + '...'
+          : firstSentence;
+        
+        // If title is empty or too short, use generic naming
+        if (title.length < 10) {
+          title = `Chapter ${i + 1}`;
+        }
+
+        chapters.push({
+          id: `chapter-${i + 1}`,
+          title: title || `Chapter ${i + 1}`,
+          startTime,
+          endTime: i === sections.length - 1 ? totalDuration : endTime,
+          color: colors[i % colors.length]
+        });
+      }
+
+      console.log(`Generated ${chapters.length} chapters for audio`);
+      return chapters;
+    } catch (error) {
+      console.error('Error generating chapters:', error);
+      return []; // Return empty array if chapter generation fails
     }
   }
 
@@ -1270,8 +1442,20 @@ Return this JSON format:
     return `/audio/${fileName}`;
   }
 
-  async generateScriptSuggestions(scriptContent: string): Promise<Array<{ type: string; suggestion: string; targetSection: string }>> {
+  async generateScriptSuggestions(scriptContent: string): Promise<Array<{ 
+    id: string;
+    type: string; 
+    suggestion: string; 
+    targetSection: string;
+    reasoning?: string;
+    priority?: 'high' | 'medium' | 'low';
+    category?: 'structure' | 'engagement' | 'content' | 'flow';
+    appliedChange?: string;
+  }>> {
     try {
+      console.log('🤖 SERVICE: Generating enhanced script suggestions');
+      console.log('📄 SERVICE: Script length:', scriptContent.length, 'characters');
+      
       const response = await openai.chat.completions.create({
         model: "gpt-5",
         reasoning_effort: "low", // Fast analysis for suggestions
@@ -1279,20 +1463,199 @@ Return this JSON format:
         messages: [
           {
             role: "system",
-            content: "You are a podcast editing expert. Analyze scripts and provide specific improvement suggestions for flow, engagement, and clarity."
+            content: `You are an expert podcast script editor and content strategist. Analyze podcast scripts and provide specific, actionable improvement suggestions.
+
+Your suggestions should focus on:
+1. STRUCTURE: Better organization, logical flow, clear transitions
+2. ENGAGEMENT: Hooks, compelling moments, audience retention
+3. CONTENT: Clarity, depth, accuracy, expert insights
+4. FLOW: Pacing, rhythm, natural conversation style
+
+For each suggestion, provide:
+- A specific improvement type
+- Clear reasoning why this improvement matters
+- Priority level (high/medium/low)
+- Category classification
+- Specific implementation guidance when possible
+
+Return suggestions as structured JSON with detailed metadata.`
           },
           {
             role: "user",
-            content: `Analyze this podcast script and provide improvement suggestions: "${scriptContent}". Format as JSON: { "suggestions": [{"type": string, "suggestion": string, "targetSection": string}] }`
+            content: `Analyze this podcast script and provide 3-5 specific improvement suggestions. Focus on the most impactful changes that will enhance listener engagement and content quality.
+
+SCRIPT TO ANALYZE:
+${scriptContent.substring(0, 3000)}${scriptContent.length > 3000 ? '...' : ''}
+
+Return as JSON format:
+{
+  "suggestions": [
+    {
+      "id": "unique_id",
+      "type": "Clear improvement name",
+      "suggestion": "Specific actionable suggestion",
+      "targetSection": "Specific section to improve",
+      "reasoning": "Why this improvement matters",
+      "priority": "high|medium|low",
+      "category": "structure|engagement|content|flow",
+      "appliedChange": "Optional: specific text or instruction to implement"
+    }
+  ]
+}`
           }
         ],
         response_format: { type: "json_object" },
       });
 
       const result = JSON.parse(response.choices[0]?.message?.content || "{}");
-      return result.suggestions || [];
+      const suggestions = result.suggestions || [];
+      
+      // Add unique IDs if not present
+      const enhancedSuggestions = suggestions.map((suggestion: any, index: number) => ({
+        id: suggestion.id || `suggestion-${Date.now()}-${index}`,
+        type: suggestion.type || 'General Improvement',
+        suggestion: suggestion.suggestion || 'No suggestion provided',
+        targetSection: suggestion.targetSection || 'General',
+        reasoning: suggestion.reasoning,
+        priority: suggestion.priority || 'medium',
+        category: suggestion.category || 'content',
+        appliedChange: suggestion.appliedChange
+      }));
+
+      console.log('✅ SERVICE: Generated', enhancedSuggestions.length, 'enhanced suggestions');
+      return enhancedSuggestions;
+      
     } catch (error) {
+      console.error('❌ SERVICE: Suggestion generation failed:', error);
       throw new Error(`Failed to generate suggestions: ${(error as Error).message}`);
+    }
+  }
+
+  async applySuggestionToScript(scriptContent: string, suggestion: any): Promise<{
+    updatedScript: string;
+    appliedContent: string;
+    changeLocation: string;
+  }> {
+    try {
+      console.log('🔧 SERVICE: Applying suggestion to script');
+      console.log('💡 SERVICE: Suggestion type:', suggestion.type);
+      console.log('📄 SERVICE: Script length:', scriptContent.length, 'characters');
+      
+      const response = await openai.chat.completions.create({
+        model: "gpt-5",
+        reasoning_effort: "low", // Fast generation for content application
+        verbosity: "low",
+        messages: [
+          {
+            role: "system",
+            content: `You are an expert podcast script editor. Your job is to take a suggestion and apply it by generating actual improved content, not just instructions.
+
+IMPORTANT: Generate the actual improved content, don't just add bracketed instructions.
+
+For different suggestion types:
+- Opening/Hook improvements: Generate an actual improved opening paragraph
+- Structure improvements: Reorganize content with better flow
+- Content enhancements: Add specific examples, stories, or data
+- Engagement improvements: Rewrite sections to be more compelling
+
+Return the specific content that should replace or enhance the existing script section.`
+          },
+          {
+            role: "user",
+            content: `Apply this suggestion to the podcast script by generating actual improved content.
+
+SUGGESTION TO APPLY:
+Type: ${suggestion.type}
+Description: ${suggestion.suggestion}
+Target Section: ${suggestion.targetSection}
+${suggestion.reasoning ? `Reasoning: ${suggestion.reasoning}` : ''}
+
+CURRENT SCRIPT:
+${scriptContent.substring(0, 2000)}${scriptContent.length > 2000 ? '\n\n[Script continues...]' : ''}
+
+Generate the actual improved content that implements this suggestion. Be specific and concrete.
+If it's an opening improvement, write the actual improved opening.
+If it's a structure change, show the reorganized content.
+If it's an engagement enhancement, write the more engaging version.
+
+Return as JSON:
+{
+  "appliedContent": "The actual improved content to use",
+  "changeLocation": "beginning|middle|end|throughout",
+  "integrationStrategy": "replace|prepend|append|weave"
+}`
+          }
+        ],
+        response_format: { type: "json_object" },
+      });
+
+      const result = JSON.parse(response.choices[0]?.message?.content || "{}");
+      
+      const appliedContent = result.appliedContent || suggestion.suggestion;
+      const changeLocation = result.changeLocation || 'beginning';
+      const integrationStrategy = result.integrationStrategy || 'prepend';
+      
+      let updatedScript = scriptContent;
+      let locationText = '';
+      
+      // Apply the content based on strategy
+      switch (integrationStrategy) {
+        case 'replace':
+          // For opening improvements, replace the first paragraph
+          if (changeLocation === 'beginning') {
+            const lines = scriptContent.split('\n');
+            const firstParagraphEndIndex = lines.findIndex((line, index) => 
+              index > 0 && line.trim() === '' && lines[index - 1].trim() !== ''
+            );
+            
+            if (firstParagraphEndIndex > 0) {
+              const newLines = [appliedContent, '', ...lines.slice(firstParagraphEndIndex + 1)];
+              updatedScript = newLines.join('\n');
+              locationText = 'at the beginning (replaced first paragraph)';
+            } else {
+              updatedScript = `${appliedContent}\n\n${scriptContent}`;
+              locationText = 'at the beginning';
+            }
+          }
+          break;
+          
+        case 'prepend':
+          updatedScript = `${appliedContent}\n\n${scriptContent}`;
+          locationText = 'at the beginning of your script';
+          break;
+          
+        case 'append':
+          updatedScript = `${scriptContent}\n\n${appliedContent}`;
+          locationText = 'at the end of your script';
+          break;
+          
+        case 'weave':
+        default:
+          // Insert in the most appropriate location based on suggestion type
+          if (suggestion.type?.toLowerCase().includes('opening') || 
+              suggestion.type?.toLowerCase().includes('hook') ||
+              suggestion.type?.toLowerCase().includes('introduction')) {
+            updatedScript = `${appliedContent}\n\n${scriptContent}`;
+            locationText = 'at the beginning as an enhanced opening';
+          } else {
+            updatedScript = `${scriptContent}\n\n--- ENHANCEMENT ---\n${appliedContent}`;
+            locationText = 'at the end as an enhancement section';
+          }
+          break;
+      }
+
+      console.log('✅ SERVICE: Successfully applied suggestion');
+      console.log('📍 SERVICE: Change location:', locationText);
+      
+      return {
+        updatedScript,
+        appliedContent,
+        changeLocation: locationText
+      };
+      
+    } catch (error) {
+      console.error('❌ SERVICE: Failed to apply suggestion:', error);
+      throw new Error(`Failed to apply suggestion: ${(error as Error).message}`);
     }
   }
 
@@ -1378,6 +1741,70 @@ Include natural conversation elements like [pause], [thoughtful pause], [emphasi
       return JSON.parse(response.choices[0].message.content || "{}");
     } catch (error) {
       throw new Error(`Failed to generate episode script: ${(error as Error).message}`);
+    }
+  }
+
+  async analyzeScript(scriptContent: string): Promise<any> {
+    try {
+      console.log('Analyzing script for readability, engagement, and SEO...');
+      
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: `You are a professional podcast script analyst. Analyze the provided script and return a comprehensive analysis in JSON format with these exact fields:
+
+{
+  "readability": {
+    "score": number (0-100),
+    "level": string ("beginner", "intermediate", "advanced"),
+    "suggestions": string[]
+  },
+  "engagement": {
+    "score": number (0-100),
+    "hooks": number,
+    "pacing": string ("too slow", "good", "too fast"),
+    "emotionalTone": string,
+    "suggestions": string[]
+  },
+  "seo": {
+    "score": number (0-100),
+    "keywords": string[],
+    "keywordDensity": number,
+    "metaSuggestions": string[]
+  },
+  "timing": {
+    "wordCount": number,
+    "estimatedDuration": number,
+    "speakingPace": string ("slow", "normal", "fast")
+  },
+  "structure": {
+    "hasIntro": boolean,
+    "hasConclusion": boolean,
+    "sections": number,
+    "flow": string ("poor", "good", "excellent")
+  },
+  "improvements": string[]
+}
+
+Provide specific, actionable suggestions for improvement.`
+          },
+          {
+            role: "user",
+            content: `Analyze this podcast script:\n\n${scriptContent}`
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.3
+      });
+
+      const analysis = JSON.parse(response.choices[0]?.message?.content || "{}");
+      console.log('Script analysis completed successfully');
+      return analysis;
+    } catch (error) {
+      console.error('Script analysis failed:', error);
+      throw new Error(`Failed to analyze script: ${(error as Error).message}`);
     }
   }
 }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 import { Play, Pause } from "lucide-react";
 
 interface WaveformVisualizerProps {
@@ -12,9 +13,11 @@ export default function WaveformVisualizer({ audioUrl, className = "" }: Wavefor
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragTime, setDragTime] = useState(0);
   const [waveformBars] = useState(() => 
     // Generate random waveform visualization data
-    Array.from({ length: 50 }, () => Math.random() * 80 + 10)
+    Array.from({ length: 60 }, () => Math.random() * 80 + 10)
   );
 
   useEffect(() => {
@@ -78,7 +81,7 @@ export default function WaveformVisualizer({ audioUrl, className = "" }: Wavefor
 
   const handleSeek = (event: React.MouseEvent<HTMLDivElement>) => {
     const audio = audioRef.current;
-    if (!audio) return;
+    if (!audio || isDragging) return;
 
     const rect = event.currentTarget.getBoundingClientRect();
     const clickX = event.clientX - rect.left;
@@ -89,35 +92,96 @@ export default function WaveformVisualizer({ audioUrl, className = "" }: Wavefor
     setCurrentTime(seekTime);
   };
 
+  const handleSliderChange = (value: number[]) => {
+    const newTime = value[0];
+    setDragTime(newTime);
+    
+    if (!isDragging) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleSliderCommit = (value: number[]) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const newTime = value[0];
+    audio.currentTime = newTime;
+    setCurrentTime(newTime);
+    setIsDragging(false);
+  };
+
   const formatTime = (time: number) => {
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const displayTime = isDragging ? dragTime : currentTime;
+  const progress = duration > 0 ? (displayTime / duration) * 100 : 0;
 
   return (
     <div className={`space-y-4 ${className}`}>
       <audio ref={audioRef} src={audioUrl} preload="metadata" />
       
-      {/* Waveform Display */}
+      {/* Enhanced Waveform Display with Visual Scrubbing */}
       <div 
-        className="bg-muted rounded-lg p-4 cursor-pointer"
+        className="bg-muted rounded-lg p-4 cursor-pointer hover:bg-muted/80 transition-colors"
         onClick={handleSeek}
         data-testid="waveform-container"
       >
-        <div className="flex items-end justify-center space-x-1 h-16 relative">
-          {waveformBars.map((height, index) => (
-            <div
-              key={index}
-              className="waveform-bar transition-all duration-200"
-              style={{ 
-                height: `${height}%`,
-                opacity: (index / waveformBars.length) * 100 <= progress ? 1 : 0.3
-              }}
-            />
-          ))}
+        <div className="flex items-end justify-center space-x-1 h-20 relative">
+          {waveformBars.map((height, index) => {
+            const barProgress = (index / waveformBars.length) * 100;
+            const isActive = barProgress <= progress;
+            const isHover = isDragging && Math.abs(barProgress - progress) < 2;
+            
+            return (
+              <div
+                key={index}
+                className={`bg-primary transition-all duration-150 rounded-sm ${
+                  isActive ? 'opacity-100' : 'opacity-30'
+                } ${isHover ? 'scale-110 bg-primary/80' : ''}`}
+                style={{ 
+                  height: `${height}%`,
+                  width: '3px',
+                  minHeight: '4px'
+                }}
+              />
+            );
+          })}
+          
+          {/* Playhead indicator */}
+          <div 
+            className="absolute top-0 bottom-0 w-0.5 bg-primary shadow-lg pointer-events-none"
+            style={{ 
+              left: `${progress}%`,
+              transform: 'translateX(-50%)'
+            }}
+          />
+        </div>
+        
+        {isDragging && (
+          <div className="text-center text-xs text-primary font-medium mt-2">
+            {formatTime(dragTime)}
+          </div>
+        )}
+      </div>
+
+      {/* Scrubbing Slider */}
+      <div className="space-y-2">
+        <Slider
+          value={[displayTime]}
+          max={duration || 100}
+          step={0.1}
+          onValueChange={handleSliderChange}
+          onValueCommit={handleSliderCommit}
+          className="w-full"
+          data-testid="audio-scrub-slider"
+        />
+        <div className="flex justify-between text-xs text-muted-foreground">
+          <span data-testid="text-current-time">{formatTime(displayTime)}</span>
+          <span data-testid="text-total-duration">{formatTime(duration)}</span>
         </div>
       </div>
 
@@ -126,27 +190,26 @@ export default function WaveformVisualizer({ audioUrl, className = "" }: Wavefor
         <Button
           onClick={togglePlayPause}
           size="sm"
-          className="w-12 h-12 rounded-full p-0"
+          className="w-12 h-12 rounded-full p-0 flex-shrink-0"
           data-testid="button-play-pause"
         >
           {isPlaying ? (
             <Pause className="w-4 h-4" />
           ) : (
-            <Play className="w-4 h-4" />
+            <Play className="w-4 h-4 ml-0.5" />
           )}
         </Button>
         
-        <div className="flex-1">
-          <div className="bg-muted rounded-full h-2 relative overflow-hidden">
-            <div 
-              className="bg-primary h-2 rounded-full transition-all duration-200"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-          <div className="flex justify-between text-xs text-muted-foreground mt-1">
-            <span data-testid="text-current-time">{formatTime(currentTime)}</span>
-            <span data-testid="text-total-duration">{formatTime(duration)}</span>
-          </div>
+        {/* Compact Progress Info */}
+        <div className="flex items-center space-x-2 text-sm">
+          <span className="text-muted-foreground">
+            {isPlaying ? "Playing" : "Paused"}
+          </span>
+          {isDragging && (
+            <span className="text-primary font-medium">
+              Seeking...
+            </span>
+          )}
         </div>
       </div>
     </div>

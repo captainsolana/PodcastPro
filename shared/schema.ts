@@ -24,6 +24,7 @@ export const projects = pgTable("projects", {
   scriptContent: text("script_content"),
   scriptAnalytics: json("script_analytics"),
   audioUrl: text("audio_url"),
+  audioChapters: json("audio_chapters"), // Chapter data for enhanced audio player
   voiceSettings: json("voice_settings"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -62,9 +63,29 @@ export type InsertAiSuggestion = z.infer<typeof insertAiSuggestionSchema>;
 export type AiSuggestion = typeof aiSuggestions.$inferSelect;
 
 // Additional types for the application
+export type AudioChapter = {
+  id: string;
+  title: string;
+  startTime: number;
+  endTime: number;
+  color: string;
+};
+
 export type VoiceSettings = {
-  model: "coral" | "nova" | "shimmer";
+  model: "alloy" | "echo" | "fable" | "nova" | "onyx" | "shimmer";
   speed: number;
+  // Enhanced voice settings for Phase 1
+  personality?: string;
+  pitch?: number;
+  emphasis?: number;
+  pause_length?: number;
+  breathing?: boolean;
+  emotions?: {
+    enthusiasm: number;
+    calmness: number;
+    confidence: number;
+  };
+  pronunciation?: Record<string, string>;
 };
 
 export type ScriptAnalytics = {
