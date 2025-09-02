@@ -20,7 +20,9 @@ import {
   BookOpen,
   Mic,
   Settings,
-  Sparkles
+  Sparkles,
+  Lightbulb,
+  TrendingUp
 } from "lucide-react";
 
 export interface VoicePersonality {
@@ -82,6 +84,26 @@ const VOICE_PERSONALITIES: VoicePersonality[] = [
     characteristics: { warmth: 85, energy: 60, authority: 50, friendliness: 90 },
     sampleText: "Hey there! Let me tell you about this fascinating story I came across.",
     color: "#10B981"
+  },
+  {
+    id: "podcast_educator",
+    name: "Podcast Educator",
+    description: "Dynamic and engaging teacher, perfect for breaking down complex topics with enthusiasm and clarity",
+    icon: Lightbulb,
+    baseModel: "alloy",
+    characteristics: { warmth: 80, energy: 85, authority: 75, friendliness: 90 },
+    sampleText: "Alright, let's dive into this fascinating concept! Imagine you're looking at a puzzle - each piece we discuss today will help complete the bigger picture.",
+    color: "#F97316"
+  },
+  {
+    id: "podcast_innovator",
+    name: "Podcast Innovator",
+    description: "Enthusiastic tech expert who makes cutting-edge ideas accessible and exciting for everyone",
+    icon: TrendingUp,
+    baseModel: "nova",
+    characteristics: { warmth: 70, energy: 90, authority: 80, friendliness: 85 },
+    sampleText: "This is absolutely groundbreaking! What we're seeing here isn't just an incremental improvement - it's a complete paradigm shift that's going to change everything.",
+    color: "#8B5CF6"
   },
   {
     id: "energetic",

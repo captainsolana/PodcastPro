@@ -234,6 +234,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/ai/preview-voice", async (req, res) => {
+    try {
+      const { text, voiceSettings } = req.body;
+      if (!text) {
+        return res.status(400).json({ message: "Text is required for voice preview" });
+      }
+
+      console.log('🎤 Route: Starting voice preview...');
+      console.log('🎤 Route: Preview text length:', text.length);
+      console.log('🎤 Route: Voice settings:', voiceSettings);
+      
+      const result = await openAIService.previewVoice(text, voiceSettings || { model: "nova", speed: 1.0 });
+      console.log('✅ Route: Voice preview completed:', result);
+      res.json(result);
+    } catch (error) {
+      console.error('❌ Route: Voice preview error:', error);
+      res.status(500).json({ message: (error as Error).message || "Failed to generate voice preview" });
+    }
+  });
+
   app.post("/api/ai/script-suggestions", async (req, res) => {
     try {
       const { scriptContent } = req.body;
@@ -326,79 +346,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid suggestion data", errors: error.errors });
       }
       res.status(500).json({ message: "Failed to create suggestion" });
-    }
-  });
-
-  // Enhanced Script Analysis endpoint
-  app.post("/api/ai/analyze-script", async (req, res) => {
-    try {
-      const { scriptContent } = req.body;
-      if (!scriptContent) {
-        return res.status(400).json({ message: "Script content is required" });
-      }
-
-      console.log('Analyzing script content...');
-      const analysis = await openAIService.analyzeScript(scriptContent);
-      res.json(analysis);
-    } catch (error) {
-      console.error('Script analysis error:', error);
-      res.status(500).json({ message: (error as Error).message || "Failed to analyze script" });
-    }
-  });
-
-  // Voice Preview endpoint
-  app.post("/api/ai/preview-voice", async (req, res) => {
-    try {
-      const { text, voiceSettings } = req.body;
-      if (!text) {
-        return res.status(400).json({ message: "Preview text is required" });
-      }
-
-      console.log('Generating voice preview...');
-      // Use first 200 characters for preview to keep it short and fast
-      const previewText = text.substring(0, 200);
-      const result = await openAIService.generateAudio(previewText, voiceSettings || { model: "nova", speed: 1.0 });
-      res.json(result);
-    } catch (error) {
-      console.error('Voice preview error:', error);
-      res.status(500).json({ message: (error as Error).message || "Failed to generate voice preview" });
-    }
-  });
-
-  // Script Templates endpoint
-  app.get("/api/script-templates", async (req, res) => {
-    try {
-      const templates = [
-        {
-          id: "interview",
-          name: "Interview Style",
-          description: "Structured interview format with guest interaction",
-          content: `[Host Introduction]\nWelcome to [Podcast Name]. I'm [Host Name], and today I'm joined by [Guest Name], [Guest Title/Expertise].\n\n[Topic Introduction]\nToday we're diving into [Topic]. [Brief context about why this matters].\n\n[Guest Introduction]\n[Guest Name], thank you for joining us. Can you tell our listeners a bit about your background?\n\n[Main Discussion]\n[Question 1]: [Thoughtful question about their expertise]\n[Question 2]: [Follow-up or deeper dive]\n[Question 3]: [Practical application or advice]\n\n[Closing]\nThis has been fascinating. Where can our listeners learn more about your work?\n\nThank you for tuning in to [Podcast Name]. [Call to action].`
-        },
-        {
-          id: "solo",
-          name: "Solo Commentary",
-          description: "Personal perspective and analysis format",
-          content: `[Hook]\n[Compelling opening statement or question]\n\n[Context Setting]\nRecently, [current event/trend/observation]. This got me thinking about [main topic].\n\n[Personal Connection]\nI've been [personal experience/perspective] and I want to share [key insight].\n\n[Main Content]\n[Point 1]: [First major insight with examples]\n[Point 2]: [Second insight building on the first]\n[Point 3]: [Practical implications or applications]\n\n[Reflection]\nWhat does this mean for [audience]? [Actionable takeaways]\n\n[Closing]\n[Summary of key points and call to action]`
-        },
-        {
-          id: "educational",
-          name: "Educational Deep Dive",
-          description: "Structured learning-focused content",
-          content: `[Learning Objectives]\nBy the end of this episode, you'll understand [3 key learning outcomes].\n\n[Foundation]\nFirst, let's establish the basics. [Fundamental concept explanation].\n\n[Building Complexity]\nNow that we understand [basic concept], let's explore [more complex application].\n\n[Real-World Examples]\nHere's how this works in practice: [Concrete example 1], [Example 2].\n\n[Common Misconceptions]\nMany people think [misconception], but actually [correct understanding].\n\n[Practical Application]\nSo how can you apply this? [Step-by-step guidance].\n\n[Recap]\nLet's review what we've covered: [Summary of key points].\n\n[Next Steps]\nTo continue learning, I recommend [resources or actions].`
-        },
-        {
-          id: "narrative",
-          name: "Narrative Storytelling",
-          description: "Story-driven content with dramatic structure",
-          content: `[Scene Setting]\n[Time and place]. [Vivid description that sets the mood].\n\n[Character Introduction]\n[Key person/people involved]. [What makes them interesting/relatable].\n\n[Inciting Incident]\nThen, [event that changes everything]. [Why this matters].\n\n[Rising Action]\n[Series of events/challenges]. [Building tension/stakes].\n\n[Climax]\n[The crucial moment]. [What hung in the balance].\n\n[Resolution]\n[How things turned out]. [What changed].\n\n[Reflection]\n[What this story teaches us]. [Universal lesson or insight].\n\n[Connection to Audience]\n[How listeners can apply this in their own lives].`
-        }
-      ];
-
-      res.json(templates);
-    } catch (error) {
-      console.error('Error fetching script templates:', error);
-      res.status(500).json({ message: "Failed to fetch script templates" });
     }
   });
 

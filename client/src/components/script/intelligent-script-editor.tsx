@@ -255,26 +255,61 @@ export default function IntelligentScriptEditor({
 
       const apiResult = await response.json();
       
+      // Helper functions for API response transformation
+      const scoreToGradeLevel = (score: number): number => {
+        // Convert 0-100 score to grade level (roughly 6-16)
+        return Math.max(6, Math.min(16, 6 + (score / 100) * 10));
+      };
+
+      const levelToComplexity = (level: string): 'Simple' | 'Average' | 'Complex' | 'Very Complex' => {
+        switch (level) {
+          case 'beginner': return 'Simple';
+          case 'intermediate': return 'Average';
+          case 'advanced': return 'Complex';
+          default: return 'Average';
+        }
+      };
+
+      const countQuestions = (text: string): number => {
+        return (text.match(/\?/g) || []).length;
+      };
+
+      const countStories = (text: string): number => {
+        const storyIndicators = /\b(story|story|experience|happened|remember|once|time when)\b/gi;
+        return (text.match(storyIndicators) || []).length;
+      };
+
+      const countStatistics = (text: string): number => {
+        const statIndicators = /\b(\d+%|\d+ percent|study|research|data|statistics)\b/gi;
+        return (text.match(statIndicators) || []).length;
+      };
+
+      const pacingToWPM = (pacing: string): number => {
+        switch (pacing) {
+          case 'slow': return 120;
+          case 'fast': return 180;
+          default: return 150; // normal
+        }
+      };
+
       // Transform API result to match our ScriptAnalysis interface
       const analysisResult: ScriptAnalysis = {
         readability: {
-          fleschKincaidGrade: apiResult.readability?.score || 0,
+          fleschKincaidGrade: scoreToGradeLevel(apiResult.readability?.score || 0),
           fleschReadingEase: apiResult.readability?.score || 0,
-          complexity: (apiResult.readability?.level === 'beginner' ? 'Simple' : 
-                      apiResult.readability?.level === 'intermediate' ? 'Average' : 
-                      'Complex') as any
+          complexity: levelToComplexity(apiResult.readability?.level || 'beginner')
         },
         engagement: {
           score: apiResult.engagement?.score || 0,
           hooks: apiResult.engagement?.hooks || 0,
-          questions: 0, // API doesn't return this, calculate locally
-          stories: 0, // API doesn't return this, calculate locally  
-          statistics: 0 // API doesn't return this, calculate locally
+          questions: countQuestions(scriptContent),
+          stories: countStories(scriptContent),  
+          statistics: countStatistics(scriptContent)
         },
         timing: {
           wordCount: apiResult.timing?.wordCount || 0,
           estimatedDuration: apiResult.timing?.estimatedDuration || 0,
-          speakingPace: 150, // Default speaking pace
+          speakingPace: pacingToWPM(apiResult.timing?.speakingPace || 'normal'),
           pauseCount: (scriptContent.match(/\[pause\]/g) || []).length
         },
         seo: {

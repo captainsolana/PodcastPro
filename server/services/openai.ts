@@ -41,14 +41,6 @@ export interface EpisodePlanResult {
   reasoning: string;
 }
 
-export interface AudioChapter {
-  id: string;
-  title: string;
-  startTime: number;
-  endTime: number;
-  color: string;
-}
-
 export interface ScriptResult {
   content: string;
   sections: Array<{ type: string; content: string; duration: number }>;
@@ -1167,7 +1159,7 @@ Return this JSON format:
 
     return JSON.parse(responseText);
   }
-  async generateAudio(scriptContent: string, voiceSettings: any): Promise<{ audioUrl: string; duration: number; chapters: AudioChapter[] }> {
+  async generateAudio(scriptContent: string, voiceSettings: { model: string; speed: number }): Promise<{ audioUrl: string; duration: number }> {
     try {
       console.log('Audio generation - Script length:', scriptContent.length, 'characters');
       console.log('Audio generation - Voice settings:', voiceSettings);
@@ -1189,39 +1181,6 @@ Return this JSON format:
       const selectedVoice = voiceMap[voiceSettings.model] || "nova";
       console.log('Making TTS API call with gpt-4o-mini-tts, voice:', selectedVoice);
       
-      // Enhanced voice instructions based on personality and emotions
-      let instructions = "Speak in a clear, professional podcast host voice with appropriate pacing and emphasis for storytelling.";
-      
-      if (voiceSettings.personality) {
-        const personalityInstructions = {
-          'professional': 'Maintain an authoritative, clear, and formal tone suitable for business content.',
-          'conversational': 'Use a warm, friendly, and approachable tone as if speaking to a friend.',
-          'storytelling': 'Employ dramatic emphasis, varied pacing, and engaging narrative techniques.',
-          'educational': 'Speak clearly and methodically, emphasizing key concepts for learning.',
-          'energetic': 'Use dynamic energy, enthusiasm, and motivational emphasis.',
-          'calm': 'Maintain a gentle, soothing, and peaceful delivery style.'
-        };
-        
-        instructions = personalityInstructions[voiceSettings.personality as keyof typeof personalityInstructions] || instructions;
-      }
-      
-      // Add emotional modifiers
-      if (voiceSettings.emotions) {
-        const emotions = voiceSettings.emotions;
-        if (emotions.enthusiasm > 0.7) instructions += " Express high enthusiasm and excitement.";
-        if (emotions.warmth > 0.7) instructions += " Use a warm, caring tone.";
-        if (emotions.authority > 0.7) instructions += " Speak with confidence and authority.";
-        if (emotions.friendliness > 0.7) instructions += " Maintain a friendly, approachable manner.";
-      }
-      
-      // Add emphasis and pace modifiers
-      if (voiceSettings.emphasis && voiceSettings.emphasis !== 'normal') {
-        if (voiceSettings.emphasis === 'strong') instructions += " Use strong emphasis on key points.";
-        if (voiceSettings.emphasis === 'subtle') instructions += " Use subtle, nuanced emphasis.";
-      }
-      
-      console.log('Enhanced TTS instructions:', instructions);
-      
       // Check if content needs to be chunked (OpenAI TTS has 2000 token limit)
       // Rough estimate: ~4 characters per token, so 8000 characters is about 2000 tokens
       const maxChars = 7500; // Conservative limit to stay under 2000 tokens
@@ -1235,9 +1194,9 @@ Return this JSON format:
           model: "gpt-4o-mini-tts",
           voice: selectedVoice,
           input: scriptContent,
-          speed: voiceSettings.speed || 1.0,
+          speed: voiceSettings.speed,
           response_format: "mp3",
-          instructions: instructions
+          instructions: "Speak in a clear, professional podcast host voice with appropriate pacing and emphasis for storytelling."
         });
         
         audioBuffers.push(Buffer.from(await mp3.arrayBuffer()));
@@ -1253,9 +1212,9 @@ Return this JSON format:
             model: "gpt-4o-mini-tts",
             voice: selectedVoice,
             input: chunks[i],
-            speed: voiceSettings.speed || 1.0,
+            speed: voiceSettings.speed,
             response_format: "mp3",
-            instructions: `${instructions} This is part ${i + 1} of ${chunks.length} of a continuous narrative - maintain consistent tone and energy.`
+            instructions: `Speak in a clear, professional podcast host voice with appropriate pacing and emphasis for storytelling. This is part ${i + 1} of ${chunks.length} of a continuous narrative - maintain consistent tone and energy.`
           });
           
           audioBuffers.push(Buffer.from(await mp3.arrayBuffer()));
@@ -1303,78 +1262,15 @@ Return this JSON format:
       const wordCount = scriptContent.split(/\s+/).length;
       const estimatedDuration = Math.round((wordCount / 150) * 60); // in seconds
 
-      // Generate chapters from script content
-      const chapters = await this.generateChapters(scriptContent, estimatedDuration);
-
-      console.log('Audio generation completed - Duration:', estimatedDuration, 'seconds, Chapters:', chapters.length);
+      console.log('Audio generation completed - Duration:', estimatedDuration, 'seconds');
       
       return {
         audioUrl,
-        duration: estimatedDuration,
-        chapters
+        duration: estimatedDuration
       };
     } catch (error) {
       console.error('Audio generation error:', error);
       throw new Error(`Failed to generate audio: ${(error as Error).message}`);
-    }
-  }
-
-  private async generateChapters(scriptContent: string, totalDuration: number): Promise<AudioChapter[]> {
-    try {
-      console.log('Generating chapters for script...');
-      
-      // Split script into logical sections - look for paragraph breaks and section markers
-      const sections = scriptContent
-        .split(/\n\n+/)
-        .filter(section => section.trim().length > 50) // Filter out very short sections
-        .slice(0, 8); // Maximum 8 chapters for UX
-
-      if (sections.length === 0) {
-        return [];
-      }
-
-      const chapters: AudioChapter[] = [];
-      const sectionDuration = totalDuration / sections.length;
-      
-      // Predefined colors for chapters
-      const colors = [
-        '#3b82f6', '#10b981', '#f59e0b', '#ef4444',
-        '#8b5cf6', '#06b6d4', '#84cc16', '#f97316'
-      ];
-
-      for (let i = 0; i < sections.length; i++) {
-        const section = sections[i];
-        const startTime = Math.round(i * sectionDuration);
-        const endTime = Math.round((i + 1) * sectionDuration);
-        
-        // Extract first sentence or meaningful chunk as title
-        const sentences = section.split(/[.!?]+/);
-        const firstSentence = sentences[0]?.trim() || '';
-        
-        // Create a meaningful title from first sentence or section content
-        let title = firstSentence.length > 60 
-          ? firstSentence.substring(0, 57) + '...'
-          : firstSentence;
-        
-        // If title is empty or too short, use generic naming
-        if (title.length < 10) {
-          title = `Chapter ${i + 1}`;
-        }
-
-        chapters.push({
-          id: `chapter-${i + 1}`,
-          title: title || `Chapter ${i + 1}`,
-          startTime,
-          endTime: i === sections.length - 1 ? totalDuration : endTime,
-          color: colors[i % colors.length]
-        });
-      }
-
-      console.log(`Generated ${chapters.length} chapters for audio`);
-      return chapters;
-    } catch (error) {
-      console.error('Error generating chapters:', error);
-      return []; // Return empty array if chapter generation fails
     }
   }
 
@@ -1744,67 +1640,56 @@ Include natural conversation elements like [pause], [thoughtful pause], [emphasi
     }
   }
 
-  async analyzeScript(scriptContent: string): Promise<any> {
+  // Voice preview method for testing different voice personalities
+  async previewVoice(text: string, voiceSettings: { model: string; speed: number }): Promise<{ audioUrl: string }> {
     try {
-      console.log('Analyzing script for readability, engagement, and SEO...');
+      console.log('🎤 Generating voice preview with settings:', voiceSettings);
       
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: `You are a professional podcast script analyst. Analyze the provided script and return a comprehensive analysis in JSON format with these exact fields:
+      // Limit preview text to avoid long generation times
+      const previewText = text.length > 200 ? text.substring(0, 200) + "..." : text;
+      
+      // Map the voice model to OpenAI's voice names (all 11 voices available)
+      const voiceMap: Record<string, string> = {
+        'alloy': 'alloy',
+        'echo': 'echo', 
+        'fable': 'fable',
+        'nova': 'nova',
+        'onyx': 'onyx',
+        'shimmer': 'shimmer'
+      };
 
-{
-  "readability": {
-    "score": number (0-100),
-    "level": string ("beginner", "intermediate", "advanced"),
-    "suggestions": string[]
-  },
-  "engagement": {
-    "score": number (0-100),
-    "hooks": number,
-    "pacing": string ("too slow", "good", "too fast"),
-    "emotionalTone": string,
-    "suggestions": string[]
-  },
-  "seo": {
-    "score": number (0-100),
-    "keywords": string[],
-    "keywordDensity": number,
-    "metaSuggestions": string[]
-  },
-  "timing": {
-    "wordCount": number,
-    "estimatedDuration": number,
-    "speakingPace": string ("slow", "normal", "fast")
-  },
-  "structure": {
-    "hasIntro": boolean,
-    "hasConclusion": boolean,
-    "sections": number,
-    "flow": string ("poor", "good", "excellent")
-  },
-  "improvements": string[]
-}
-
-Provide specific, actionable suggestions for improvement.`
-          },
-          {
-            role: "user",
-            content: `Analyze this podcast script:\n\n${scriptContent}`
-          }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.3
+      const selectedVoice = voiceMap[voiceSettings.model] || 'alloy';
+      
+      // Generate audio using TTS
+      const mp3Response = await openai.audio.speech.create({
+        model: "tts-1",  // Use faster model for previews
+        voice: selectedVoice as any,
+        input: previewText,
+        speed: voiceSettings.speed || 1.0,
       });
 
-      const analysis = JSON.parse(response.choices[0]?.message?.content || "{}");
-      console.log('Script analysis completed successfully');
-      return analysis;
+      // Convert to buffer
+      const buffer = Buffer.from(await mp3Response.arrayBuffer());
+      
+      // Save preview audio (always local for quick access)
+      const fileName = `preview_${Date.now()}_${selectedVoice}.mp3`;
+      const previewPath = path.join(process.cwd(), 'public', 'audio', fileName);
+      
+      // Ensure directory exists
+      const audioDir = path.dirname(previewPath);
+      if (!fs.existsSync(audioDir)) {
+        fs.mkdirSync(audioDir, { recursive: true });
+      }
+      
+      fs.writeFileSync(previewPath, buffer);
+      const audioUrl = `/audio/${fileName}`;
+      
+      console.log('✅ Voice preview generated:', audioUrl);
+      return { audioUrl };
+      
     } catch (error) {
-      console.error('Script analysis failed:', error);
-      throw new Error(`Failed to analyze script: ${(error as Error).message}`);
+      console.error('❌ Voice preview generation failed:', error);
+      throw new Error(`Failed to generate voice preview: ${(error as Error).message}`);
     }
   }
 }
