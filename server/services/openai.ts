@@ -1692,6 +1692,107 @@ Include natural conversation elements like [pause], [thoughtful pause], [emphasi
       throw new Error(`Failed to generate voice preview: ${(error as Error).message}`);
     }
   }
+
+  // Script analysis method for intelligent script editor
+  async analyzeScript(scriptContent: string): Promise<{
+    readability: number;
+    engagement: number;
+    clarity: number;
+    pacing: number;
+    suggestions: Array<{
+      type: 'improvement' | 'warning' | 'enhancement';
+      message: string;
+      line?: number;
+    }>;
+    metrics: {
+      wordCount: number;
+      estimatedDuration: number;
+      averageSentenceLength: number;
+      pauseCount: number;
+      complexWords: number;
+    };
+    insights: {
+      tone: string;
+      targetAudience: string;
+      strengths: string[];
+      areasForImprovement: string[];
+    };
+  }> {
+    try {
+      console.log('🔍 Analyzing script content...');
+      
+      // Basic metrics calculation
+      const words = scriptContent.split(/\s+/).filter(word => word.length > 0);
+      const sentences = scriptContent.split(/[.!?]+/).filter(s => s.trim().length > 0);
+      const pauseMatches = scriptContent.match(/\[pause\]|\[thoughtful pause\]|\[dramatic pause\]/gi) || [];
+      const complexWords = words.filter(word => word.length > 7).length;
+      
+      const metrics = {
+        wordCount: words.length,
+        estimatedDuration: Math.round((words.length / 150) * 60), // seconds
+        averageSentenceLength: sentences.length > 0 ? Math.round(words.length / sentences.length) : 0,
+        pauseCount: pauseMatches.length,
+        complexWords
+      };
+
+      console.log('📊 Basic metrics calculated:', metrics);
+
+      // AI analysis for quality scores and insights
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: `You are an expert podcast script analyst. Analyze the provided script and return a JSON response with quality scores (0-100), suggestions, and insights. Focus on:
+            - Readability and flow
+            - Audience engagement
+            - Clarity of communication  
+            - Pacing and rhythm
+            - Tone and style
+            
+            Provide specific, actionable suggestions for improvement.`
+          },
+          {
+            role: "user",
+            content: `Analyze this podcast script:
+
+${scriptContent}
+
+Return analysis as JSON with this structure:
+{
+  "readability": number (0-100),
+  "engagement": number (0-100), 
+  "clarity": number (0-100),
+  "pacing": number (0-100),
+  "suggestions": [{"type": "improvement|warning|enhancement", "message": "specific suggestion"}],
+  "insights": {
+    "tone": "description of tone",
+    "targetAudience": "audience description", 
+    "strengths": ["strength1", "strength2"],
+    "areasForImprovement": ["area1", "area2"]
+  }
+}`
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.3
+      });
+
+      const analysis = JSON.parse(response.choices[0].message.content || "{}");
+      
+      console.log('✅ Script analysis completed');
+      
+      return {
+        ...analysis,
+        metrics,
+        suggestions: analysis.suggestions || []
+      };
+      
+    } catch (error) {
+      console.error('❌ Script analysis failed:', error);
+      throw new Error(`Failed to analyze script: ${(error as Error).message}`);
+    }
+  }
 }
 
 export const openAIService = new OpenAIService();

@@ -254,6 +254,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/ai/analyze-script", async (req, res) => {
+    try {
+      const { scriptContent } = req.body;
+      if (!scriptContent) {
+        return res.status(400).json({ message: "Script content is required" });
+      }
+
+      console.log('🔍 Route: Starting script analysis...');
+      console.log('🔍 Route: Script content length:', scriptContent.length);
+      
+      const result = await openAIService.analyzeScript(scriptContent);
+      console.log('✅ Route: Script analysis completed');
+      res.json(result);
+    } catch (error) {
+      console.error('❌ Route: Script analysis error:', error);
+      res.status(500).json({ message: (error as Error).message || "Failed to analyze script" });
+    }
+  });
+
   app.post("/api/ai/script-suggestions", async (req, res) => {
     try {
       const { scriptContent } = req.body;

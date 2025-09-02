@@ -178,50 +178,7 @@ export default function IntelligentScriptEditor({
   const [analysis, setAnalysis] = useState<ScriptAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [focusedSuggestion, setFocusedSuggestion] = useState<Suggestion | null>(null);
-  const [templates, setTemplates] = useState<ScriptTemplate[]>([]);
-  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
   const { toast } = useToast();
-
-  // Fetch templates from API on component mount
-  useEffect(() => {
-    const fetchTemplates = async () => {
-      setIsLoadingTemplates(true);
-      try {
-        const response = await fetch('/api/script-templates');
-        if (response.ok) {
-          const apiTemplates = await response.json();
-          setTemplates(apiTemplates);
-        } else {
-          console.error('Failed to fetch templates');
-          // Fallback to local templates if API fails
-          setTemplates(SCRIPT_TEMPLATES);
-        }
-      } catch (error) {
-        console.error('Error fetching templates:', error);
-        // Fallback to local templates if API fails
-        setTemplates(SCRIPT_TEMPLATES);
-      } finally {
-        setIsLoadingTemplates(false);
-      }
-    };
-
-    fetchTemplates();
-  }, []);
-
-  // Auto-apply template when selected
-  const handleTemplateSelection = (templateId: string) => {
-    setSelectedTemplate(templateId);
-    const template = templates.find(t => t.id === templateId);
-    if (template) {
-      // API templates use 'content', local fallback templates use 'example'
-      const templateContent = (template as any).content || (template as any).example;
-      onContentChange(templateContent);
-      toast({
-        title: "Template Applied",
-        description: `${template.name} template has been applied to your script.`,
-      });
-    }
-  };
 
   // Real-time analysis (debounced)
   useEffect(() => {
@@ -238,89 +195,8 @@ export default function IntelligentScriptEditor({
     setIsAnalyzing(true);
     
     try {
-      // Call the backend API for script analysis
-      const response = await fetch('/api/ai/analyze-script', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          scriptContent: scriptContent
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to analyze script');
-      }
-
-      const apiResult = await response.json();
-      
-      // Helper functions for API response transformation
-      const scoreToGradeLevel = (score: number): number => {
-        // Convert 0-100 score to grade level (roughly 6-16)
-        return Math.max(6, Math.min(16, 6 + (score / 100) * 10));
-      };
-
-      const levelToComplexity = (level: string): 'Simple' | 'Average' | 'Complex' | 'Very Complex' => {
-        switch (level) {
-          case 'beginner': return 'Simple';
-          case 'intermediate': return 'Average';
-          case 'advanced': return 'Complex';
-          default: return 'Average';
-        }
-      };
-
-      const countQuestions = (text: string): number => {
-        return (text.match(/\?/g) || []).length;
-      };
-
-      const countStories = (text: string): number => {
-        const storyIndicators = /\b(story|story|experience|happened|remember|once|time when)\b/gi;
-        return (text.match(storyIndicators) || []).length;
-      };
-
-      const countStatistics = (text: string): number => {
-        const statIndicators = /\b(\d+%|\d+ percent|study|research|data|statistics)\b/gi;
-        return (text.match(statIndicators) || []).length;
-      };
-
-      const pacingToWPM = (pacing: string): number => {
-        switch (pacing) {
-          case 'slow': return 120;
-          case 'fast': return 180;
-          default: return 150; // normal
-        }
-      };
-
-      // Transform API result to match our ScriptAnalysis interface
-      const analysisResult: ScriptAnalysis = {
-        readability: {
-          fleschKincaidGrade: scoreToGradeLevel(apiResult.readability?.score || 0),
-          fleschReadingEase: apiResult.readability?.score || 0,
-          complexity: levelToComplexity(apiResult.readability?.level || 'beginner')
-        },
-        engagement: {
-          score: apiResult.engagement?.score || 0,
-          hooks: apiResult.engagement?.hooks || 0,
-          questions: countQuestions(scriptContent),
-          stories: countStories(scriptContent),  
-          statistics: countStatistics(scriptContent)
-        },
-        timing: {
-          wordCount: apiResult.timing?.wordCount || 0,
-          estimatedDuration: apiResult.timing?.estimatedDuration || 0,
-          speakingPace: pacingToWPM(apiResult.timing?.speakingPace || 'normal'),
-          pauseCount: (scriptContent.match(/\[pause\]/g) || []).length
-        },
-        seo: {
-          score: apiResult.seo?.score || 0,
-          keywords: apiResult.seo?.keywords || [],
-          titleSuggestions: apiResult.seo?.metaSuggestions || [],
-          descriptionSuggestion: "Engaging podcast episode with valuable insights."
-        },
-        improvements: apiResult.improvements || []
-      };
-
+      // Simulate API call for script analysis
+      const analysisResult = await performScriptAnalysis(scriptContent);
       setAnalysis(analysisResult);
       onAnalysisChange?.(analysisResult);
     } catch (error) {
@@ -470,6 +346,15 @@ export default function IntelligentScriptEditor({
            'An engaging podcast episode packed with insights and actionable advice.';
   };
 
+  const applyTemplate = (template: ScriptTemplate) => {
+    onContentChange(template.example);
+    setSelectedTemplate(template.id);
+    toast({
+      title: "Template Applied",
+      description: `${template.name} template has been applied to your script.`,
+    });
+  };
+
   const applySuggestion = (suggestion: Suggestion) => {
     if (suggestion.replacement) {
       // Apply the suggestion replacement
@@ -522,18 +407,38 @@ export default function IntelligentScriptEditor({
               {/* Template Selector */}
               <div className="flex items-center space-x-4">
                 <Label>Quick Start:</Label>
-                <Select value={selectedTemplate} onValueChange={handleTemplateSelection}>
+                <Select 
+                  value={selectedTemplate} 
+                  onValueChange={(value) => {
+                    const template = SCRIPT_TEMPLATES.find(t => t.id === value);
+                    if (template) {
+                      applyTemplate(template);
+                    }
+                  }}
+                >
                   <SelectTrigger className="w-48">
                     <SelectValue placeholder="Choose template" />
                   </SelectTrigger>
                   <SelectContent>
-                    {templates.map((template) => (
+                    {SCRIPT_TEMPLATES.map((template) => (
                       <SelectItem key={template.id} value={template.id}>
                         {template.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {selectedTemplate && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const template = SCRIPT_TEMPLATES.find(t => t.id === selectedTemplate);
+                      if (template) applyTemplate(template);
+                    }}
+                  >
+                    Apply Template
+                  </Button>
+                )}
               </div>
 
               {/* Main Textarea */}
