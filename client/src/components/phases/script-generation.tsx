@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ScriptEditor from "@/components/script/script-editor";
+import IntelligentScriptEditor, { type ScriptAnalysis } from "@/components/script/intelligent-script-editor";
 import ScriptToolsPanel from "@/components/script/script-tools-panel";
 import { EnhancedResearchViewer } from "@/components/ui/enhanced-research-viewer";
 import { EnhancedAIInsights } from "@/components/ui/enhanced-ai-insights";
@@ -10,7 +11,7 @@ import { useProject } from "@/hooks/use-project";
 import { useToast } from "@/hooks/use-toast";
 import { useAutoSave } from "@/hooks/use-auto-save";
 import { LoadingState } from "@/components/ui/loading-state";
-import { ArrowRight, RefreshCw, FileText, Search, Lightbulb, ChevronLeft, RotateCcw } from "lucide-react";
+import { ArrowRight, RefreshCw, FileText, Search, Lightbulb, ChevronLeft, RotateCcw, BarChart3 } from "lucide-react";
 import type { Project } from "@shared/schema";
 
 interface ScriptGenerationProps {
@@ -19,6 +20,7 @@ interface ScriptGenerationProps {
 
 export default function ScriptGeneration({ project }: ScriptGenerationProps) {
   const [scriptContent, setScriptContent] = useState(project.scriptContent || "");
+  const [scriptAnalysis, setScriptAnalysis] = useState<ScriptAnalysis | null>(null);
   const { 
     updateProject,
     generateScript,
@@ -275,7 +277,11 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
           <div className="border-b border-border bg-card px-6">
             <TabsList className="h-auto p-0 bg-transparent">
               <TabsTrigger value="editor" className="py-4 px-1 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
-                Script Editor
+                Basic Editor
+              </TabsTrigger>
+              <TabsTrigger value="intelligent" className="py-4 px-1 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
+                <BarChart3 className="w-4 h-4 mr-2" />
+                Intelligent Editor
               </TabsTrigger>
               <TabsTrigger value="research" className="py-4 px-1 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
                 Research Notes
@@ -327,6 +333,44 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
                   totalEpisodes: episodePlan?.totalEpisodes,
                   episodeTitle: episodePlan?.episodes?.find((ep: any) => ep.episodeNumber === currentEpisode)?.title
                 } : undefined}
+              />
+            )}
+          </TabsContent>
+
+          <TabsContent value="intelligent" className="flex-1 p-6">
+            {!scriptContent && !scriptResult && !episodeScriptResult ? (
+              <Card className="h-full flex items-center justify-center">
+                <CardContent className="text-center">
+                  <BarChart3 className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-lg font-semibold mb-2">No Script for Analysis</h3>
+                  <p className="text-muted-foreground mb-6">
+                    Generate your podcast script first to access intelligent analysis and editing features.
+                  </p>
+                  <Button 
+                    onClick={handleGenerateScript}
+                    disabled={isGeneratingScript || isGeneratingEpisodeScript}
+                    data-testid="button-generate-script-intelligent"
+                  >
+                    {isGeneratingScript || isGeneratingEpisodeScript ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="w-4 h-4 mr-2" />
+                        Generate Script
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <IntelligentScriptEditor
+                content={scriptContent}
+                onContentChange={setScriptContent}
+                onAnalysisChange={setScriptAnalysis}
+                className="h-full"
               />
             )}
           </TabsContent>

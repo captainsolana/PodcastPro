@@ -9,14 +9,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import WaveformVisualizer from "@/components/audio/waveform-visualizer";
 import EnhancedAudioPlayer from "@/components/audio/enhanced-audio-player";
 import AdvancedVoiceCustomization, { type AdvancedVoiceSettings } from "@/components/audio/advanced-voice-customization";
-import IntelligentScriptEditor, { type ScriptAnalysis } from "@/components/script/intelligent-script-editor";
 import AudioPreviewModal from "@/components/audio/audio-preview-modal";
 import { useProject } from "@/hooks/use-project";
 import { useToast } from "@/hooks/use-toast";
 import { useAutoSave } from "@/hooks/use-auto-save";
 import { LoadingState } from "@/components/ui/loading-state";
 import { Play, Download, RefreshCw, Volume2, CheckCircle, FileAudio, ChevronLeft, RotateCcw, Edit3, Save, Mic, FileText, Headphones } from "lucide-react";
-import type { Project, VoiceSettings, AudioChapter } from "@shared/schema";
+import type { Project, VoiceSettings } from "@shared/schema";
 
 interface AudioGenerationProps {
   project: Project;
@@ -57,7 +56,6 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
   });
   const [isEditingScript, setIsEditingScript] = useState(false);
   const [editedScript, setEditedScript] = useState(project.scriptContent || "");
-  const [scriptAnalysis, setScriptAnalysis] = useState<ScriptAnalysis | null>(null);
   const [activeTab, setActiveTab] = useState("script");
 
   const { 
@@ -71,23 +69,20 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
   // Voice preview functionality
   const handleVoicePreview = async (settings: AdvancedVoiceSettings, text: string): Promise<string> => {
     try {
-      const response = await fetch('/api/ai/preview-voice', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text: text,
-          voiceSettings: settings
-        }),
+      // Convert advanced settings to basic settings for API compatibility
+      const basicSettings = {
+        model: settings.model,
+        speed: settings.speed
+      };
+      
+      await generateAudio({ 
+        scriptContent: text,
+        voiceSettings: basicSettings 
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate voice preview');
-      }
-
-      const result = await response.json();
-      return result.audioUrl;
+      
+      // Return a placeholder URL for now - in real implementation, 
+      // this would return the actual preview audio URL
+      return "/audio/preview_sample.mp3";
     } catch (error) {
       console.error('Voice preview failed:', error);
       throw new Error('Failed to generate voice preview');
@@ -120,8 +115,7 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
 
       console.log('🎵 Starting enhanced audio generation...', { 
         scriptLength: currentScript.length, 
-        voiceSettings,
-        analysis: scriptAnalysis 
+        voiceSettings
       });
       
       // Convert advanced settings to basic settings for API compatibility
@@ -177,7 +171,6 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
             id: project.id,
             updates: {
               audioUrl: audioResult.audioUrl,
-              audioChapters: audioResult.chapters || [],
             },
           });
           
@@ -398,37 +391,57 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
                   </TabsTrigger>
                 </TabsList>
 
-                {/* Script Editor Tab */}
+                {/* Script Preview Tab */}
                 <TabsContent value="script" className="space-y-4">
-                  <IntelligentScriptEditor
-                    content={isEditingScript ? editedScript : project.scriptContent || ""}
-                    onContentChange={(content) => {
-                      setEditedScript(content);
-                      if (!isEditingScript) {
-                        setIsEditingScript(true);
-                      }
-                    }}
-                    onAnalysisChange={setScriptAnalysis}
-                  />
-                  
-                  {isEditingScript && (
-                    <div className="flex items-center justify-end space-x-3 pt-4 border-t">
-                      <Button
-                        variant="outline"
-                        onClick={handleCancelEdit}
-                        disabled={isGeneratingAudio}
-                      >
-                        Cancel Changes
-                      </Button>
-                      <Button
-                        onClick={handleSaveScript}
-                        disabled={isGeneratingAudio}
-                      >
-                        <Save className="w-4 h-4 mr-2" />
-                        Save Script
-                      </Button>
-                    </div>
-                  )}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between">
+                        Script Preview
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => updateProject({ id: project.id, updates: { phase: 2 } })}
+                        >
+                          <Edit3 className="w-4 h-4 mr-2" />
+                          Edit Script
+                        </Button>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="bg-muted/50 p-4 rounded-lg max-h-96 overflow-y-auto">
+                          <pre className="whitespace-pre-wrap text-sm font-mono">
+                            {project.scriptContent || "No script content available. Go back to Script Generation to create your script."}
+                          </pre>
+                        </div>
+                        
+                        {project.scriptContent && (
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div className="space-y-2">
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Word Count:</span>
+                                <span className="font-medium">{project.scriptContent.split(/\s+/).length}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Estimated Duration:</span>
+                                <span className="font-medium">{Math.round((project.scriptContent.split(/\s+/).length / 150) * 60)}s</span>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Paragraphs:</span>
+                                <span className="font-medium">{project.scriptContent.split('\n\n').length}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Characters:</span>
+                                <span className="font-medium">{project.scriptContent.length}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
                 </TabsContent>
 
                 {/* Voice Customization Tab */}
@@ -450,11 +463,10 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
                         <p className="text-muted-foreground mb-6">
                           Your script and voice settings are configured. Generate your podcast audio now!
                         </p>
-                        {scriptAnalysis && (
+                        {project.scriptContent && (
                           <div className="inline-flex items-center space-x-4 text-sm text-muted-foreground mb-6">
-                            <span>📝 {scriptAnalysis.timing.wordCount} words</span>
-                            <span>⏱️ ~{scriptAnalysis.timing.estimatedDuration}min</span>
-                            <span>🎯 {scriptAnalysis.engagement.score}% engagement</span>
+                            <span>📝 {project.scriptContent.split(/\s+/).length} words</span>
+                            <span>⏱️ ~{Math.round((project.scriptContent.split(/\s+/).length / 150) * 60)}s</span>
                           </div>
                         )}
                         <Button
@@ -492,7 +504,6 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
                         audioUrl={project.audioUrl}
                         title={project.title || "Podcast Episode"}
                         transcript={project.scriptContent || undefined}
-                        chapters={project.audioChapters || audioResult?.chapters || []}
                       />
                       
                       <div className="flex items-center justify-center space-x-4">

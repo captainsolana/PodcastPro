@@ -1604,40 +1604,231 @@ Provide analysis in JSON format: { "isMultiEpisode": boolean, "totalEpisodes": n
   }
 
   async generateEpisodeScript(prompt: string, research: ResearchResult, episodeNumber: number, episodePlan: EpisodePlanResult): Promise<ScriptResult> {
+    console.log('🎬 STARTING ENHANCED EPISODE SCRIPT GENERATION');
+    console.log(`📺 Generating Episode ${episodeNumber} of ${episodePlan.totalEpisodes}`);
+    console.log('📊 Research data size:', JSON.stringify(research).length, 'characters');
+    
     try {
       const currentEpisode = episodePlan.episodes.find(ep => ep.episodeNumber === episodeNumber);
       if (!currentEpisode) {
         throw new Error(`Episode ${episodeNumber} not found in plan`);
       }
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o", // using gpt-4o
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert podcast script writer. Create engaging 15-20 minute episode scripts that are part of a series. Include natural conversation flow, pauses, fillers, and transitions. Reference previous/future episodes when appropriate."
-          },
-          {
-            role: "user",
-            content: `Create a podcast script for Episode ${episodeNumber} of ${episodePlan.totalEpisodes}:
-
-Series Topic: "${prompt}"
-Episode Title: "${currentEpisode.title}"
-Episode Focus: "${currentEpisode.description}"
-Key Topics: ${currentEpisode.keyTopics.join(", ")}
-
-Research Data: ${JSON.stringify(research)}
-
-Include natural conversation elements like [pause], [thoughtful pause], [emphasis], etc. Reference this being part of a series when appropriate. Format as JSON: { "content": string, "sections": [{"type": string, "content": string, "duration": number}], "totalDuration": number, "analytics": {"wordCount": number, "readingTime": number, "speechTime": number, "pauseCount": number} }`
-          }
-        ],
-        response_format: { type: "json_object" },
-      });
-
-      return JSON.parse(response.choices[0].message.content || "{}");
+      // Phase 1: Initialize enhanced components (same as regular script generation)
+      const researchIntegrator = new ResearchIntegrator(process.env.OPENAI_API_KEY || process.env.OPENAI_KEY || "sk-test-key");
+      
+      // Phase 2: Analyze topic for domain expertise
+      console.log('🔍 Analyzing topic for episode script generation...');
+      const topicAnalyzer = new TopicAnalyzer(process.env.OPENAI_API_KEY || process.env.OPENAI_KEY || "sk-test-key");
+      const topicAnalysis = await topicAnalyzer.analyzeTopic(prompt);
+      const domainExpertise = topicAnalyzer.getDomainExpertise(topicAnalysis.domain);
+      console.log('📋 Domain analysis completed:', topicAnalysis.domain);
+      
+      // Phase 3: Enhance research data with intelligent extraction
+      console.log('🔬 Enhancing research for episode-specific content...');
+      const enhancedResearch = await researchIntegrator.enhanceResearchData(research, topicAnalysis, domainExpertise);
+      console.log('📊 Episode research enhancement completed');
+      
+      // Phase 4: Generate enhanced episode script
+      console.log(`✍️ Generating enhanced script for Episode ${episodeNumber}...`);
+      const scriptResult = await this.generateEnhancedEpisodeScript(
+        prompt, 
+        enhancedResearch, 
+        topicAnalysis, 
+        domainExpertise, 
+        currentEpisode, 
+        episodePlan, 
+        episodeNumber
+      );
+      
+      console.log('🎯 Enhanced episode script generation completed successfully');
+      return scriptResult;
+      
     } catch (error) {
+      console.error('❌ Enhanced episode script generation failed:', error);
       throw new Error(`Failed to generate episode script: ${(error as Error).message}`);
     }
+  }
+
+  private async generateEnhancedEpisodeScript(
+    prompt: string,
+    enhancedResearch: EnhancedResearchResult,
+    topicAnalysis: TopicAnalysis,
+    domainExpertise: DomainExpertise,
+    currentEpisode: any,
+    episodePlan: EpisodePlanResult,
+    episodeNumber: number
+  ): Promise<ScriptResult> {
+    
+    const scriptPrompt = this.buildEnhancedEpisodeScriptPrompt(
+      prompt, 
+      enhancedResearch, 
+      topicAnalysis, 
+      domainExpertise, 
+      currentEpisode, 
+      episodePlan, 
+      episodeNumber
+    );
+    
+    const scriptOpenAI = new OpenAI({ 
+      apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_KEY || "sk-test-key",
+      timeout: 180000 // 3 minutes for comprehensive episode script generation
+    });
+    
+    const response = await scriptOpenAI.responses.create({
+      model: "gpt-5",
+      reasoning: { effort: "low" }, // Low effort for faster generation
+      instructions: `You are an expert ${domainExpertise.expertTitle} creating Episode ${episodeNumber} of a ${episodePlan.totalEpisodes}-part podcast series.
+
+Your expertise: ${domainExpertise.description}
+
+Series Context: This is part of a comprehensive exploration of "${prompt}". 
+Episode Focus: "${currentEpisode.title}" - ${currentEpisode.description}
+
+Create a compelling, research-rich episode script that:
+1. Fits seamlessly into the overall series narrative
+2. Focuses specifically on this episode's key topics: ${currentEpisode.keyTopics.join(", ")}
+3. References the series context and other episodes appropriately
+4. Uses extensive research data to create authoritative, engaging content
+5. Maintains audience engagement throughout a ${currentEpisode.estimatedDuration}-minute episode
+
+Target audience: ${topicAnalysis.audience}
+
+Return only valid JSON with the required structure.`,
+      input: scriptPrompt
+    });
+
+    const responseText = response.output_text;
+    if (!responseText) {
+      throw new Error('No enhanced episode script content received');
+    }
+
+    const scriptData = JSON.parse(responseText);
+    
+    // Calculate research utilization metrics
+    const utilizationMetrics = this.calculateResearchUtilization(scriptData.content, enhancedResearch);
+    
+    // Calculate quality metrics
+    const qualityMetrics = this.calculateQualityMetrics(scriptData, enhancedResearch, topicAnalysis);
+    
+    return {
+      ...scriptData,
+      researchUtilization: utilizationMetrics,
+      qualityMetrics: qualityMetrics,
+      episodeInfo: {
+        number: episodeNumber,
+        title: currentEpisode.title,
+        description: currentEpisode.description,
+        keyTopics: currentEpisode.keyTopics,
+        seriesContext: {
+          totalEpisodes: episodePlan.totalEpisodes,
+          seriesTopic: prompt
+        }
+      }
+    };
+  }
+
+  private buildEnhancedEpisodeScriptPrompt(
+    prompt: string,
+    enhancedResearch: EnhancedResearchResult,
+    topicAnalysis: TopicAnalysis,
+    domainExpertise: DomainExpertise,
+    currentEpisode: any,
+    episodePlan: EpisodePlanResult,
+    episodeNumber: number
+  ): string {
+    const structured = enhancedResearch.structuredData;
+    const plan = enhancedResearch.utilizationPlan;
+    
+    // Get episode-specific research focus
+    const episodeKeywords = currentEpisode.keyTopics.join(" ");
+    const relevantResearch = this.filterResearchForEpisode(enhancedResearch, episodeKeywords);
+    
+    return `Create a comprehensive podcast script for Episode ${episodeNumber} of ${episodePlan.totalEpisodes}:
+
+SERIES CONTEXT:
+Series Topic: "${prompt}"
+Series Overview: ${episodePlan.reasoning}
+
+EPISODE DETAILS:
+Episode ${episodeNumber}: "${currentEpisode.title}"
+Focus: ${currentEpisode.description}
+Key Topics: ${currentEpisode.keyTopics.join(", ")}
+Target Duration: ${currentEpisode.estimatedDuration} minutes
+
+DOMAIN EXPERTISE TO APPLY:
+${domainExpertise.description}
+Expert Questions: ${domainExpertise.keyQuestions.join(", ")}
+
+ENHANCED RESEARCH DATA TO UTILIZE:
+Key Narratives: ${structured.keyNarratives.join(" | ")}
+Critical Statistics: ${structured.criticalStats.map(s => `${s.stat} (${s.context})`).join(" | ")}
+Expert Insights: ${structured.expertInsights.map(i => `${i.expert}: ${i.insight}`).join(" | ")}
+Technical Concepts: ${structured.technicalConcepts.map(c => `${c.concept}: ${c.explanation}`).join(" | ")}
+Human Impact Stories: ${structured.humanImpactStories.map(h => h.story).join(" | ")}
+Future Implications: ${structured.futureImplications.join(" | ")}
+
+EPISODE-SPECIFIC RESEARCH:
+${relevantResearch}
+
+UTILIZATION STRATEGY:
+Introduction Elements: ${plan.introElements.join(" | ")}
+Body Elements: ${plan.bodyElements.join(" | ")}
+Conclusion Elements: ${plan.conclusionElements.join(" | ")}
+Engagement Hooks: ${plan.engagementHooks.join(" | ")}
+
+SERIES NAVIGATION:
+${episodeNumber > 1 ? `Reference to Previous Episodes: Briefly acknowledge concepts covered in Episodes 1-${episodeNumber-1}` : "Series Introduction: Set the stage for the complete series"}
+${episodeNumber < episodePlan.totalEpisodes ? `Setup for Next Episodes: Tease upcoming content in Episodes ${episodeNumber+1}-${episodePlan.totalEpisodes}` : "Series Conclusion: Tie together insights from the complete series"}
+
+FORMAT REQUIREMENTS:
+{
+  "content": "Full episode script with [pause], [emphasis], and [transition] markers",
+  "sections": [
+    {"type": "introduction", "content": "Episode opening with series context", "duration": 2},
+    {"type": "main_content", "content": "Core episode content using research extensively", "duration": ${currentEpisode.estimatedDuration - 4}},
+    {"type": "conclusion", "content": "Episode wrap-up with series navigation", "duration": 2}
+  ],
+  "totalDuration": ${currentEpisode.estimatedDuration},
+  "analytics": {
+    "wordCount": number,
+    "readingTime": number,
+    "speechTime": number,
+    "pauseCount": number
+  }
+}`;
+  }
+
+  private filterResearchForEpisode(enhancedResearch: EnhancedResearchResult, episodeKeywords: string): string {
+    // Filter research data to focus on episode-specific keywords
+    const keywords = episodeKeywords.toLowerCase().split(" ");
+    const structured = enhancedResearch.structuredData;
+    
+    const relevantConcepts = structured.technicalConcepts.filter(c => 
+      keywords.some(keyword => 
+        c.concept.toLowerCase().includes(keyword) || 
+        c.explanation.toLowerCase().includes(keyword)
+      )
+    );
+    
+    const relevantInsights = structured.expertInsights.filter(i =>
+      keywords.some(keyword => 
+        i.insight.toLowerCase().includes(keyword) ||
+        i.expert.toLowerCase().includes(keyword)
+      )
+    );
+    
+    const relevantNarratives = structured.keyNarratives.filter(n =>
+      keywords.some(keyword =>
+        n.toLowerCase().includes(keyword)
+      )
+    );
+    
+    return `
+Episode-Focused Concepts: ${relevantConcepts.map(c => `${c.concept}: ${c.explanation}`).join(" | ")}
+Episode-Focused Insights: ${relevantInsights.map(i => `${i.expert}: ${i.insight}`).join(" | ")}
+Episode-Focused Narratives: ${relevantNarratives.join(" | ")}
+    `.trim();
   }
 
   // Voice preview method for testing different voice personalities
