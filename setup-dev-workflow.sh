@@ -215,7 +215,7 @@ echo "🚀 Deploying to production environment..."
 source ../../deploy-azure.sh
 
 echo "✅ Production deployment complete!"
-echo "🌐 Production URL: https://app-podcastpro.jollystone-ac8f78d1.westus2.azurecontainerapps.io"
+echo "🌐 Production URL: https://app-podcastpro.your-domain.azurecontainerapps.io"
 EOF
 
 # Create testing script
@@ -420,7 +420,7 @@ npm run feature-flags production disable OLD_FEATURE    # Disable a feature
 
 ### Production
 - Full Azure infrastructure
-- Production domain: app-podcastpro.*.azurecontainerapps.io
+- Production domain: app-podcastpro.your-domain.azurecontainerapps.io
 - Auto-scaling enabled
 - Monitoring and alerts configured
 EOF
