@@ -51,6 +51,12 @@ SAVE_PROGRESS_*.md
 context.md
 Context_summarized.md
 IMPROVEMENT_ROADMAP.md
+
+# Agent development context files (for AI assistant use only)
+context*.md
+Context*.md
+*context*.md
+*Context*.md
 WORKFLOW_IMPROVEMENTS*.md
 PHASE_2_UI_IMPROVEMENTS.md
 TESTING_CHECKLIST.md
