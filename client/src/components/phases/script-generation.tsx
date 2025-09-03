@@ -25,11 +25,13 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
   const isMultiEpisode = episodePlan?.isMultiEpisode;
   const episodeScripts = (project as any).episodeScripts || {};
 
-  // Get current episode script or fall back to main scriptContent
+  // Get current episode script or return empty for multi-episode projects
   const getCurrentEpisodeScript = () => {
-    if (isMultiEpisode && episodeScripts[currentEpisode]) {
-      return episodeScripts[currentEpisode];
+    if (isMultiEpisode) {
+      // For multi-episode projects, only return the specific episode script
+      return episodeScripts[currentEpisode] || "";
     }
+    // For single episodes, use the main scriptContent
     return project.scriptContent || "";
   };
 
@@ -946,7 +948,6 @@ ${episode.description ? `\n${episode.description}` : ""}`}
             </div>
           </div>
         </div>
-        </div>
 
         {/* Tools Panel */}
         <ScriptToolsPanel 
@@ -960,6 +961,8 @@ ${episode.description ? `\n${episode.description}` : ""}`}
           isGeneratingSuggestions={isGeneratingSuggestions}
         />
       </div>
+    </div>
+    </div>
     </div>
   );
 }
