@@ -10,9 +10,10 @@ import { useLocation } from "wouter";
 
 interface HeaderProps {
   project: Project;
+  onPhaseChange?: (phase: number) => void;
 }
 
-export default function Header({ project }: HeaderProps) {
+export default function Header({ project, onPhaseChange }: HeaderProps) {
   const [, setLocation] = useLocation();
   const [isSaving, setIsSaving] = useState(false);
   const { updateProject } = useProject(project.id);
@@ -181,12 +182,20 @@ export default function Header({ project }: HeaderProps) {
             </Button>
             {project.phase >= 2 && (
               <Button 
-                variant="success"
+                variant={project.phase === 3 ? "outline" : "default"}
                 size="sm"
-                data-testid="button-generate-audio"
+                onClick={() => {
+                  if (onPhaseChange) {
+                    onPhaseChange(3);
+                  } else {
+                    updateProject({ id: project.id, updates: { phase: 3 } });
+                  }
+                }}
+                data-testid="button-navigate-to-audio"
+                className={project.phase === 3 ? "" : "bg-blue-600 hover:bg-blue-700"}
               >
                 <Play className="w-4 h-4 mr-2" />
-                {project.phase === 3 ? "Regenerate Audio" : "Generate Audio"}
+                {project.phase === 3 ? "Audio Generation" : "Go to Audio Generation"}
               </Button>
             )}
           </div>

@@ -46,6 +46,30 @@ export default function Project() {
   }
 
   const handlePhaseChange = (targetPhase: number) => {
+    // For navigation to audio generation (phase 3), allow it if we're at least in phase 2
+    if (targetPhase === 3 && project.phase >= 2) {
+      // Update the project phase to 3 and navigate
+      try {
+        updateProject({ 
+          id: project.id, 
+          updates: { phase: 3 } 
+        });
+        setCurrentPhase(targetPhase);
+        toast({
+          title: "Moved to Audio Generation",
+          description: "You can work on audio for completed episodes and return anytime.",
+        });
+      } catch (error) {
+        toast({
+          title: "Navigation Failed",
+          description: "Failed to move to audio generation phase.",
+          variant: "destructive",
+        });
+      }
+      return;
+    }
+
+    // For other forward navigation, require completion
     if (targetPhase > project.phase) {
       toast({
         title: "Cannot Navigate Forward",
@@ -83,7 +107,7 @@ export default function Project() {
     <div className="min-h-screen flex bg-background">
       <Sidebar project={project} onPhaseChange={handlePhaseChange} />
       <div className="flex-1 flex flex-col">
-        <Header project={project} />
+        <Header project={project} onPhaseChange={handlePhaseChange} />
         {renderPhaseContent()}
       </div>
     </div>

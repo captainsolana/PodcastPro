@@ -19,17 +19,17 @@ export default function Sidebar({ project, onPhaseChange }: SidebarProps) {
     {
       number: 1,
       title: "Prompt & Research",
-      description: project.phase > 1 ? "AI analysis completed" : "Define your podcast idea",
+      description: project.phase > 1 ? "✅ Research completed" : "Define your podcast idea",
     },
     {
       number: 2,
       title: "Script Generation",
-      description: project.phase > 2 ? "Script generated" : project.phase === 2 ? "Currently editing" : "Pending",
+      description: project.phase > 2 ? "✅ Scripts ready" : project.phase === 2 ? "Work incrementally" : "Generate scripts",
     },
     {
       number: 3,
       title: "Audio Generation",
-      description: project.phase === 3 ? "Generate final audio" : "Pending",
+      description: project.phase === 3 ? "Generate audio files" : "Convert scripts to audio",
     },
   ];
 

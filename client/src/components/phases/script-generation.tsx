@@ -430,106 +430,64 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
   };
 
   const handleProceedToAudio = async () => {
-    // For multi-episode projects, allow proceeding with at least one completed episode
-    if (isMultiEpisode && episodePlan) {
-      const completedEpisodes = episodePlan.episodes.filter((ep: any) => 
-        ep.status === "completed" || episodeScripts[ep.episodeNumber]?.trim()
-      );
-      
-      if (completedEpisodes.length === 0) {
-        toast({
-          title: "No Episodes Ready",
-          description: "Please generate at least one episode script before proceeding to audio generation.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      toast({
-        title: "Proceeding with Incremental Workflow",
-        description: `Moving to audio generation with ${completedEpisodes.length} episode(s) ready. You can return to generate more scripts later.`,
-      });
-    } else {
-      // Single episode - require script content
-      if (!scriptContent.trim()) {
-        toast({
-          title: "Error",
-          description: "Please generate or write a script first.",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-
     try {
+      // Always allow proceeding to audio generation, even without scripts
+      // This enables incremental workflow where users can work episode by episode
       await updateProject({
         id: project.id,
         updates: {
           phase: 3,
-          scriptContent,
-          scriptAnalytics: scriptResult?.analytics,
+          // Save current script content if it exists
+          ...(scriptContent?.trim() && { scriptContent }),
+          // Save current episode script if in multi-episode mode
+          ...(isMultiEpisode && scriptContent?.trim() && {
+            episodeScripts: {
+              ...episodeScripts,
+              [currentEpisode]: scriptContent
+            }
+          }),
+          // Include analytics if available
+          ...(scriptResult?.analytics && { scriptAnalytics: scriptResult.analytics }),
         },
       });
       
-      if (isMultiEpisode) {
+      if (scriptContent?.trim()) {
         toast({
-          title: "Moving to Audio Generation",
-          description: "You can generate audio for completed episodes and return to complete remaining scripts anytime.",
+          title: "✅ Moving to Audio Generation",
+          description: `Episode ${currentEpisode} script ready for audio generation.`,
         });
       } else {
         toast({
-          title: "Moving to Audio Generation", 
-          description: "Script phase completed successfully.",
+          title: "📻 Accessing Audio Generation",
+          description: "You can work on audio for completed episodes and return here anytime.",
         });
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to proceed to next phase.",
+        description: "Failed to proceed to audio generation.",
         variant: "destructive",
       });
     }
   };
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="flex-1 flex flex-col h-full">
       {/* Navigation Bar */}
-      <div className="border-b border-border bg-card/50 px-6 py-4">
+      <div className="border-b border-border bg-card/50 px-6 py-4 shrink-0">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <FileText className="w-5 h-5 text-primary" />
-              <h2 className="text-lg font-semibold">Script Generation</h2>
-              {isSaving && (
-                <LoadingState 
-                  isLoading={true} 
-                  loadingText="Saving..." 
-                  size="sm"
-                  className="text-xs text-muted-foreground"
-                />
-              )}
-            </div>
-            
-            {/* Workflow Progress Indicator */}
-            {isMultiEpisode && episodePlan && (
-              <div className="hidden md:flex items-center space-x-2 px-3 py-1 bg-muted/50 rounded-full">
-                <div className="text-xs font-medium text-muted-foreground">
-                  Progress:
-                </div>
-                <div className="text-xs font-semibold text-primary">
-                  {episodePlan.episodes.filter((ep: any) => 
-                    ep.status === "completed" || episodeScripts[ep.episodeNumber]?.trim()
-                  ).length}/{episodePlan.totalEpisodes} Episodes
-                </div>
-                <div className="text-xs text-green-600">
-                  {episodePlan.episodes.filter((ep: any) => 
-                    ep.status === "completed" || episodeScripts[ep.episodeNumber]?.trim()
-                  ).length > 0 ? "✓ Ready for Audio" : "⚠ Need Scripts"}
-                </div>
-              </div>
+          <div className="flex items-center space-x-2">
+            <FileText className="w-5 h-5 text-primary" />
+            <h2 className="text-lg font-semibold">Script Generation</h2>
+            {isSaving && (
+              <LoadingState 
+                isLoading={true} 
+                loadingText="Saving..." 
+                size="sm"
+                className="text-xs text-muted-foreground"
+              />
             )}
           </div>
-          
           <div className="flex items-center space-x-2">
             <Button
               variant="outline"
@@ -561,24 +519,7 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
 
       {/* Episode Navigation - Multi-Episode Projects Only */}
       {isMultiEpisode && episodePlan && (
-        <div>
-          {/* Incremental Workflow Info */}
-          <div className="bg-blue-50 border-b border-blue-200 px-6 py-3">
-            <div className="flex items-start space-x-3">
-              <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center mt-0.5">
-                <span className="text-white text-xs font-bold">i</span>
-              </div>
-              <div className="flex-1">
-                <h4 className="text-sm font-medium text-blue-900">Incremental Workflow</h4>
-                <p className="text-xs text-blue-700 mt-1">
-                  You can generate scripts one episode at a time and proceed to audio generation with ready episodes. 
-                  Return anytime to complete remaining scripts while audio generation continues in parallel.
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="border-b border-border bg-muted/30 px-6 py-3">
+        <div className="border-b border-border bg-muted/30 px-6 py-3 shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div className="text-sm font-medium text-muted-foreground">
@@ -588,6 +529,7 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
                 {episodePlan.episodes.map((episode: any) => {
                   const isCurrentEpisode = episode.episodeNumber === currentEpisode;
                   const isCompleted = episode.status === "completed";
+                  const hasScript = episodeScripts[episode.episodeNumber]?.trim();
                   
                   return (
                     <Button
@@ -595,18 +537,26 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
                       variant={isCurrentEpisode ? "default" : "ghost"}
                       size="sm"
                       className={`
-                        relative w-10 h-10 p-0 rounded-full 
+                        relative w-10 h-10 p-0 rounded-full transition-all
                         ${isCompleted ? "ring-2 ring-green-500 ring-offset-1" : ""}
-                        ${isCurrentEpisode ? "ring-2 ring-primary ring-offset-1" : ""}
+                        ${hasScript && !isCompleted ? "ring-2 ring-blue-400 ring-offset-1" : ""}
+                        ${isCurrentEpisode ? "ring-2 ring-primary ring-offset-1 scale-110" : ""}
                       `}
                       onClick={() => !isCurrentEpisode && handleEpisodeChange(episode.episodeNumber)}
                       disabled={isGeneratingScript || isGeneratingEpisodeScript}
-                      title={`${episode.title} - ${episode.status}`}
+                      title={`Episode ${episode.episodeNumber}: ${episode.title}
+Status: ${isCompleted ? "✅ Complete" : hasScript ? "📝 Script Ready" : "⏳ Pending"}
+${episode.description ? `\n${episode.description}` : ""}`}
                     >
                       {episode.episodeNumber}
                       {isCompleted && (
                         <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
                           <span className="text-white text-xs">✓</span>
+                        </div>
+                      )}
+                      {hasScript && !isCompleted && (
+                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-400 rounded-full flex items-center justify-center">
+                          <span className="text-white text-xs">📝</span>
                         </div>
                       )}
                     </Button>
@@ -646,35 +596,37 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
         </div>
       )}
 
-      {/* Main Content */}
-      <div className="flex-1 flex">
-      <div className="flex-1">
-        <Tabs defaultValue="editor" className="h-full flex flex-col">
-          <div className="border-b border-border bg-card px-6">
-            <TabsList className="h-auto p-0 bg-transparent">
-              <TabsTrigger value="editor" className="py-4 px-1 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
-                Basic Editor
-              </TabsTrigger>
-              <TabsTrigger value="intelligent" className="py-4 px-1 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
-                <BarChart3 className="w-4 h-4 mr-2" />
-                Intelligent Editor
-              </TabsTrigger>
-              {isMultiEpisode && (
-                <TabsTrigger value="overview" className="py-4 px-1 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
-                  Episode Overview
-                </TabsTrigger>
-              )}
-              <TabsTrigger value="research" className="py-4 px-1 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
-                Research Notes
-              </TabsTrigger>
-              <TabsTrigger value="insights" className="py-4 px-1 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
-                AI Insights
-              </TabsTrigger>
-            </TabsList>
-          </div>
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Content Tabs */}
+        <div className="flex-1 flex min-h-0">
+          <div className="flex-1 flex flex-col">
+            <Tabs defaultValue="editor" className="flex-1 flex flex-col">
+              <div className="border-b border-border bg-card px-6">
+                <TabsList className="h-auto p-0 bg-transparent">
+                  <TabsTrigger value="editor" className="py-4 px-1 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
+                    Basic Editor
+                  </TabsTrigger>
+                  <TabsTrigger value="intelligent" className="py-4 px-1 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    Intelligent Editor
+                  </TabsTrigger>
+                  {isMultiEpisode && (
+                    <TabsTrigger value="overview" className="py-4 px-1 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
+                      Episode Overview
+                    </TabsTrigger>
+                  )}
+                  <TabsTrigger value="research" className="py-4 px-1 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
+                    Research Notes
+                  </TabsTrigger>
+                  <TabsTrigger value="insights" className="py-4 px-1 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
+                    AI Insights
+                  </TabsTrigger>
+                </TabsList>
+              </div>
 
-          <TabsContent value="editor" className="flex-1 p-6">
-            {!scriptContent && !scriptResult && !episodeScriptResult ? (
+              <TabsContent value="editor" className="flex-1 p-6 overflow-auto">
+                {!scriptContent && !scriptResult && !episodeScriptResult ? (
               <Card className="h-full flex items-center justify-center">
                 <CardContent className="text-center">
                   <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
@@ -721,7 +673,7 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
             )}
           </TabsContent>
 
-          <TabsContent value="intelligent" className="flex-1 p-6">
+          <TabsContent value="intelligent" className="flex-1 p-6 overflow-auto">
             {!scriptContent && !scriptResult && !episodeScriptResult ? (
               <Card className="h-full flex items-center justify-center">
                 <CardContent className="text-center">
@@ -764,7 +716,7 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
 
           {/* Episode Overview Tab - Multi-Episode Projects Only */}
           {isMultiEpisode && (
-            <TabsContent value="overview" className="flex-1 p-6">
+            <TabsContent value="overview" className="flex-1 p-6 overflow-auto">
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold">Episode Overview</h3>
@@ -873,7 +825,7 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
             </TabsContent>
           )}
 
-          <TabsContent value="research" className="flex-1 p-6">
+          <TabsContent value="research" className="flex-1 p-6 overflow-auto">
             {project.researchData ? (
               <EnhancedResearchViewer 
                 researchResult={project.researchData as any}
@@ -894,7 +846,7 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
             )}
           </TabsContent>
 
-          <TabsContent value="insights" className="flex-1 p-6">
+          <TabsContent value="insights" className="flex-1 p-6 overflow-auto">
             <EnhancedAIInsights
               suggestions={suggestionsResult || []}
               onApplySuggestion={handleApplySuggestion}
@@ -906,109 +858,107 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
           </TabsContent>
         </Tabs>
 
-        {/* Proceed Button - Always Visible with Smart Status */}
-        <div className="p-6 border-t border-border bg-card">
-          <div className="flex justify-between items-center">
-            <div className="flex-1">
-              {isMultiEpisode && episodePlan ? (
-                <div>
-                  <p className="font-medium">Audio Generation Readiness</p>
-                  <div className="mt-2 space-y-1">
-                    {(() => {
-                      const completedEpisodes = episodePlan.episodes.filter((ep: any) => 
-                        ep.status === "completed" || episodeScripts[ep.episodeNumber]?.trim()
-                      );
-                      const totalEpisodes = episodePlan.totalEpisodes;
-                      const hasAnyEpisodes = completedEpisodes.length > 0;
-                      
-                      if (hasAnyEpisodes) {
-                        return (
-                          <>
-                            <p className="text-sm text-green-600">
-                              ✓ {completedEpisodes.length} of {totalEpisodes} episodes ready for audio generation
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              You can proceed to audio generation and return to complete remaining episodes later
-                            </p>
-                          </>
-                        );
-                      } else {
-                        return (
-                          <>
-                            <p className="text-sm text-amber-600">
-                              ⚠ No episodes ready yet
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Generate at least one episode script to proceed to audio generation
-                            </p>
-                          </>
-                        );
-                      }
-                    })()}
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <p className="font-medium">Ready for Audio Generation?</p>
-                  {scriptContent ? (
-                    <p className="text-sm text-green-600">✓ Script is complete and ready to be converted to audio</p>
-                  ) : (
-                    <p className="text-sm text-amber-600">⚠ Please generate a script first</p>
-                  )}
-                </div>
-              )}
+        {/* Flexible Navigation & Progress Section */}
+        <div className="p-6 border-t border-border bg-card shrink-0">
+          <div className="space-y-4">
+            {/* Progress Overview */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Script Generation Progress</p>
+                <p className="text-sm text-muted-foreground">
+                  {isMultiEpisode 
+                    ? `Episode ${currentEpisode} of ${episodePlan?.totalEpisodes || 1}` 
+                    : "Single episode podcast"
+                  }
+                </p>
+              </div>
+              <div className="flex items-center space-x-2 text-sm">
+                {isMultiEpisode && episodePlan && (
+                  <>
+                    <span className="text-green-600 font-medium">
+                      ✓ {episodePlan.episodes.filter((ep: any) => ep.status === "completed").length} Complete
+                    </span>
+                    <span className="text-muted-foreground">•</span>
+                    <span className="text-yellow-600 font-medium">
+                      ⏳ {episodePlan.episodes.filter((ep: any) => ep.status !== "completed").length} Remaining
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
-            
-            <div className="flex items-center space-x-3">
-              {/* Skip Button for Multi-Episode Projects */}
-              {isMultiEpisode && episodePlan && (
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center space-x-2">
+                {/* Current Episode Status */}
+                {scriptContent ? (
+                  <div className="flex items-center space-x-2 text-sm text-green-600">
+                    <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                    Current episode script ready
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-2 text-sm text-yellow-600">
+                    <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
+                    Generate script for this episode
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center space-x-3">
+                {/* Generate Current Episode Script (if not ready) */}
+                {!scriptContent && (
+                  <Button 
+                    onClick={handleGenerateScript}
+                    disabled={isGeneratingScript || isGeneratingEpisodeScript}
+                    variant="default"
+                  >
+                    Generate Episode {currentEpisode} Script
+                  </Button>
+                )}
+
+                {/* Proceed to Audio - Always Available */}
                 <Button 
-                  variant="outline"
                   onClick={handleProceedToAudio}
-                  disabled={(() => {
-                    const completedEpisodes = episodePlan.episodes.filter((ep: any) => 
-                      ep.status === "completed" || episodeScripts[ep.episodeNumber]?.trim()
-                    );
-                    return completedEpisodes.length === 0;
-                  })()}
-                  data-testid="button-proceed-partial"
+                  data-testid="button-proceed-to-audio"
+                  variant={scriptContent ? "default" : "outline"}
+                  className={scriptContent ? "bg-blue-600 hover:bg-blue-700" : ""}
                 >
                   <ArrowRight className="w-4 h-4 mr-2" />
-                  Proceed with Ready Episodes
+                  {scriptContent 
+                    ? `Generate Audio for Episode ${currentEpisode}`
+                    : `Skip to Audio Generation`
+                  }
                 </Button>
-              )}
-              
-              {/* Main Proceed Button */}
-              <Button 
-                onClick={handleProceedToAudio}
-                disabled={isMultiEpisode ? (() => {
-                  const completedEpisodes = episodePlan?.episodes.filter((ep: any) => 
-                    ep.status === "completed" || episodeScripts[ep.episodeNumber]?.trim()
-                  ) || [];
-                  return completedEpisodes.length === 0;
-                })() : !scriptContent.trim()}
-                data-testid="button-proceed-to-audio"
-                className={isMultiEpisode ? "bg-primary" : ""}
-              >
-                <ArrowRight className="w-4 h-4 mr-2" />
-                {isMultiEpisode ? "Continue to Audio" : "Generate Audio"}
-              </Button>
+              </div>
+            </div>
+
+            {/* Workflow Explanation */}
+            <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
+              <div className="font-medium mb-1">📋 Flexible Workflow:</div>
+              <div className="space-y-1">
+                <div>• Generate scripts incrementally - work on one episode at a time</div>
+                <div>• Move to Audio Generation anytime to work on completed episodes</div>
+                <div>• Return to Script Generation to continue with remaining episodes</div>
+                {isMultiEpisode && (
+                  <div>• Use "Generate All Remaining" for batch processing when ready</div>
+                )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+        </div>
 
-      {/* Tools Panel */}
-      <ScriptToolsPanel 
-        project={project}
-        scriptContent={scriptContent}
-        analytics={scriptResult?.analytics}
-        suggestions={suggestionsResult}
-        onSave={handleSaveScript}
-        onGenerateSuggestions={() => generateSuggestions(scriptContent)}
-        onApplySuggestion={handleApplySuggestion}
-        isGeneratingSuggestions={isGeneratingSuggestions}
-      />
+        {/* Tools Panel */}
+        <ScriptToolsPanel 
+          project={project}
+          scriptContent={scriptContent}
+          analytics={scriptResult?.analytics}
+          suggestions={suggestionsResult}
+          onSave={handleSaveScript}
+          onGenerateSuggestions={() => generateSuggestions(scriptContent)}
+          onApplySuggestion={handleApplySuggestion}
+          isGeneratingSuggestions={isGeneratingSuggestions}
+        />
       </div>
     </div>
   );
