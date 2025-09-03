@@ -26,6 +26,8 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
     generateScript,
     generateEpisodeScript,
     generateSuggestions,
+    resetScriptGeneration,
+    resetEpisodeScriptGeneration,
     isGeneratingScript,
     isGeneratingEpisodeScript,
     isGeneratingSuggestions,
@@ -90,7 +92,13 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
     }
 
     try {
+      // Clear any existing script content to show loading state
+      setScriptContent("");
+      
+      // Reset previous mutation states
       if (isMultiEpisode && episodePlan) {
+        resetEpisodeScriptGeneration();
+        console.log("Generating episode script for episode:", currentEpisode);
         await generateEpisodeScript({
           prompt: project.refinedPrompt,
           research: project.researchData,
@@ -98,6 +106,8 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
           episodePlan: episodePlan,
         });
       } else {
+        resetScriptGeneration();
+        console.log("Generating single episode script");
         await generateScript({
           prompt: project.refinedPrompt,
           research: project.researchData,
@@ -107,6 +117,7 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
       // Success notification is now handled in useEffect hooks
       // to ensure it shows after the content is actually rendered
     } catch (error) {
+      console.error("Script generation error:", error);
       toast({
         title: "Error",
         description: "Failed to generate script. Please try again.",
@@ -257,7 +268,10 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleGenerateScript}
+                onClick={() => {
+                  console.log("Regenerate button clicked", { isMultiEpisode, currentEpisode });
+                  handleGenerateScript();
+                }}
                 disabled={isGeneratingScript || isGeneratingEpisodeScript}
                 data-testid="button-regenerate-script"
               >
@@ -302,7 +316,10 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
                     Generate your podcast script using AI based on your research data.
                   </p>
                   <Button 
-                    onClick={handleGenerateScript}
+                    onClick={() => {
+                      console.log("Generate script button clicked (main)");
+                      handleGenerateScript();
+                    }}
                     disabled={isGeneratingScript || isGeneratingEpisodeScript}
                     size="lg"
                     data-testid="button-generate-script"
@@ -347,7 +364,10 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
                     Generate your podcast script first to access intelligent analysis and editing features.
                   </p>
                   <Button 
-                    onClick={handleGenerateScript}
+                    onClick={() => {
+                      console.log("Generate script button clicked (intelligent tab)");
+                      handleGenerateScript();
+                    }}
                     disabled={isGeneratingScript || isGeneratingEpisodeScript}
                     data-testid="button-generate-script-intelligent"
                   >

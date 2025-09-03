@@ -49,9 +49,18 @@ export function useProject(projectId?: string) {
 
   const generateScriptMutation = useMutation({
     mutationFn: async ({ prompt, research }: { prompt: string; research: any }) => {
+      console.log("Calling generateScript API with:", { prompt: prompt.substring(0, 100) + "...", research: research ? "present" : "missing" });
       const response = await apiRequest("POST", "/api/ai/generate-script", { prompt, research });
-      return response.json();
+      const result = await response.json();
+      console.log("Script generation result:", result);
+      return result;
     },
+    onSuccess: (data) => {
+      console.log("Script generated successfully:", data);
+    },
+    onError: (error) => {
+      console.error("Script generation failed:", error);
+    }
   });
 
   const generateAudioMutation = useMutation({
@@ -77,9 +86,23 @@ export function useProject(projectId?: string) {
 
   const generateEpisodeScriptMutation = useMutation({
     mutationFn: async ({ prompt, research, episodeNumber, episodePlan }: { prompt: string; research: any; episodeNumber: number; episodePlan: any }) => {
+      console.log("Calling generateEpisodeScript API with:", { 
+        prompt: prompt.substring(0, 100) + "...", 
+        research: research ? "present" : "missing",
+        episodeNumber,
+        episodePlan: episodePlan ? "present" : "missing"
+      });
       const response = await apiRequest("POST", "/api/ai/generate-episode-script", { prompt, research, episodeNumber, episodePlan });
-      return response.json();
+      const result = await response.json();
+      console.log("Episode script generation result:", result);
+      return result;
     },
+    onSuccess: (data) => {
+      console.log("Episode script generated successfully:", data);
+    },
+    onError: (error) => {
+      console.error("Episode script generation failed:", error);
+    }
   });
 
   return {
@@ -95,6 +118,9 @@ export function useProject(projectId?: string) {
     generateSuggestions: generateSuggestionsMutation.mutate,
     analyzeEpisodes: analyzeEpisodesMutation.mutate,
     generateEpisodeScript: generateEpisodeScriptMutation.mutate,
+    // Reset functions for clearing mutation state
+    resetScriptGeneration: generateScriptMutation.reset,
+    resetEpisodeScriptGeneration: generateEpisodeScriptMutation.reset,
     isCreating: createProjectMutation.isPending,
     isUpdating: updateProjectMutation.isPending,
     isRefiningPrompt: refinePromptMutation.isPending,
