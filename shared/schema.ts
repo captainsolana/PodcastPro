@@ -21,7 +21,8 @@ export const projects = pgTable("projects", {
   researchData: json("research_data"),
   episodePlan: json("episode_plan"), // Multi-episode breakdown plan
   currentEpisode: integer("current_episode").default(1),
-  scriptContent: text("script_content"),
+  scriptContent: text("script_content"), // Legacy single script or current episode script
+  episodeScripts: json("episode_scripts"), // Per-episode script storage: { "1": "script1", "2": "script2" }
   scriptAnalytics: json("script_analytics"),
   audioUrl: text("audio_url"),
   voiceSettings: json("voice_settings"),

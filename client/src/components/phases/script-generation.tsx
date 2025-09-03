@@ -19,7 +19,21 @@ interface ScriptGenerationProps {
 }
 
 export default function ScriptGeneration({ project }: ScriptGenerationProps) {
-  const [scriptContent, setScriptContent] = useState(project.scriptContent || "");
+  // Episode-aware script management
+  const episodePlan = (project as any).episodePlan;
+  const currentEpisode = (project as any).currentEpisode || 1;
+  const isMultiEpisode = episodePlan?.isMultiEpisode;
+  const episodeScripts = (project as any).episodeScripts || {};
+
+  // Get current episode script or fall back to main scriptContent
+  const getCurrentEpisodeScript = () => {
+    if (isMultiEpisode && episodeScripts[currentEpisode]) {
+      return episodeScripts[currentEpisode];
+    }
+    return project.scriptContent || "";
+  };
+
+  const [scriptContent, setScriptContent] = useState(getCurrentEpisodeScript());
   const [scriptAnalysis, setScriptAnalysis] = useState<ScriptAnalysis | null>(null);
   const { 
     updateProject,
@@ -37,27 +51,197 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
   } = useProject(project.id);
   const { toast } = useToast();
 
-  // Auto-save functionality for script content
+  // Auto-save functionality for script content  
   const { isSaving } = useAutoSave({
     data: { scriptContent },
     onSave: async (data) => {
+      if (isMultiEpisode) {
+        // Save to episode-specific storage
+        const updatedEpisodeScripts = {
+          ...episodeScripts,
+          [currentEpisode]: data.scriptContent
+        };
+        
+        await updateProject({
+          id: project.id,
+          updates: {
+            episodeScripts: updatedEpisodeScripts,
+            scriptContent: data.scriptContent, // Also update main field for compatibility
+          }
+        });
+      } else {
+        // Single episode - save to main scriptContent
+        await updateProject({
+          id: project.id,
+          updates: {
+            scriptContent: data.scriptContent,
+          }
+        });
+      }
+    },
+    enabled: scriptContent !== getCurrentEpisodeScript()
+  });
+
+  // Episode navigation handlers
+  const handleEpisodeChange = async (episodeNumber: number) => {
+    // Save current script content before switching
+    if (scriptContent && scriptContent !== getCurrentEpisodeScript()) {
+      const updatedEpisodeScripts = {
+        ...episodeScripts,
+        [currentEpisode]: scriptContent
+      };
+      
       await updateProject({
         id: project.id,
         updates: {
-          scriptContent: data.scriptContent,
+          episodeScripts: updatedEpisodeScripts,
         }
       });
-    },
-    enabled: scriptContent !== project.scriptContent
-  });
+    }
 
-  const episodePlan = (project as any).episodePlan;
-  const currentEpisode = (project as any).currentEpisode || 1;
-  const isMultiEpisode = episodePlan?.isMultiEpisode;
+    // Update current episode
+    await updateProject({
+      id: project.id,
+      updates: {
+        currentEpisode: episodeNumber,
+      }
+    });
+
+    // Load script for new episode
+    const newEpisodeScript = episodeScripts[episodeNumber] || "";
+    setScriptContent(newEpisodeScript);
+    setScriptAnalysis(null);
+  };
+
+  const handleMarkEpisodeComplete = async () => {
+    if (!episodePlan || !isMultiEpisode) return;
+
+    const updatedEpisodes = episodePlan.episodes.map((ep: any) => 
+      ep.episodeNumber === currentEpisode 
+        ? { ...ep, status: "completed" as const }
+        : ep
+    );
+
+    await updateProject({
+      id: project.id,
+      updates: {
+        episodePlan: {
+          ...episodePlan,
+          episodes: updatedEpisodes
+        }
+      }
+    });
+
+    // Move to next episode if available
+    const nextEpisode = currentEpisode + 1;
+    if (nextEpisode <= episodePlan.totalEpisodes) {
+      await handleEpisodeChange(nextEpisode);
+    }
+  };
+
+  const handleGenerateAllRemaining = async () => {
+    if (!episodePlan || !isMultiEpisode || !project.refinedPrompt || !project.researchData) {
+      toast({
+        title: "Error",
+        description: "Missing research data or refined prompt. Please complete the research phase first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const remainingEpisodes = episodePlan.episodes.filter((ep: any) => 
+      ep.episodeNumber > currentEpisode && ep.status !== "completed"
+    );
+
+    if (remainingEpisodes.length === 0) {
+      toast({
+        title: "All Episodes Complete",
+        description: "All episodes have already been generated.",
+      });
+      return;
+    }
+
+    try {
+      for (const episode of remainingEpisodes) {
+        console.log(`Generating script for episode ${episode.episodeNumber}`);
+        
+        // Update current episode
+        await updateProject({
+          id: project.id,
+          updates: {
+            currentEpisode: episode.episodeNumber,
+            scriptContent: ""
+          }
+        });
+
+        // Generate script for this episode
+        await generateEpisodeScript({
+          prompt: project.refinedPrompt,
+          research: project.researchData,
+          episodeNumber: episode.episodeNumber,
+          episodePlan: episodePlan,
+        });
+
+        // Mark episode as completed
+        const updatedEpisodes = episodePlan.episodes.map((ep: any) => 
+          ep.episodeNumber === episode.episodeNumber 
+            ? { ...ep, status: "completed" as const }
+            : ep
+        );
+
+        await updateProject({
+          id: project.id,
+          updates: {
+            episodePlan: {
+              ...episodePlan,
+              episodes: updatedEpisodes
+            }
+          }
+        });
+      }
+
+      toast({
+        title: "Batch Generation Complete",
+        description: `Generated scripts for ${remainingEpisodes.length} episodes.`,
+      });
+
+    } catch (error) {
+      console.error("Batch generation error:", error);
+      toast({
+        title: "Batch Generation Failed",
+        description: "Some episodes may have failed to generate. Please check and regenerate if needed.",
+        variant: "destructive",
+      });
+    }
+  };
 
   useEffect(() => {
     if (scriptResult) {
       setScriptContent(scriptResult.content);
+      
+      // Save to appropriate storage
+      if (isMultiEpisode) {
+        const updatedEpisodeScripts = {
+          ...episodeScripts,
+          [currentEpisode]: scriptResult.content
+        };
+        
+        updateProject({
+          id: project.id,
+          updates: {
+            episodeScripts: updatedEpisodeScripts,
+            scriptContent: scriptResult.content,
+          }
+        });
+      } else {
+        updateProject({
+          id: project.id,
+          updates: {
+            scriptContent: scriptResult.content,
+          }
+        });
+      }
+      
       // Show success notification after content is set
       setTimeout(() => {
         toast({
@@ -66,11 +250,26 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
         });
       }, 100);
     }
-  }, [scriptResult, toast]);
+  }, [scriptResult, toast, isMultiEpisode, currentEpisode, episodeScripts, project.id, updateProject]);
 
   useEffect(() => {
     if (episodeScriptResult) {
       setScriptContent(episodeScriptResult.content);
+      
+      // Save to episode-specific storage
+      const updatedEpisodeScripts = {
+        ...episodeScripts,
+        [currentEpisode]: episodeScriptResult.content
+      };
+      
+      updateProject({
+        id: project.id,
+        updates: {
+          episodeScripts: updatedEpisodeScripts,
+          scriptContent: episodeScriptResult.content,
+        }
+      });
+      
       // Show success notification after content is set
       setTimeout(() => {
         toast({
@@ -79,7 +278,15 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
         });
       }, 100);
     }
-  }, [episodeScriptResult, currentEpisode, toast]);
+  }, [episodeScriptResult, currentEpisode, toast, episodeScripts, project.id, updateProject]);
+
+  // Update script content when episode changes (external navigation)
+  useEffect(() => {
+    const newScript = getCurrentEpisodeScript();
+    if (newScript !== scriptContent) {
+      setScriptContent(newScript);
+    }
+  }, [currentEpisode, episodeScripts, project.scriptContent]);
 
   const handleGenerateScript = async () => {
     if (!project.refinedPrompt || !project.researchData) {
@@ -128,13 +335,31 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
 
   const handleSaveScript = async () => {
     try {
-      await updateProject({
-        id: project.id,
-        updates: {
-          scriptContent,
-          scriptAnalytics: scriptResult?.analytics,
-        },
-      });
+      if (isMultiEpisode) {
+        // Save to episode-specific storage
+        const updatedEpisodeScripts = {
+          ...episodeScripts,
+          [currentEpisode]: scriptContent
+        };
+        
+        await updateProject({
+          id: project.id,
+          updates: {
+            episodeScripts: updatedEpisodeScripts,
+            scriptContent: scriptContent,
+            scriptAnalytics: scriptResult?.analytics || episodeScriptResult?.analytics,
+          },
+        });
+      } else {
+        // Single episode - save to main scriptContent
+        await updateProject({
+          id: project.id,
+          updates: {
+            scriptContent,
+            scriptAnalytics: scriptResult?.analytics,
+          },
+        });
+      }
       
       toast({
         title: "Script Saved",
@@ -283,9 +508,78 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
         </div>
       </div>
 
+      {/* Episode Navigation - Multi-Episode Projects Only */}
+      {isMultiEpisode && episodePlan && (
+        <div className="border-b border-border bg-muted/30 px-6 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="text-sm font-medium text-muted-foreground">
+                Episodes ({currentEpisode} of {episodePlan.totalEpisodes})
+              </div>
+              <div className="flex items-center space-x-1">
+                {episodePlan.episodes.map((episode: any) => {
+                  const isCurrentEpisode = episode.episodeNumber === currentEpisode;
+                  const isCompleted = episode.status === "completed";
+                  
+                  return (
+                    <Button
+                      key={episode.episodeNumber}
+                      variant={isCurrentEpisode ? "default" : "ghost"}
+                      size="sm"
+                      className={`
+                        relative w-10 h-10 p-0 rounded-full 
+                        ${isCompleted ? "ring-2 ring-green-500 ring-offset-1" : ""}
+                        ${isCurrentEpisode ? "ring-2 ring-primary ring-offset-1" : ""}
+                      `}
+                      onClick={() => !isCurrentEpisode && handleEpisodeChange(episode.episodeNumber)}
+                      disabled={isGeneratingScript || isGeneratingEpisodeScript}
+                      title={`${episode.title} - ${episode.status}`}
+                    >
+                      {episode.episodeNumber}
+                      {isCompleted && (
+                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
+                          <span className="text-white text-xs">✓</span>
+                        </div>
+                      )}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <div className="text-sm text-muted-foreground">
+                {episodePlan.episodes.find((ep: any) => ep.episodeNumber === currentEpisode)?.title}
+              </div>
+              {scriptContent && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleMarkEpisodeComplete}
+                  disabled={isGeneratingScript || isGeneratingEpisodeScript}
+                  className="text-green-600 border-green-600 hover:bg-green-50"
+                >
+                  Mark Complete & Next
+                </Button>
+              )}
+              {episodePlan.episodes.some((ep: any) => ep.episodeNumber > currentEpisode && ep.status !== "completed") && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleGenerateAllRemaining}
+                  disabled={isGeneratingScript || isGeneratingEpisodeScript}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Generate All Remaining
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
-      <div className="flex-1 flex">
-      {/* Main Content */}
+      <div className="flex-1 flex">{/* Main Content */}
       <div className="flex-1">
         <Tabs defaultValue="editor" className="h-full flex flex-col">
           <div className="border-b border-border bg-card px-6">
@@ -297,6 +591,11 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
                 <BarChart3 className="w-4 h-4 mr-2" />
                 Intelligent Editor
               </TabsTrigger>
+              {isMultiEpisode && (
+                <TabsTrigger value="overview" className="py-4 px-1 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
+                  Episode Overview
+                </TabsTrigger>
+              )}
               <TabsTrigger value="research" className="py-4 px-1 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
                 Research Notes
               </TabsTrigger>
@@ -394,6 +693,117 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
               />
             )}
           </TabsContent>
+
+          {/* Episode Overview Tab - Multi-Episode Projects Only */}
+          {isMultiEpisode && (
+            <TabsContent value="overview" className="flex-1 p-6">
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">Episode Overview</h3>
+                  <div className="text-sm text-muted-foreground">
+                    {episodePlan?.episodes?.filter((ep: any) => ep.status === "completed").length || 0} of {episodePlan?.totalEpisodes || 0} episodes completed
+                  </div>
+                </div>
+
+                <div className="grid gap-4">
+                  {episodePlan?.episodes?.map((episode: any) => {
+                    const hasScript = episodeScripts[episode.episodeNumber] || (episode.episodeNumber === currentEpisode && scriptContent);
+                    const isCurrentEpisode = episode.episodeNumber === currentEpisode;
+                    
+                    return (
+                      <Card 
+                        key={episode.episodeNumber} 
+                        className={`
+                          cursor-pointer transition-all hover:shadow-md
+                          ${isCurrentEpisode ? "ring-2 ring-primary" : ""}
+                          ${episode.status === "completed" ? "bg-green-50 border-green-200" : ""}
+                        `}
+                        onClick={() => !isCurrentEpisode && handleEpisodeChange(episode.episodeNumber)}
+                      >
+                        <CardHeader className="pb-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <div className={`
+                                w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
+                                ${episode.status === "completed" ? "bg-green-500 text-white" : 
+                                  isCurrentEpisode ? "bg-primary text-white" : "bg-muted text-muted-foreground"}
+                              `}>
+                                {episode.episodeNumber}
+                              </div>
+                              <div>
+                                <CardTitle className="text-base">{episode.title}</CardTitle>
+                                <p className="text-sm text-muted-foreground">
+                                  {episode.estimatedDuration} minutes • {episode.status}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              {hasScript && (
+                                <div className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
+                                  Script Ready
+                                </div>
+                              )}
+                              {episode.status === "completed" && (
+                                <div className="text-xs text-green-600">✓ Complete</div>
+                              )}
+                              {isCurrentEpisode && (
+                                <div className="text-xs text-primary bg-primary/10 px-2 py-1 rounded">
+                                  Current
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <p className="text-sm text-muted-foreground mb-3">{episode.description}</p>
+                          <div className="flex flex-wrap gap-1">
+                            {episode.keyTopics?.map((topic: string, index: number) => (
+                              <span 
+                                key={index}
+                                className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded"
+                              >
+                                {topic}
+                              </span>
+                            ))}
+                          </div>
+                          
+                          {isCurrentEpisode && (
+                            <div className="mt-3 flex space-x-2">
+                              {!hasScript && (
+                                <Button
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleGenerateScript();
+                                  }}
+                                  disabled={isGeneratingScript || isGeneratingEpisodeScript}
+                                >
+                                  Generate Script
+                                </Button>
+                              )}
+                              {hasScript && episode.status !== "completed" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleMarkEpisodeComplete();
+                                  }}
+                                  className="text-green-600 border-green-600"
+                                >
+                                  Mark Complete
+                                </Button>
+                              )}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+            </TabsContent>
+          )}
 
           <TabsContent value="research" className="flex-1 p-6">
             {project.researchData ? (
