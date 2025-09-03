@@ -430,13 +430,35 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
   };
 
   const handleProceedToAudio = async () => {
-    if (!scriptContent.trim()) {
+    // For multi-episode projects, allow proceeding with at least one completed episode
+    if (isMultiEpisode && episodePlan) {
+      const completedEpisodes = episodePlan.episodes.filter((ep: any) => 
+        ep.status === "completed" || episodeScripts[ep.episodeNumber]?.trim()
+      );
+      
+      if (completedEpisodes.length === 0) {
+        toast({
+          title: "No Episodes Ready",
+          description: "Please generate at least one episode script before proceeding to audio generation.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       toast({
-        title: "Error",
-        description: "Please generate or write a script first.",
-        variant: "destructive",
+        title: "Proceeding with Incremental Workflow",
+        description: `Moving to audio generation with ${completedEpisodes.length} episode(s) ready. You can return to generate more scripts later.`,
       });
-      return;
+    } else {
+      // Single episode - require script content
+      if (!scriptContent.trim()) {
+        toast({
+          title: "Error",
+          description: "Please generate or write a script first.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     try {
@@ -449,10 +471,17 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
         },
       });
       
-      toast({
-        title: "Moving to Audio Generation",
-        description: "Script phase completed successfully.",
-      });
+      if (isMultiEpisode) {
+        toast({
+          title: "Moving to Audio Generation",
+          description: "You can generate audio for completed episodes and return to complete remaining scripts anytime.",
+        });
+      } else {
+        toast({
+          title: "Moving to Audio Generation", 
+          description: "Script phase completed successfully.",
+        });
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -467,18 +496,40 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
       {/* Navigation Bar */}
       <div className="border-b border-border bg-card/50 px-6 py-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <FileText className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold">Script Generation</h2>
-            {isSaving && (
-              <LoadingState 
-                isLoading={true} 
-                loadingText="Saving..." 
-                size="sm"
-                className="text-xs text-muted-foreground"
-              />
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <FileText className="w-5 h-5 text-primary" />
+              <h2 className="text-lg font-semibold">Script Generation</h2>
+              {isSaving && (
+                <LoadingState 
+                  isLoading={true} 
+                  loadingText="Saving..." 
+                  size="sm"
+                  className="text-xs text-muted-foreground"
+                />
+              )}
+            </div>
+            
+            {/* Workflow Progress Indicator */}
+            {isMultiEpisode && episodePlan && (
+              <div className="hidden md:flex items-center space-x-2 px-3 py-1 bg-muted/50 rounded-full">
+                <div className="text-xs font-medium text-muted-foreground">
+                  Progress:
+                </div>
+                <div className="text-xs font-semibold text-primary">
+                  {episodePlan.episodes.filter((ep: any) => 
+                    ep.status === "completed" || episodeScripts[ep.episodeNumber]?.trim()
+                  ).length}/{episodePlan.totalEpisodes} Episodes
+                </div>
+                <div className="text-xs text-green-600">
+                  {episodePlan.episodes.filter((ep: any) => 
+                    ep.status === "completed" || episodeScripts[ep.episodeNumber]?.trim()
+                  ).length > 0 ? "✓ Ready for Audio" : "⚠ Need Scripts"}
+                </div>
+              </div>
             )}
           </div>
+          
           <div className="flex items-center space-x-2">
             <Button
               variant="outline"
@@ -510,7 +561,24 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
 
       {/* Episode Navigation - Multi-Episode Projects Only */}
       {isMultiEpisode && episodePlan && (
-        <div className="border-b border-border bg-muted/30 px-6 py-3">
+        <div>
+          {/* Incremental Workflow Info */}
+          <div className="bg-blue-50 border-b border-blue-200 px-6 py-3">
+            <div className="flex items-start space-x-3">
+              <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center mt-0.5">
+                <span className="text-white text-xs font-bold">i</span>
+              </div>
+              <div className="flex-1">
+                <h4 className="text-sm font-medium text-blue-900">Incremental Workflow</h4>
+                <p className="text-xs text-blue-700 mt-1">
+                  You can generate scripts one episode at a time and proceed to audio generation with ready episodes. 
+                  Return anytime to complete remaining scripts while audio generation continues in parallel.
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="border-b border-border bg-muted/30 px-6 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div className="text-sm font-medium text-muted-foreground">
@@ -579,7 +647,7 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
       )}
 
       {/* Main Content */}
-      <div className="flex-1 flex">{/* Main Content */}
+      <div className="flex-1 flex">
       <div className="flex-1">
         <Tabs defaultValue="editor" className="h-full flex flex-col">
           <div className="border-b border-border bg-card px-6">
@@ -838,24 +906,96 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
           </TabsContent>
         </Tabs>
 
-        {/* Proceed Button */}
-        {scriptContent && (
-          <div className="p-6 border-t border-border bg-card">
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="font-medium">Ready for Audio Generation?</p>
-                <p className="text-sm text-muted-foreground">Your script is complete and ready to be converted to audio.</p>
-              </div>
+        {/* Proceed Button - Always Visible with Smart Status */}
+        <div className="p-6 border-t border-border bg-card">
+          <div className="flex justify-between items-center">
+            <div className="flex-1">
+              {isMultiEpisode && episodePlan ? (
+                <div>
+                  <p className="font-medium">Audio Generation Readiness</p>
+                  <div className="mt-2 space-y-1">
+                    {(() => {
+                      const completedEpisodes = episodePlan.episodes.filter((ep: any) => 
+                        ep.status === "completed" || episodeScripts[ep.episodeNumber]?.trim()
+                      );
+                      const totalEpisodes = episodePlan.totalEpisodes;
+                      const hasAnyEpisodes = completedEpisodes.length > 0;
+                      
+                      if (hasAnyEpisodes) {
+                        return (
+                          <>
+                            <p className="text-sm text-green-600">
+                              ✓ {completedEpisodes.length} of {totalEpisodes} episodes ready for audio generation
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              You can proceed to audio generation and return to complete remaining episodes later
+                            </p>
+                          </>
+                        );
+                      } else {
+                        return (
+                          <>
+                            <p className="text-sm text-amber-600">
+                              ⚠ No episodes ready yet
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Generate at least one episode script to proceed to audio generation
+                            </p>
+                          </>
+                        );
+                      }
+                    })()}
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <p className="font-medium">Ready for Audio Generation?</p>
+                  {scriptContent ? (
+                    <p className="text-sm text-green-600">✓ Script is complete and ready to be converted to audio</p>
+                  ) : (
+                    <p className="text-sm text-amber-600">⚠ Please generate a script first</p>
+                  )}
+                </div>
+              )}
+            </div>
+            
+            <div className="flex items-center space-x-3">
+              {/* Skip Button for Multi-Episode Projects */}
+              {isMultiEpisode && episodePlan && (
+                <Button 
+                  variant="outline"
+                  onClick={handleProceedToAudio}
+                  disabled={(() => {
+                    const completedEpisodes = episodePlan.episodes.filter((ep: any) => 
+                      ep.status === "completed" || episodeScripts[ep.episodeNumber]?.trim()
+                    );
+                    return completedEpisodes.length === 0;
+                  })()}
+                  data-testid="button-proceed-partial"
+                >
+                  <ArrowRight className="w-4 h-4 mr-2" />
+                  Proceed with Ready Episodes
+                </Button>
+              )}
+              
+              {/* Main Proceed Button */}
               <Button 
                 onClick={handleProceedToAudio}
+                disabled={isMultiEpisode ? (() => {
+                  const completedEpisodes = episodePlan?.episodes.filter((ep: any) => 
+                    ep.status === "completed" || episodeScripts[ep.episodeNumber]?.trim()
+                  ) || [];
+                  return completedEpisodes.length === 0;
+                })() : !scriptContent.trim()}
                 data-testid="button-proceed-to-audio"
+                className={isMultiEpisode ? "bg-primary" : ""}
               >
                 <ArrowRight className="w-4 h-4 mr-2" />
-                Generate Audio
+                {isMultiEpisode ? "Continue to Audio" : "Generate Audio"}
               </Button>
             </div>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Tools Panel */}

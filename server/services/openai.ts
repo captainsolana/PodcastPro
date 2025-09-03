@@ -908,13 +908,17 @@ Ensure the refined prompt is substantially enhanced with domain expertise, speci
     const response = await scriptOpenAI.responses.create({
       model: "gpt-5",
       reasoning: { effort: "low" }, // Low effort for faster script generation
-      instructions: `You are an expert ${domainExpertise.expertTitle} creating a professional podcast script. 
+      instructions: `You are an expert ${domainExpertise.expertTitle} creating a professional SINGLE-NARRATOR podcast script. 
+
+CRITICAL: This must be a SOLO HOST podcast format with ONE NARRATOR only. Do NOT create dialogue, interviews, or multi-person conversations. The script should be written as a monologue for a single podcast host speaking directly to the audience.
 
 Your expertise: ${domainExpertise.description}
 
 Audience guidance: ${domainExpertise.audienceGuidance}
 
 Create a compelling, research-rich script that demonstrates deep domain knowledge while remaining accessible to the ${topicAnalysis.audience} audience. Use the structured research data extensively to create engaging, authoritative content.
+
+Format: Write as a single narrator speaking continuously to the audience. Use phrases like "I want to tell you about...", "Let me share...", "Today we're exploring...", etc. Avoid any dialogue, Q&A format, or multiple speakers.
 
 Return only valid JSON.`,
       input: scriptPrompt
@@ -997,18 +1001,20 @@ UTILIZATION PLAN:
 - Engagement Hooks: ${plan.engagementHooks.slice(0, 3).join(', ')}
 
 SCRIPT REQUIREMENTS:
-1. Use the domain structure: ${domainExpertise.structureTemplate}
-2. Incorporate multiple elements from each research category
-3. Maintain ${topicAnalysis.audience} audience accessibility
-4. Include specific statistics, quotes, and technical details
-5. Weave in human impact stories for engagement
-6. Reference timeline events for context
-7. Address future implications
-8. Use surprising facts as engagement hooks
-9. Include expert insights for authority
-10. Create natural flow between research elements
+1. SINGLE-NARRATOR FORMAT: Write as ONE PERSON speaking to the audience - NO dialogue, interviews, or conversations
+2. Use the domain structure: ${domainExpertise.structureTemplate}
+3. Incorporate multiple elements from each research category
+4. Maintain ${topicAnalysis.audience} audience accessibility
+5. Include specific statistics, quotes, and technical details
+6. Weave in human impact stories for engagement
+7. Reference timeline events for context
+8. Address future implications
+9. Use surprising facts as engagement hooks
+10. Include expert insights for authority
+11. Create natural flow between research elements
+12. Use first person narrative: "I want to share...", "Today I'm exploring...", "Let me tell you about..."
 
-TARGET: 15-20 minute episode (2,000-2,500 words) that maximizes research utilization while maintaining excellent narrative flow.
+TARGET: 15-20 minute episode (2,000-2,500 words) that maximizes research utilization while maintaining excellent narrative flow as a SINGLE HOST monologue.
 
 Return this exact JSON format:
 {
@@ -1138,14 +1144,18 @@ Create a script that demonstrates expert knowledge while being engaging and acce
     const response = await scriptOpenAI.responses.create({
       model: "gpt-5",
       reasoning: { effort: "low" },
-      instructions: "You are an expert podcast script writer. Create engaging podcast scripts using the provided research data. Return only valid JSON.",
-      input: `Create a podcast script about: "${prompt}". 
+      instructions: "You are an expert podcast script writer creating SINGLE-NARRATOR podcast scripts. Write for ONE HOST only - no dialogue, interviews, or conversations. Create engaging solo podcast scripts using the provided research data. Return only valid JSON.",
+      input: `Create a SINGLE-NARRATOR podcast script about: "${prompt}". 
+
+CRITICAL: This must be a SOLO HOST format with ONE PERSON speaking to the audience. Do NOT write dialogue or conversations. Write as a monologue.
 
 Research data: ${JSON.stringify(research)}
 
+Format: Use first-person narrative like "Welcome to today's episode, I'm your host and today I want to explore...", "Let me share with you...", "I've discovered some fascinating insights..."
+
 Return this JSON format:
 {
-  "content": "Script with [pause] markers",
+  "content": "Script with [pause] markers - SINGLE NARRATOR ONLY",
   "sections": [{"type": "intro", "content": "text", "duration": 60}],
   "totalDuration": 900,
   "analytics": {"wordCount": 500, "readingTime": 5, "speechTime": 15, "pauseCount": 10}
@@ -1196,7 +1206,7 @@ Return this JSON format:
           input: scriptContent,
           speed: voiceSettings.speed,
           response_format: "mp3",
-          instructions: "Speak in a clear, professional podcast host voice with appropriate pacing and emphasis for storytelling."
+          instructions: "Speak as a single, professional podcast host with a clear, engaging voice. Use appropriate pacing and emphasis for solo storytelling. Maintain consistent single-narrator delivery throughout."
         });
         
         audioBuffers.push(Buffer.from(await mp3.arrayBuffer()));
@@ -1214,7 +1224,7 @@ Return this JSON format:
             input: chunks[i],
             speed: voiceSettings.speed,
             response_format: "mp3",
-            instructions: `Speak in a clear, professional podcast host voice with appropriate pacing and emphasis for storytelling. This is part ${i + 1} of ${chunks.length} of a continuous narrative - maintain consistent tone and energy.`
+            instructions: `Speak as a single, professional podcast host with a clear, engaging voice. Use appropriate pacing and emphasis for solo storytelling. This is part ${i + 1} of ${chunks.length} of a continuous single-narrator narrative - maintain consistent tone and energy throughout.`
           });
           
           audioBuffers.push(Buffer.from(await mp3.arrayBuffer()));
@@ -1678,7 +1688,9 @@ Provide analysis in JSON format: { "isMultiEpisode": boolean, "totalEpisodes": n
     const response = await scriptOpenAI.responses.create({
       model: "gpt-5",
       reasoning: { effort: "low" }, // Low effort for faster generation
-      instructions: `You are an expert ${domainExpertise.expertTitle} creating Episode ${episodeNumber} of a ${episodePlan.totalEpisodes}-part podcast series.
+      instructions: `You are an expert ${domainExpertise.expertTitle} creating Episode ${episodeNumber} of a ${episodePlan.totalEpisodes}-part SINGLE-NARRATOR podcast series.
+
+CRITICAL FORMAT REQUIREMENT: This must be a SOLO HOST podcast with ONE NARRATOR only. Do NOT create dialogue, interviews, or multi-person conversations. Write as a monologue for a single podcast host speaking directly to the audience.
 
 Your expertise: ${domainExpertise.description}
 
@@ -1686,11 +1698,13 @@ Series Context: This is part of a comprehensive exploration of "${prompt}".
 Episode Focus: "${currentEpisode.title}" - ${currentEpisode.description}
 
 Create a compelling, research-rich episode script that:
-1. Fits seamlessly into the overall series narrative
-2. Focuses specifically on this episode's key topics: ${currentEpisode.keyTopics.join(", ")}
-3. References the series context and other episodes appropriately
-4. Uses extensive research data to create authoritative, engaging content
-5. Maintains audience engagement throughout a ${currentEpisode.estimatedDuration}-minute episode
+1. SINGLE-NARRATOR FORMAT: Write as ONE PERSON speaking to the audience
+2. Fits seamlessly into the overall series narrative
+3. Focuses specifically on this episode's key topics: ${currentEpisode.keyTopics.join(", ")}
+4. References the series context and other episodes appropriately
+5. Uses extensive research data to create authoritative, engaging content
+6. Maintains audience engagement throughout a ${currentEpisode.estimatedDuration}-minute episode
+7. Uses first-person narrative: "Welcome back to episode ${episodeNumber}...", "In today's episode, I want to explore...", "Let me share..."
 
 Target audience: ${topicAnalysis.audience}
 
@@ -1782,12 +1796,19 @@ ${episodeNumber > 1 ? `Reference to Previous Episodes: Briefly acknowledge conce
 ${episodeNumber < episodePlan.totalEpisodes ? `Setup for Next Episodes: Tease upcoming content in Episodes ${episodeNumber+1}-${episodePlan.totalEpisodes}` : "Series Conclusion: Tie together insights from the complete series"}
 
 FORMAT REQUIREMENTS:
+CRITICAL: This must be a SINGLE-NARRATOR podcast format with ONE HOST speaking to the audience. Do NOT write dialogue, interviews, or conversations between multiple people.
+
+Write as a solo podcast host using:
+- First person narrative: "I want to explore...", "Let me share with you...", "Today I'm diving into..."
+- Direct audience address: "You might be wondering...", "As you'll discover...", "This will help you understand..."
+- Single continuous voice throughout the episode
+
 {
-  "content": "Full episode script with [pause], [emphasis], and [transition] markers",
+  "content": "Full episode script with [pause], [emphasis], and [transition] markers - SINGLE NARRATOR ONLY",
   "sections": [
-    {"type": "introduction", "content": "Episode opening with series context", "duration": 2},
-    {"type": "main_content", "content": "Core episode content using research extensively", "duration": ${currentEpisode.estimatedDuration - 4}},
-    {"type": "conclusion", "content": "Episode wrap-up with series navigation", "duration": 2}
+    {"type": "introduction", "content": "Episode opening with series context - solo host format", "duration": 2},
+    {"type": "main_content", "content": "Core episode content using research extensively - single narrator", "duration": ${currentEpisode.estimatedDuration - 4}},
+    {"type": "conclusion", "content": "Episode wrap-up with series navigation - solo host format", "duration": 2}
   ],
   "totalDuration": ${currentEpisode.estimatedDuration},
   "analytics": {
