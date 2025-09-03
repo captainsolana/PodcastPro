@@ -65,9 +65,18 @@ export function useProject(projectId?: string) {
 
   const generateAudioMutation = useMutation({
     mutationFn: async ({ scriptContent, voiceSettings }: { scriptContent: string; voiceSettings: any }) => {
+      console.log('🎵 Calling audio generation API with:', { scriptContentLength: scriptContent.length, voiceSettings });
       const response = await apiRequest("POST", "/api/ai/generate-audio", { scriptContent, voiceSettings });
-      return response.json();
+      const result = await response.json();
+      console.log('🎵 Audio generation API response:', result);
+      return result;
     },
+    onSuccess: (data) => {
+      console.log('🎵 Audio generation mutation succeeded:', data);
+    },
+    onError: (error) => {
+      console.error('🎵 Audio generation mutation failed:', error);
+    }
   });
 
   const generateSuggestionsMutation = useMutation({

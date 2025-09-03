@@ -336,19 +336,24 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
 
   // Handle audio generation result
   useEffect(() => {
+    console.log('🎵 useEffect triggered - audioResult:', audioResult);
     if (audioResult) {
       console.log('📻 Audio generation completed:', audioResult);
       
       // Update project with audio URL - episode-aware
       const saveAudioResult = async () => {
         try {
+          console.log('💾 Saving audio result - isMultiEpisode:', isMultiEpisode, 'currentEpisode:', currentEpisode);
           if (isMultiEpisode) {
+            // Get current episode audio URLs from project
+            const currentEpisodeAudioUrls = (project as any).episodeAudioUrls || {};
             // Save to episode-specific storage
             const updatedEpisodeAudioUrls = {
-              ...episodeAudioUrls,
+              ...currentEpisodeAudioUrls,
               [currentEpisode]: audioResult.audioUrl
             };
             
+            console.log('💾 Updating project with episode audio URLs:', updatedEpisodeAudioUrls);
             await updateProject({
               id: project.id,
               updates: {
@@ -358,6 +363,7 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
             });
           } else {
             // Single episode - save to main audioUrl
+            console.log('💾 Updating project with single audio URL:', audioResult.audioUrl);
             await updateProject({
               id: project.id,
               updates: {
@@ -384,7 +390,7 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
       
       saveAudioResult();
     }
-  }, [audioResult, project.id, updateProject, toast, isMultiEpisode, currentEpisode, episodeAudioUrls]);
+  }, [audioResult, project.id, updateProject, toast, isMultiEpisode, currentEpisode]);
 
   const handleSaveSettings = async () => {
     try {
