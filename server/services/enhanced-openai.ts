@@ -70,6 +70,7 @@ export interface ContentQuality {
   factualAccuracy: number; // 1-10 scale
   overallScore: number; // 1-10 scale
   improvements: string[];
+  strengths?: string[]; // Added to align with assessment results
 }
 
 export interface WorkflowProgress {
@@ -219,7 +220,8 @@ Return a detailed podcast concept with:
       };
     } catch (error) {
       console.error('Enhanced prompt refinement failed:', error);
-      throw new Error(`Prompt refinement failed: ${error.message}`);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Prompt refinement failed: ${message}`);
     }
   }
 
@@ -249,7 +251,8 @@ Return a detailed podcast concept with:
       };
     } catch (error) {
       console.error('Enhanced research failed:', error);
-      throw new Error(`Research phase failed: ${error.message}`);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Research phase failed: ${message}`);
     }
   }
 
@@ -351,7 +354,8 @@ Return JSON format:
       };
     } catch (error) {
       console.error('Enhanced script generation failed:', error);
-      throw new Error(`Script generation failed: ${error.message}`);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Script generation failed: ${message}`);
     }
   }
 
@@ -416,7 +420,7 @@ Return JSON:
 
   // Helper methods
   private getDomainExpertise(domain: string) {
-    const expertise = {
+    const expertise: Record<string, { expertTitle: string; description: string; requirements: string; }> = {
       fintech: {
         expertTitle: "FinTech industry analyst and digital payments expert",
         description: "financial technology and digital transformation",
@@ -438,7 +442,7 @@ Return JSON:
   }
 
   private getAudienceAdaptation(audience: string, complexity: string) {
-    const adaptations = {
+    const adaptations: Record<string, Record<string, string>> = {
       general: {
         beginner: "Use simple language, avoid jargon, include basic explanations",
         intermediate: "Balance accessibility with depth, define technical terms",
@@ -458,7 +462,7 @@ Return JSON:
   }
 
   private getOpeningStrategy(angle: string): string {
-    const strategies = {
+    const strategies: Record<string, string> = {
       historical: "Start with a pivotal moment or transformation that sets the stage for the entire story",
       technical: "Begin with a relatable problem that the technology solves, then reveal the elegant solution",
       "human-impact": "Open with a personal story that illustrates the real-world significance of the topic",
@@ -470,7 +474,7 @@ Return JSON:
   }
 
   private getContentArchitecture(scope: string): string {
-    const architectures = {
+    const architectures: Record<string, string> = {
       "single-concept": "Deep dive structure: Introduction → Core concept exploration → Applications → Implications → Conclusion",
       "multi-faceted": "Comprehensive structure: Overview → Multiple perspectives → Interconnections → Synthesis → Future outlook",
       comparative: "Comparative structure: Setup → Option A analysis → Option B analysis → Comparison → Recommendations"
@@ -524,7 +528,7 @@ Return JSON:
 
   private extractEnhancedStatistics(content: string): Array<{ fact: string; source: string; impact: string }> {
     // Enhanced statistics extraction with impact analysis
-    const stats = [];
+  const stats: Array<{ fact: string; source: string; impact: string }> = [];
     const statPatterns = [
       /\d+(?:\.\d+)?%[^.]{10,150}/gi,
       /\d+(?:\.\d+)?\s*(?:million|billion|trillion|crore|lakh)[^.]{10,150}/gi,
@@ -547,7 +551,7 @@ Return JSON:
 
   private extractHumanStories(content: string): Array<{ story: string; characters: string[]; lesson: string }> {
     // Extract compelling human interest stories
-    const stories = [];
+  const stories: Array<{ story: string; characters: string[]; lesson: string }> = [];
     const storyIndicators = ['story', 'example', 'case', 'experience', 'journey'];
     
     // This would use more sophisticated NLP to identify narrative structures
@@ -574,7 +578,7 @@ Return JSON:
   }
 
   private calculateDuration(scope: string): number {
-    const durations = {
+    const durations: Record<string, number> = {
       "single-concept": 15,
       "multi-faceted": 18,
       comparative: 20
@@ -595,7 +599,7 @@ Return JSON:
   }
 
   private getScriptTemplate(angle: string) {
-    const templates = {
+    const templates: Record<string, { name: string; structure: string; }> = {
       historical: {
         name: "Chronological Narrative",
         structure: `
@@ -662,13 +666,12 @@ Return JSON:
 
   private estimateTimeRemaining(phase: number, step: string): number {
     // Estimate remaining time based on phase and step
-    const phaseEstimates = {
+    const phaseEstimates: Record<number, { total: number; steps: string[] }> = {
       1: { total: 180, steps: ['analyzing', 'refining', 'researching'] },
       2: { total: 120, steps: ['generating', 'enhancing', 'quality-check'] },
       3: { total: 60, steps: ['audio-generation', 'processing', 'finalizing'] }
     };
-    
-    const phaseInfo = phaseEstimates[phase] || { total: 60, steps: ['processing'] };
+    const phaseInfo: { total: number; steps: string[] } = phaseEstimates[phase] || { total: 60, steps: ['processing'] };
     const stepIndex = phaseInfo.steps.indexOf(step.toLowerCase());
     const progress = stepIndex >= 0 ? stepIndex / phaseInfo.steps.length : 0.5;
     
@@ -694,6 +697,12 @@ Return JSON:
   private extractSurprisingFacts(researches: string[]): Array<{ fact: string; why_surprising: string; source: string }> {
     // Implementation for surprising facts extraction
     return [];
+  }
+
+  // Placeholder for external research query integration to satisfy TS reference
+  private async performPerplexityQuery(prompt: string): Promise<string> {
+    // TODO: integrate real external research provider. For now, return stub JSON-like string.
+    return Promise.resolve(`Stub research response for: ${prompt}`);
   }
 }
 

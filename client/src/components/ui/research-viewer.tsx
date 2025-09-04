@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ChevronDown, ChevronUp, FileText, BarChart3, List, ExternalLink } from "lucide-react";
+import { AppIcon } from "@/components/ui/icon-registry";
 import { cn } from "@/lib/utils";
 
 interface ResearchViewerProps {
@@ -22,9 +22,9 @@ export function ResearchViewer({ researchResult, className }: ResearchViewerProp
   const [activeTab, setActiveTab] = useState<'overview' | 'detailed' | 'raw'>('raw');
 
   const tabs = [
-    { id: 'raw', label: 'Full Research', icon: FileText },
-    { id: 'overview', label: 'Overview', icon: List },
-    { id: 'detailed', label: 'Structured View', icon: BarChart3 }
+  { id: 'raw', label: 'Full Research', icon: 'file' },
+  { id: 'overview', label: 'Overview', icon: 'list' },
+  { id: 'detailed', label: 'Structured View', icon: 'stats' }
   ];
 
   // Get the full research content from sources
@@ -33,13 +33,13 @@ export function ResearchViewer({ researchResult, className }: ResearchViewerProp
   const isContentTruncated = displaySummary.includes("...") && displaySummary.length < fullContent.length;
 
   return (
-    <Card className={cn("w-full research-viewer-container", className)}>
+  <Card className={cn("w-full research-viewer-container interactive", className)} data-elevation-tier={1}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <FileText className="w-5 h-5 text-primary" />
-            <CardTitle className="text-lg">Research Results</CardTitle>
-            <Badge variant="secondary" className="text-xs">
+            <AppIcon name="file" className="w-5 h-5 text-primary" />
+            <CardTitle className="heading-sm">Research Results</CardTitle>
+            <Badge variant="soft" className="text-xs">
               {researchResult.keyPoints?.length || 0} key points
             </Badge>
           </div>
@@ -51,9 +51,9 @@ export function ResearchViewer({ researchResult, className }: ResearchViewerProp
             data-testid="button-toggle-research-view"
           >
             {isExpanded ? (
-              <ChevronUp className="w-4 h-4" />
+              <AppIcon name="chevronUp" className="w-4 h-4" />
             ) : (
-              <ChevronDown className="w-4 h-4" />
+              <AppIcon name="chevronDown" className="w-4 h-4" />
             )}
           </Button>
         </div>
@@ -61,7 +61,7 @@ export function ResearchViewer({ researchResult, className }: ResearchViewerProp
         {/* Tab Navigation */}
         <div className="flex space-x-1 bg-muted/50 p-1 rounded-lg">
           {tabs.map((tab) => {
-            const Icon = tab.icon;
+            const IconName = tab.icon as any;
             return (
               <button
                 key={tab.id}
@@ -74,7 +74,7 @@ export function ResearchViewer({ researchResult, className }: ResearchViewerProp
                 )}
                 data-testid={`tab-${tab.id}`}
               >
-                <Icon className="w-4 h-4" />
+                <AppIcon name={IconName} className="w-4 h-4" />
                 <span>{tab.label}</span>
               </button>
             );
@@ -96,7 +96,7 @@ export function ResearchViewer({ researchResult, className }: ResearchViewerProp
               <div className="space-y-4">
                 {/* Key Points Preview */}
                 <div>
-                  <h4 className="font-semibold text-sm mb-2 flex items-center">
+                  <h4 className="heading-xs mb-2 flex items-center">
                     <div className="w-2 h-2 bg-primary rounded-full mr-2" />
                     Key Insights
                   </h4>
@@ -119,8 +119,8 @@ export function ResearchViewer({ researchResult, className }: ResearchViewerProp
                 {researchResult.statistics && researchResult.statistics.length > 0 && (
                   <div>
                     <Separator className="my-3" />
-                    <h4 className="font-semibold text-sm mb-2 flex items-center">
-                      <BarChart3 className="w-4 h-4 mr-2 text-primary" />
+                    <h4 className="heading-xs mb-2 flex items-center">
+                      <AppIcon name="stats" className="w-4 h-4 mr-2 text-primary" />
                       Key Statistics
                     </h4>
                     <div className="space-y-2">
@@ -145,8 +145,8 @@ export function ResearchViewer({ researchResult, className }: ResearchViewerProp
               <div className="space-y-6">
                 {/* Full Key Points */}
                 <div>
-                  <h4 className="font-semibold text-sm mb-3 flex items-center">
-                    <List className="w-4 h-4 mr-2 text-primary" />
+                  <h4 className="heading-xs mb-3 flex items-center">
+                    <AppIcon name="list" className="w-4 h-4 mr-2 text-primary" />
                     All Key Points ({researchResult.keyPoints?.length || 0})
                   </h4>
                   <div className="space-y-2">
@@ -166,8 +166,8 @@ export function ResearchViewer({ researchResult, className }: ResearchViewerProp
                   <>
                     <Separator />
                     <div>
-                      <h4 className="font-semibold text-sm mb-3 flex items-center">
-                        <BarChart3 className="w-4 h-4 mr-2 text-primary" />
+                      <h4 className="heading-xs mb-3 flex items-center">
+                        <AppIcon name="stats" className="w-4 h-4 mr-2 text-primary" />
                         All Statistics ({researchResult.statistics.length})
                       </h4>
                       <div className="space-y-3">
@@ -187,8 +187,8 @@ export function ResearchViewer({ researchResult, className }: ResearchViewerProp
                   <>
                     <Separator />
                     <div>
-                      <h4 className="font-semibold text-sm mb-3 flex items-center">
-                        <FileText className="w-4 h-4 mr-2 text-primary" />
+                      <h4 className="heading-xs mb-3 flex items-center">
+                        <AppIcon name="file" className="w-4 h-4 mr-2 text-primary" />
                         Suggested Episode Outline
                       </h4>
                       <div className="space-y-2">
@@ -210,14 +210,14 @@ export function ResearchViewer({ researchResult, className }: ResearchViewerProp
             {activeTab === 'raw' && (
               <div className="space-y-4">
                 <div>
-                  <h4 className="font-semibold text-sm mb-3 flex items-center">
-                    <ExternalLink className="w-4 h-4 mr-2 text-primary" />
+                      <h4 className="heading-xs mb-3 flex items-center">
+                    <AppIcon name="external" className="w-4 h-4 mr-2 text-primary" />
                     Full Research Content
                   </h4>
                   <div className="space-y-3">
                     {researchResult.sources?.map((source: any, index: number) => (
                       <div key={index} className="border rounded-lg p-4 space-y-3">
-                        <h5 className="font-medium text-sm text-foreground mb-3">{source.title}</h5>
+                        <h5 className="heading-xs text-foreground mb-3 font-medium">{source.title}</h5>
                         <div className="bg-muted/50 p-4 rounded-md">
                           <div className="text-sm text-foreground leading-relaxed whitespace-pre-wrap break-words overflow-wrap-anywhere max-w-full">
                             {fullContent || source.summary}
@@ -250,12 +250,12 @@ export function ResearchViewer({ researchResult, className }: ResearchViewerProp
           >
             {isExpanded ? (
               <>
-                <ChevronUp className="w-3 h-3 mr-1" />
+                <AppIcon name="chevronUp" className="w-3 h-3 mr-1" />
                 Show Less
               </>
             ) : (
               <>
-                <ChevronDown className="w-3 h-3 mr-1" />
+                <AppIcon name="chevronDown" className="w-3 h-3 mr-1" />
                 Show More
               </>
             )}

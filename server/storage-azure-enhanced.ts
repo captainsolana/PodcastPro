@@ -23,10 +23,10 @@ interface AzureStorageConfig {
 
 export class AzureCosmosStorage implements IStorage {
   private cosmosClient: CosmosClient;
-  private database: Database;
-  private projectsContainer: Container;
-  private usersContainer: Container;
-  private suggestionsContainer: Container;
+  private database!: Database;
+  private projectsContainer!: Container;
+  private usersContainer!: Container;
+  private suggestionsContainer!: Container;
   private blobServiceClient: BlobServiceClient;
   private audioContainer: string;
   private environment: string;
@@ -227,9 +227,8 @@ export class AzureCosmosStorage implements IStorage {
 
     const user: User = {
       id: randomUUID(),
-      ...userData,
-      createdAt: new Date()
-    };
+      ...userData
+    } as User; // cast to satisfy schema if extra fields omitted
 
     try {
       const { resource } = await this.usersContainer.items.create<User>(user);
@@ -281,9 +280,14 @@ export class AzureCosmosStorage implements IStorage {
     const project: Project = {
       id: randomUUID(),
       ...projectData,
+      status: projectData.status || 'draft',
+      phase: projectData.phase || 1,
+      audioUrl: projectData.audioUrl || null,
+      episodeScripts: projectData.episodeScripts || [],
+      episodeAudioUrls: projectData.episodeAudioUrls || [],
       createdAt: new Date(),
       updatedAt: new Date()
-    };
+    } as Project;
 
     try {
       const { resource } = await this.projectsContainer.items.create<Project>(project);
@@ -356,8 +360,9 @@ export class AzureCosmosStorage implements IStorage {
     const suggestion: AiSuggestion = {
       id: randomUUID(),
       ...suggestionData,
+      applied: suggestionData.applied ?? false,
       createdAt: new Date()
-    };
+    } as AiSuggestion;
 
     try {
       const { resource } = await this.suggestionsContainer.items.create<AiSuggestion>(suggestion);

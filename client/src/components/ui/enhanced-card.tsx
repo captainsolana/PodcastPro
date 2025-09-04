@@ -17,9 +17,10 @@ const EnhancedCard = React.forwardRef<
       gradient && "bg-gradient-to-br from-card to-muted/20",
       {
         "p-0": padding === "none",
-        "p-4": padding === "sm", 
-        "p-6": padding === "md",
-        "p-8": padding === "lg",
+        // sm = 16px, md = 20px, lg = 24px (Phase 2 unified spacing)
+        "p-4": padding === "sm",
+        "p-5": padding === "md",
+        "p-6": padding === "lg",
       },
       className
     )}
@@ -30,11 +31,15 @@ EnhancedCard.displayName = "EnhancedCard";
 
 const EnhancedCardHeader = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
+  React.HTMLAttributes<HTMLDivElement> & { divider?: boolean }
+>(({ className, divider = true, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("flex flex-col space-y-2 pb-4", className)}
+    className={cn(
+      "flex flex-col space-y-2 pb-4",
+      divider && "relative after:content-[''] after:absolute after:left-0 after:right-0 after:bottom-0 after:h-px after:bg-[var(--semantic-border)] after:[box-shadow:inset_0_-1px_0_0_var(--semantic-inset)]",
+      className
+    )}
     {...props}
   />
 ));

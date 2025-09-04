@@ -1,6 +1,6 @@
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Home } from "lucide-react";
+import { AppIcon } from "@/components/ui/icon-registry";
 import { cn } from "@/lib/utils";
 
 interface BreadcrumbItem {
@@ -51,7 +51,7 @@ export function BreadcrumbNav({
           className="hover:-translate-y-0.5"
           data-testid="button-back-navigation"
         >
-          <ChevronLeft className="w-4 h-4 mr-1" />
+          <AppIcon name="chevronLeft" className="w-4 h-4 mr-1" />
           Back
         </Button>
       )}
@@ -60,7 +60,7 @@ export function BreadcrumbNav({
         {items.map((item, index) => (
           <div key={index} className="flex items-center space-x-2">
             {index > 0 && (
-              <ChevronRight className="w-3 h-3 text-muted-foreground" />
+              <AppIcon name="chevronRight" className="w-3 h-3 text-muted-foreground" />
             )}
             
             {item.href || item.onClick ? (
@@ -76,7 +76,7 @@ export function BreadcrumbNav({
                 )}
                 data-testid={`breadcrumb-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
               >
-                {index === 0 && <Home className="w-3 h-3 mr-1" />}
+                {index === 0 && <AppIcon name="home" className="w-3 h-3 mr-1" />}
                 {item.label}
               </Button>
             ) : (
@@ -88,7 +88,7 @@ export function BreadcrumbNav({
                     : "text-muted-foreground"
                 )}
               >
-                {index === 0 && <Home className="w-3 h-3 mr-1 inline" />}
+                {index === 0 && <AppIcon name="home" className="w-3 h-3 mr-1 inline" />}
                 {item.label}
               </span>
             )}

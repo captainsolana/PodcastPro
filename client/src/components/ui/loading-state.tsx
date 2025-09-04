@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { AppIcon } from "@/components/ui/icon-registry";
 
 interface LoadingStateProps {
   isLoading: boolean;
@@ -37,7 +37,7 @@ export function LoadingState({
   if (isLoading) {
     return (
       <div className={cn("flex items-center space-x-2 text-muted-foreground", sizeClasses[size], className)}>
-        <Loader2 className={cn("animate-spin", iconSizes[size])} />
+  <AppIcon name="loading" className={cn("animate-spin", iconSizes[size])} />
         <span>{loadingText}</span>
       </div>
     );
@@ -46,7 +46,7 @@ export function LoadingState({
   if (isSuccess) {
     return (
       <div className={cn("flex items-center space-x-2 text-green-600", sizeClasses[size], className)}>
-        <CheckCircle className={iconSizes[size]} />
+  <AppIcon name="success" className={iconSizes[size]} />
         <span>{successText}</span>
       </div>
     );
@@ -55,7 +55,7 @@ export function LoadingState({
   if (isError) {
     return (
       <div className={cn("flex items-center space-x-2 text-red-600", sizeClasses[size], className)}>
-        <AlertCircle className={iconSizes[size]} />
+  <AppIcon name="warning" className={iconSizes[size]} />
         <span>{errorText}</span>
       </div>
     );

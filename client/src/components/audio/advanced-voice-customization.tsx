@@ -6,28 +6,16 @@ import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useRovingTabs } from "@/hooks/use-roving-tabs";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Play, 
-  Pause, 
-  Volume2, 
-  Heart, 
-  Zap, 
-  Coffee, 
-  Shield, 
-  Users, 
-  BookOpen,
-  Mic,
-  Settings,
-  Sparkles
-} from "lucide-react";
+import { AppIcon } from "@/components/ui/icon-registry";
 
 export interface VoicePersonality {
   id: string;
   name: string;
   description: string;
-  icon: typeof Heart;
+  icon: React.ComponentType<any>;
   baseModel: string;
   characteristics: {
     warmth: number;      // 0-100
@@ -67,7 +55,7 @@ const VOICE_PERSONALITIES: VoicePersonality[] = [
     id: "professional",
     name: "Professional",
     description: "Authoritative and clear, perfect for business content and formal presentations",
-    icon: Shield,
+  icon: (props: any) => <AppIcon name="shield" className={"w-4 h-4"} {...props} />,
     baseModel: "onyx",
     characteristics: { warmth: 30, energy: 50, authority: 90, friendliness: 40 },
     sampleText: "Welcome to today's business briefing. Let's explore the key market trends.",
@@ -77,7 +65,7 @@ const VOICE_PERSONALITIES: VoicePersonality[] = [
     id: "conversational",
     name: "Conversational",
     description: "Warm and approachable, ideal for casual discussions and storytelling",
-    icon: Heart,
+  icon: (props: any) => <AppIcon name="heart" className="w-4 h-4" {...props} />,
     baseModel: "nova",
     characteristics: { warmth: 85, energy: 60, authority: 50, friendliness: 90 },
     sampleText: "Hey there! Let me tell you about this fascinating story I came across.",
@@ -87,7 +75,7 @@ const VOICE_PERSONALITIES: VoicePersonality[] = [
     id: "energetic",
     name: "Energetic",
     description: "Dynamic and enthusiastic, great for motivational and exciting content",
-    icon: Zap,
+  icon: (props: any) => <AppIcon name="energy" className="w-4 h-4" {...props} />,
     baseModel: "alloy",
     characteristics: { warmth: 60, energy: 95, authority: 70, friendliness: 80 },
     sampleText: "Get ready for an amazing journey through innovation and breakthrough discoveries!",
@@ -97,7 +85,7 @@ const VOICE_PERSONALITIES: VoicePersonality[] = [
     id: "calm",
     name: "Calm & Soothing",
     description: "Gentle and peaceful, perfect for relaxation and educational content",
-    icon: Coffee,
+  icon: (props: any) => <AppIcon name="coffee" className="w-4 h-4" {...props} />,
     baseModel: "shimmer",
     characteristics: { warmth: 90, energy: 20, authority: 40, friendliness: 70 },
     sampleText: "Take a moment to breathe deeply as we explore this topic together.",
@@ -107,7 +95,7 @@ const VOICE_PERSONALITIES: VoicePersonality[] = [
     id: "storyteller",
     name: "Storyteller",
     description: "Expressive and engaging, designed for narratives and dramatic content",
-    icon: BookOpen,
+  icon: (props: any) => <AppIcon name="book" className="w-4 h-4" {...props} />,
     baseModel: "fable",
     characteristics: { warmth: 75, energy: 80, authority: 60, friendliness: 85 },
     sampleText: "Once upon a time, in a world not so different from ours, something extraordinary happened.",
@@ -117,7 +105,7 @@ const VOICE_PERSONALITIES: VoicePersonality[] = [
     id: "interviewer",
     name: "Interviewer",
     description: "Curious and engaging, perfect for Q&A sessions and interactive content",
-    icon: Users,
+  icon: (props: any) => <AppIcon name="users" className="w-4 h-4" {...props} />,
     baseModel: "echo",
     characteristics: { warmth: 70, energy: 65, authority: 75, friendliness: 85 },
     sampleText: "That's a fascinating point. Can you tell us more about how you discovered this?",
@@ -220,7 +208,7 @@ export default function AdvancedVoiceCustomization({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <Mic className="w-5 h-5" />
+            <AppIcon name="mic" className="w-5 h-5" />
             <span>Voice Personality</span>
           </CardTitle>
         </CardHeader>
@@ -255,8 +243,8 @@ export default function AdvancedVoiceCustomization({
                           {personality.description}
                         </p>
                         {isActive && (
-                          <Badge variant="secondary" className="mt-2 text-xs">
-                            <Sparkles className="w-3 h-3 mr-1" />
+                          <Badge variant="soft" className="mt-2 text-xs">
+                            <AppIcon name="spark" className="w-3 h-3 mr-1" />
                             Active
                           </Badge>
                         )}
@@ -283,7 +271,7 @@ export default function AdvancedVoiceCustomization({
                             </>
                           ) : (
                             <>
-                              <Play className="w-3 h-3 mr-2" />
+                              <AppIcon name="play" className="w-3 h-3 mr-2" />
                               Preview
                             </>
                           )}
@@ -301,24 +289,25 @@ export default function AdvancedVoiceCustomization({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <Settings className="w-5 h-5" />
+            <AppIcon name="settings" className="w-5 h-5" />
             <span>Advanced Settings</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="speech" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-3">
+            {(() => { const { containerRef } = useRovingTabs([]); return (
+            <TabsList ref={containerRef as any} className="grid w-full grid-cols-3 gap-0" role="tablist" aria-label="Advanced voice setting groups">
               <TabsTrigger value="speech">Speech</TabsTrigger>
               <TabsTrigger value="emotions">Emotions</TabsTrigger>
               <TabsTrigger value="custom">Custom</TabsTrigger>
-            </TabsList>
+            </TabsList> ); })()}
 
             <TabsContent value="speech" className="space-y-6">
               {/* Speed Control */}
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <Label>Speaking Speed</Label>
-                  <Badge variant="secondary">{currentSettings.speed}x</Badge>
+                  <Badge variant="soft">{currentSettings.speed}x</Badge>
                 </div>
                 <Slider
                   value={[currentSettings.speed]}
@@ -341,7 +330,7 @@ export default function AdvancedVoiceCustomization({
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <Label>Pitch Adjustment</Label>
-                  <Badge variant="secondary">
+                  <Badge variant="soft">
                     {currentSettings.pitch > 0 ? '+' : ''}{currentSettings.pitch} semitones
                   </Badge>
                 </div>
@@ -366,7 +355,7 @@ export default function AdvancedVoiceCustomization({
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <Label>Speech Emphasis</Label>
-                  <Badge variant="secondary">{currentSettings.emphasis}%</Badge>
+                  <Badge variant="soft">{currentSettings.emphasis}%</Badge>
                 </div>
                 <Slider
                   value={[currentSettings.emphasis]}
@@ -389,7 +378,7 @@ export default function AdvancedVoiceCustomization({
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <Label>Pause Duration</Label>
-                  <Badge variant="secondary">{currentSettings.pause_length}s</Badge>
+                  <Badge variant="soft">{currentSettings.pause_length}s</Badge>
                 </div>
                 <Slider
                   value={[currentSettings.pause_length]}
@@ -412,10 +401,10 @@ export default function AdvancedVoiceCustomization({
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <Label className="flex items-center space-x-2">
-                    <Zap className="w-4 h-4 text-orange-500" />
+                    <AppIcon name="energy" className="w-4 h-4 text-orange-500" />
                     <span>Enthusiasm</span>
                   </Label>
-                  <Badge variant="secondary">{currentSettings.emotions.enthusiasm}%</Badge>
+                  <Badge variant="soft">{currentSettings.emotions.enthusiasm}%</Badge>
                 </div>
                 <Slider
                   value={[currentSettings.emotions.enthusiasm]}
@@ -433,10 +422,10 @@ export default function AdvancedVoiceCustomization({
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <Label className="flex items-center space-x-2">
-                    <Coffee className="w-4 h-4 text-blue-500" />
+                    <AppIcon name="coffee" className="w-4 h-4 text-blue-500" />
                     <span>Calmness</span>
                   </Label>
-                  <Badge variant="secondary">{currentSettings.emotions.calmness}%</Badge>
+                  <Badge variant="soft">{currentSettings.emotions.calmness}%</Badge>
                 </div>
                 <Slider
                   value={[currentSettings.emotions.calmness]}
@@ -454,10 +443,10 @@ export default function AdvancedVoiceCustomization({
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <Label className="flex items-center space-x-2">
-                    <Shield className="w-4 h-4 text-green-500" />
+                    <AppIcon name="shield" className="w-4 h-4 text-green-500" />
                     <span>Confidence</span>
                   </Label>
-                  <Badge variant="secondary">{currentSettings.emotions.confidence}%</Badge>
+                  <Badge variant="soft">{currentSettings.emotions.confidence}%</Badge>
                 </div>
                 <Slider
                   value={[currentSettings.emotions.confidence]}
@@ -492,7 +481,7 @@ export default function AdvancedVoiceCustomization({
                     </>
                   ) : (
                     <>
-                      <Volume2 className="w-4 h-4 mr-2" />
+                      <AppIcon name="volume" className="w-4 h-4 mr-2" />
                       Preview Custom Text
                     </>
                   )}

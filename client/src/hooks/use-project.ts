@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, resilientApiRequest } from "@/lib/queryClient";
 import type { Project, InsertProject } from "@shared/schema";
 import type { ProjectState, AIProcessingState } from "@/lib/types";
 
@@ -14,7 +14,7 @@ export function useProject(projectId?: string) {
 
   const createProjectMutation = useMutation({
     mutationFn: async (data: InsertProject) => {
-      const response = await apiRequest("POST", "/api/projects", data);
+  const response = await resilientApiRequest("POST", "/api/projects", data);
       return response.json();
     },
     onSuccess: () => {
@@ -24,7 +24,7 @@ export function useProject(projectId?: string) {
 
   const updateProjectMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Project> }) => {
-      const response = await apiRequest("PATCH", `/api/projects/${id}`, updates);
+  const response = await resilientApiRequest("PATCH", `/api/projects/${id}`, updates);
       return response.json();
     },
     onSuccess: (data) => {
@@ -35,14 +35,14 @@ export function useProject(projectId?: string) {
 
   const refinePromptMutation = useMutation({
     mutationFn: async (prompt: string) => {
-      const response = await apiRequest("POST", "/api/ai/refine-prompt", { prompt });
+  const response = await resilientApiRequest("POST", "/api/ai/refine-prompt", { prompt });
       return response.json();
     },
   });
 
   const conductResearchMutation = useMutation({
     mutationFn: async (prompt: string) => {
-      const response = await apiRequest("POST", "/api/ai/research", { prompt });
+  const response = await resilientApiRequest("POST", "/api/ai/research", { prompt });
       return response.json();
     },
   });
@@ -50,7 +50,7 @@ export function useProject(projectId?: string) {
   const generateScriptMutation = useMutation({
     mutationFn: async ({ prompt, research }: { prompt: string; research: any }) => {
       console.log("Calling generateScript API with:", { prompt: prompt.substring(0, 100) + "...", research: research ? "present" : "missing" });
-      const response = await apiRequest("POST", "/api/ai/generate-script", { prompt, research });
+  const response = await resilientApiRequest("POST", "/api/ai/generate-script", { prompt, research });
       const result = await response.json();
       console.log("Script generation result:", result);
       return result;
@@ -66,7 +66,7 @@ export function useProject(projectId?: string) {
   const generateAudioMutation = useMutation({
     mutationFn: async ({ scriptContent, voiceSettings }: { scriptContent: string; voiceSettings: any }) => {
       console.log('🎵 Calling audio generation API with:', { scriptContentLength: scriptContent.length, voiceSettings });
-      const response = await apiRequest("POST", "/api/ai/generate-audio", { scriptContent, voiceSettings });
+  const response = await resilientApiRequest("POST", "/api/ai/generate-audio", { scriptContent, voiceSettings });
       const result = await response.json();
       console.log('🎵 Audio generation API response:', result);
       return result;
@@ -79,16 +79,29 @@ export function useProject(projectId?: string) {
     }
   });
 
+  const generateAudioSegmentMutation = useMutation({
+    mutationFn: async ({ segmentText, voiceSettings, segmentIndex }: { segmentText: string; voiceSettings: any; segmentIndex: number }) => {
+      console.log('🎵 Calling segment audio generation API with:', { segmentIndex, length: segmentText.length });
+      const response = await resilientApiRequest("POST", "/api/ai/generate-audio-segment", { segmentText, voiceSettings, segmentIndex });
+      const result = await response.json();
+      console.log('🎵 Segment audio generation API response:', result);
+      return result;
+    },
+    onError: (error) => {
+      console.error('🎵 Segment audio generation mutation failed:', error);
+    }
+  });
+
   const generateSuggestionsMutation = useMutation({
     mutationFn: async (scriptContent: string) => {
-      const response = await apiRequest("POST", "/api/ai/script-suggestions", { scriptContent });
+  const response = await resilientApiRequest("POST", "/api/ai/script-suggestions", { scriptContent });
       return response.json();
     },
   });
 
   const analyzeEpisodesMutation = useMutation({
     mutationFn: async ({ prompt, research }: { prompt: string; research: any }) => {
-      const response = await apiRequest("POST", "/api/ai/analyze-episodes", { prompt, research });
+  const response = await resilientApiRequest("POST", "/api/ai/analyze-episodes", { prompt, research });
       return response.json();
     },
   });
@@ -101,7 +114,7 @@ export function useProject(projectId?: string) {
         episodeNumber,
         episodePlan: episodePlan ? "present" : "missing"
       });
-      const response = await apiRequest("POST", "/api/ai/generate-episode-script", { prompt, research, episodeNumber, episodePlan });
+  const response = await resilientApiRequest("POST", "/api/ai/generate-episode-script", { prompt, research, episodeNumber, episodePlan });
       const result = await response.json();
       console.log("Episode script generation result:", result);
       return result;
@@ -124,6 +137,7 @@ export function useProject(projectId?: string) {
     conductResearch: conductResearchMutation.mutate,
     generateScript: generateScriptMutation.mutate,
     generateAudio: generateAudioMutation.mutate,
+  generateAudioSegment: generateAudioSegmentMutation.mutate,
     generateSuggestions: generateSuggestionsMutation.mutate,
     analyzeEpisodes: analyzeEpisodesMutation.mutate,
     generateEpisodeScript: generateEpisodeScriptMutation.mutate,
@@ -136,6 +150,7 @@ export function useProject(projectId?: string) {
     isResearching: conductResearchMutation.isPending,
     isGeneratingScript: generateScriptMutation.isPending,
     isGeneratingAudio: generateAudioMutation.isPending,
+  isGeneratingAudioSegment: generateAudioSegmentMutation.isPending,
     isGeneratingSuggestions: generateSuggestionsMutation.isPending,
     isAnalyzingEpisodes: analyzeEpisodesMutation.isPending,
     isGeneratingEpisodeScript: generateEpisodeScriptMutation.isPending,
@@ -143,6 +158,7 @@ export function useProject(projectId?: string) {
     researchResult: conductResearchMutation.data,
     scriptResult: generateScriptMutation.data,
     audioResult: generateAudioMutation.data,
+  audioSegmentResult: generateAudioSegmentMutation.data,
     suggestionsResult: generateSuggestionsMutation.data,
     episodeAnalysisResult: analyzeEpisodesMutation.data,
     episodeScriptResult: generateEpisodeScriptMutation.data,

@@ -1,4 +1,4 @@
-import { Check, Clock, AlertCircle } from "lucide-react";
+import { AppIcon } from "@/components/ui/icon-registry";
 import { cn } from "@/lib/utils";
 
 interface Step {
@@ -18,11 +18,11 @@ export function StepIndicator({ steps, className, vertical = false }: StepIndica
   const getStepIcon = (status: Step["status"]) => {
     switch (status) {
       case "completed":
-        return <Check className="w-4 h-4" />;
+  return <AppIcon name="check" className="w-4 h-4" />;
       case "active":
-        return <Clock className="w-4 h-4 animate-spin" />;
+  return <AppIcon name="clock" className="w-4 h-4 animate-spin" />;
       case "error":
-        return <AlertCircle className="w-4 h-4" />;
+  return <AppIcon name="warning" className="w-4 h-4" />;
       default:
         return null;
     }

@@ -5,28 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useRovingTabs } from "@/hooks/use-roving-tabs";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  BookOpen, 
-  Clock, 
-  TrendingUp, 
-  AlertTriangle, 
-  CheckCircle, 
-  Target,
-  Users,
-  Lightbulb,
-  Search,
-  BarChart,
-  Eye,
-  Mic,
-  Sparkles,
-  FileText,
-  Zap
-} from "lucide-react";
+import { AppIcon } from "@/components/ui/icon-registry";
 
 export interface ScriptAnalysis {
   readability: {
@@ -179,6 +164,14 @@ export default function IntelligentScriptEditor({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [focusedSuggestion, setFocusedSuggestion] = useState<Suggestion | null>(null);
   const { toast } = useToast();
+
+  // Phase 5 extension: map numeric scores to progress status for dynamic color animation
+  const scoreStatus = (value: number): 'success' | 'info' | 'warning' | 'critical' | 'default' => {
+    if (value >= 80) return 'success';
+    if (value >= 60) return 'info';
+    if (value >= 40) return 'warning';
+    return 'critical';
+  };
 
   // Real-time analysis (debounced)
   useEffect(() => {
@@ -368,35 +361,35 @@ export default function IntelligentScriptEditor({
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-600";
-    if (score >= 60) return "text-yellow-600";
-    return "text-red-600";
+    if (score >= 80) return "text-[var(--semantic-success)]";
+    if (score >= 60) return "text-[var(--semantic-warning)]";
+    return "text-[var(--semantic-critical)]";
   };
 
   const getComplexityColor = (complexity: string) => {
     switch (complexity) {
-      case 'Simple': return "text-green-600";
-      case 'Average': return "text-blue-600";
-      case 'Complex': return "text-yellow-600";
-      case 'Very Complex': return "text-red-600";
-      default: return "text-gray-600";
+      case 'Simple': return "text-[var(--semantic-success)]";
+      case 'Average': return "text-[var(--semantic-accent)]";
+      case 'Complex': return "text-[var(--semantic-warning)]";
+      case 'Very Complex': return "text-[var(--semantic-critical)]";
+      default: return "text-[var(--semantic-text-muted)]";
     }
   };
 
   return (
     <div className={`grid grid-cols-1 lg:grid-cols-3 gap-6 ${className}`}>
       {/* Main Editor */}
-      <div className="lg:col-span-2 space-y-4">
+  <div className="lg:col-span-2 space-y-4 reading-max">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <FileText className="w-5 h-5" />
+                <AppIcon name="file" className="w-5 h-5" />
                 <span>Script Editor</span>
               </div>
               {isAnalyzing && (
-                <Badge variant="secondary" className="animate-pulse">
-                  <Sparkles className="w-3 h-3 mr-1" />
+                <Badge variant="soft" className="animate-pulse">
+                  <AppIcon name="spark" className="w-3 h-3 mr-1" />
                   Analyzing...
                 </Badge>
               )}
@@ -489,42 +482,43 @@ Tip: Use [pause] markers for natural pauses in speech."
       </div>
 
       {/* Analysis Panel */}
-      <div className="space-y-4">
+  <div className="space-y-4 section-frame">
         {analysis && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <BarChart className="w-5 h-5" />
+                <AppIcon name="chart" className="w-5 h-5" />
                 <span>Analysis</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="overview" className="space-y-4">
-                <TabsList className="grid w-full grid-cols-2">
+                {(() => { const { containerRef } = useRovingTabs([]); return (
+                <TabsList ref={containerRef as any} className="grid w-full grid-cols-2 gap-0" role="tablist" aria-label="Analysis sections">
                   <TabsTrigger value="overview">Overview</TabsTrigger>
                   <TabsTrigger value="suggestions">
                     Suggestions
                     {analysis.improvements.length > 0 && (
-                      <Badge variant="secondary" className="ml-1 text-xs">
+                      <Badge variant="soft" className="ml-1 text-xs">
                         {analysis.improvements.length}
                       </Badge>
                     )}
                   </TabsTrigger>
-                </TabsList>
+                </TabsList> ); })()}
 
                 <TabsContent value="overview" className="space-y-4">
                   {/* Engagement Score */}
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="flex items-center space-x-1">
-                        <TrendingUp className="w-4 h-4" />
+                        <AppIcon name="trending" className="w-4 h-4" />
                         <span>Engagement</span>
                       </span>
                       <span className={getScoreColor(analysis.engagement.score)}>
                         {analysis.engagement.score}%
                       </span>
                     </div>
-                    <Progress value={analysis.engagement.score} className="h-2" />
+                    <Progress value={analysis.engagement.score} status={scoreStatus(analysis.engagement.score)} className="h-2" />
                     <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                       <div>Hooks: {analysis.engagement.hooks}</div>
                       <div>Questions: {analysis.engagement.questions}</div>
@@ -539,7 +533,7 @@ Tip: Use [pause] markers for natural pauses in speech."
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="flex items-center space-x-1">
-                        <Eye className="w-4 h-4" />
+                        <AppIcon name="eye" className="w-4 h-4" />
                         <span>Readability</span>
                       </span>
                       <Badge variant="outline" className={getComplexityColor(analysis.readability.complexity)}>
@@ -558,14 +552,14 @@ Tip: Use [pause] markers for natural pauses in speech."
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="flex items-center space-x-1">
-                        <Search className="w-4 h-4" />
+                        <AppIcon name="search" className="w-4 h-4" />
                         <span>SEO</span>
                       </span>
                       <span className={getScoreColor(analysis.seo.score)}>
                         {analysis.seo.score}%
                       </span>
                     </div>
-                    <Progress value={analysis.seo.score} className="h-2" />
+                    <Progress value={analysis.seo.score} status={scoreStatus(analysis.seo.score)} className="h-2" />
                     <div className="text-xs text-muted-foreground">
                       Keywords: {analysis.seo.keywords.slice(0, 3).join(', ')}
                     </div>
@@ -575,19 +569,19 @@ Tip: Use [pause] markers for natural pauses in speech."
                 <TabsContent value="suggestions" className="space-y-3">
                   {analysis.improvements.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
-                      <CheckCircle className="w-8 h-8 mx-auto mb-2 text-green-500" />
+                      <AppIcon name="success" className="w-8 h-8 mx-auto mb-2 text-green-500" />
                       <p>Great work! No major improvements needed.</p>
                     </div>
                   ) : (
                     analysis.improvements.map((suggestion) => (
                       <Alert key={suggestion.id} className="cursor-pointer hover:bg-muted/50">
-                        <AlertTriangle className="h-4 w-4" />
+                        <AppIcon name="alert" className="h-4 w-4" />
                         <AlertDescription>
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
                               <Badge 
-                                variant={suggestion.severity === 'high' ? 'destructive' : 
-                                        suggestion.severity === 'medium' ? 'default' : 'secondary'}
+                                variant={suggestion.severity === 'high' ? 'critical' :
+                                  suggestion.severity === 'medium' ? 'solid' : 'soft'}
                                 className="text-xs"
                               >
                                 {suggestion.type}
@@ -608,7 +602,7 @@ Tip: Use [pause] markers for natural pauses in speech."
                                 variant="outline"
                                 onClick={() => applySuggestion(suggestion)}
                               >
-                                <Zap className="w-3 h-3 mr-1" />
+                                <AppIcon name="energy" className="w-3 h-3 mr-1" />
                                 Apply Fix
                               </Button>
                             )}
@@ -628,7 +622,7 @@ Tip: Use [pause] markers for natural pauses in speech."
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <BookOpen className="w-5 h-5" />
+                <AppIcon name="book" className="w-5 h-5" />
                 <span>Template Preview</span>
               </CardTitle>
             </CardHeader>

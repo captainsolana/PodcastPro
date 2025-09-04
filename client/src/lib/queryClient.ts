@@ -42,6 +42,98 @@ export async function apiRequest(
   return res;
 }
 
+// Lightweight offline mutation queue (Phase 3 resilience)
+// Only queues non-GET requests when navigator is offline.
+interface QueuedRequest {
+  id: string;
+  method: string;
+  url: string;
+  options: RequestInit & { queuedAt: number };
+  attempt: number;
+}
+
+const OFFLINE_QUEUE_KEY = 'pp_offline_queue_v1';
+
+function loadQueue(): QueuedRequest[] {
+  if (typeof window === 'undefined') return [];
+  try { return JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || '[]'); } catch { return []; }
+}
+function saveQueue(q: QueuedRequest[]) {
+  if (typeof window === 'undefined') return;
+  try { localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(q)); } catch {}
+}
+
+let queue: QueuedRequest[] = loadQueue();
+let flushing = false;
+
+function emitQueueEvent() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('pp:offline-queue-changed', { detail: { size: queue.length } }));
+  }
+}
+
+async function flushQueue() {
+  if (flushing) return; flushing = true;
+  try {
+    if (!navigator.onLine || queue.length === 0) return;
+    const now = Date.now();
+    const stillPending: QueuedRequest[] = [];
+    for (const req of queue) {
+      try {
+        const res = await fetch(req.url, req.options);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+      } catch (e) {
+        // exponential backoff (cap 60s)
+        const delay = Math.min(60000, 1000 * Math.pow(2, req.attempt));
+        if (now - req.options.queuedAt < delay) {
+          stillPending.push(req); // retry later
+        } else {
+          stillPending.push({ ...req, attempt: req.attempt + 1 });
+        }
+      }
+    }
+    queue = stillPending;
+    saveQueue(queue);
+  emitQueueEvent();
+  } finally {
+    flushing = false;
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', () => flushQueue());
+  // periodic flush attempt
+  setInterval(() => flushQueue(), 15000);
+}
+
+export async function resilientApiRequest(method: string, url: string, body?: any) {
+  const isGet = method.toUpperCase() === 'GET';
+  const options: RequestInit = {
+    method,
+    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+    credentials: 'include'
+  };
+  if (!isGet && typeof navigator !== 'undefined' && !navigator.onLine) {
+    const queued: QueuedRequest = {
+      id: crypto.randomUUID(),
+      method,
+      url,
+      options: { ...options, queuedAt: Date.now() },
+      attempt: 0
+    };
+    queue.push(queued);
+    saveQueue(queue);
+  emitQueueEvent();
+    return new Response(JSON.stringify({ queued: true }), { status: 202 });
+  }
+  const res = await fetch(url, options);
+  await throwIfResNotOk(res);
+  return res;
+}
+
+export function getOfflineQueueSize() { return queue.length; }
+
 type UnauthorizedBehavior = "returnNull" | "throw";
 export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;

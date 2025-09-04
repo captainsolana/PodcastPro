@@ -5,21 +5,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  ChevronDown, 
-  ChevronUp, 
-  FileText, 
-  BarChart3, 
-  List, 
-  ExternalLink,
-  Quote,
-  TrendingUp,
-  Clock,
-  Target,
-  Users,
-  Lightbulb,
-  Zap
-} from "lucide-react";
+import { useRovingTabs } from "@/hooks/use-roving-tabs";
+// Centralized icon usage (Phase 8)
+import { AppIcon } from "@/components/ui/icon-registry";
 import { cn } from "@/lib/utils";
 
 interface EnhancedResearchViewerProps {
@@ -49,9 +37,9 @@ export function EnhancedResearchViewer({ researchResult, className }: EnhancedRe
   const [activeTab, setActiveTab] = useState<'overview' | 'structured' | 'raw'>('structured');
 
   const tabs = [
-    { id: 'structured', label: 'Enhanced Research', icon: Lightbulb },
-    { id: 'overview', label: 'Key Points', icon: List },
-    { id: 'raw', label: 'Full Content', icon: FileText }
+    { id: 'structured', label: 'Enhanced Research', icon: 'idea' as const },
+    { id: 'overview', label: 'Key Points', icon: 'list' as const },
+    { id: 'raw', label: 'Full Content', icon: 'file' as const }
   ];
 
   // Get structured research data
@@ -66,17 +54,17 @@ export function EnhancedResearchViewer({ researchResult, className }: EnhancedRe
                           (structured?.surprisingFacts?.length || 0);
 
   return (
-    <Card className={cn("w-full enhanced-research-viewer", className)}>
+  <Card className={cn("w-full enhanced-research-viewer interactive", className)} data-elevation-tier={1}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <Lightbulb className="w-5 h-5 text-primary" />
-            <CardTitle className="text-lg">Enhanced Research Analysis</CardTitle>
-            <Badge variant="secondary" className="text-xs">
+            <AppIcon name="idea" className="w-5 h-5 text-primary" />
+            <CardTitle className="heading-sm">Enhanced Research Analysis</CardTitle>
+            <Badge variant="soft" className="text-xs">
               {totalDataPoints} data points
             </Badge>
             {hasStructuredData && (
-              <Badge variant="default" className="text-xs bg-success text-success-foreground">
+              <Badge variant="success" className="text-xs">
                 Enhanced
               </Badge>
             )}
@@ -88,26 +76,28 @@ export function EnhancedResearchViewer({ researchResult, className }: EnhancedRe
             className="h-8 w-8 p-0"
           >
             {isExpanded ? (
-              <ChevronUp className="w-4 h-4" />
+              <AppIcon name="chevronUp" className="w-4 h-4" />
             ) : (
-              <ChevronDown className="w-4 h-4" />
+              <AppIcon name="chevronDown" className="w-4 h-4" />
             )}
           </Button>
         </div>
 
         {/* Tab Navigation */}
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+    <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="w-full">
+      {/** Keyboard-accessible tab list using roving tabindex */}
+      {(() => { const { containerRef } = useRovingTabs([activeTab]); return (
+  <TabsList ref={containerRef as any} className="grid w-full grid-cols-3 gap-0" role="tablist" aria-label="Research views">
             {tabs.map((tab) => {
-              const Icon = tab.icon;
+        const iconKey = tab.icon;
               return (
-                <TabsTrigger key={tab.id} value={tab.id} className="flex items-center space-x-2">
-                  <Icon className="w-4 h-4" />
+        <TabsTrigger key={tab.id} value={tab.id} className="flex items-center space-x-2" aria-label={tab.label}>
+          <AppIcon name={iconKey} className="w-4 h-4" />
                   <span className="hidden sm:inline">{tab.label}</span>
                 </TabsTrigger>
               );
             })}
-          </TabsList>
+      </TabsList> ); })()}
 
           <div className="mt-4">
             <ScrollArea className={cn(
@@ -123,13 +113,13 @@ export function EnhancedResearchViewer({ researchResult, className }: EnhancedRe
                     {/* Key Narratives */}
                     {structured?.keyNarratives && structured.keyNarratives.length > 0 && (
                       <div>
-                        <h4 className="font-semibold text-sm mb-3 flex items-center">
-                          <FileText className="w-4 h-4 mr-2 text-blue-600" />
+                        <h4 className="heading-xs mb-3 flex items-center font-semibold">
+                          <AppIcon name="file" className="w-4 h-4 mr-2 text-[var(--brand-accent)]" />
                           Key Narratives ({structured.keyNarratives.length})
                         </h4>
                         <div className="space-y-3">
                           {structured.keyNarratives.map((item, index) => (
-                            <div key={index} className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg border-l-4 border-blue-500">
+                            <div key={index} className="p-4 rounded-lg border-l-4 bg-[var(--brand-accent)]/5 dark:bg-[var(--brand-accent)]/10 border-[var(--brand-accent)]">
                               <p className="text-sm font-medium text-foreground mb-2">{item.narrative}</p>
                               <p className="text-xs text-muted-foreground">{item.context}</p>
                             </div>
@@ -141,13 +131,13 @@ export function EnhancedResearchViewer({ researchResult, className }: EnhancedRe
                     {/* Human Impact Stories */}
                     {structured?.humanImpactStories && structured.humanImpactStories.length > 0 && (
                       <div>
-                        <h4 className="font-semibold text-sm mb-3 flex items-center">
-                          <Users className="w-4 h-4 mr-2 text-green-600" />
+                        <h4 className="heading-xs mb-3 flex items-center font-semibold">
+                          <AppIcon name="users" className="w-4 h-4 mr-2 text-[var(--semantic-success)]" />
                           Human Impact Stories ({structured.humanImpactStories.length})
                         </h4>
                         <div className="space-y-3">
                           {structured.humanImpactStories.map((item, index) => (
-                            <div key={index} className="bg-green-50 dark:bg-green-950 p-4 rounded-lg border-l-4 border-green-500">
+                            <div key={index} className="p-4 rounded-lg border-l-4 bg-[var(--semantic-success)]/10 dark:bg-[var(--semantic-success)]/15 border-[var(--semantic-success)]">
                               <p className="text-sm font-medium text-foreground mb-2">{item.story}</p>
                               <p className="text-xs text-muted-foreground">Impact: {item.impact}</p>
                             </div>
@@ -159,8 +149,8 @@ export function EnhancedResearchViewer({ researchResult, className }: EnhancedRe
                     {/* Timeline Events */}
                     {structured?.timelineEvents && structured.timelineEvents.length > 0 && (
                       <div>
-                        <h4 className="font-semibold text-sm mb-3 flex items-center">
-                          <Clock className="w-4 h-4 mr-2 text-purple-600" />
+                        <h4 className="heading-xs mb-3 flex items-center font-semibold">
+                          <AppIcon name="pending" className="w-4 h-4 mr-2 text-purple-600" />
                           Timeline Events ({structured.timelineEvents.length})
                         </h4>
                         <div className="space-y-3">
@@ -180,8 +170,8 @@ export function EnhancedResearchViewer({ researchResult, className }: EnhancedRe
                     {/* Critical Statistics */}
                     {structured?.criticalStatistics && structured.criticalStatistics.length > 0 && (
                       <div>
-                        <h4 className="font-semibold text-sm mb-3 flex items-center">
-                          <BarChart3 className="w-4 h-4 mr-2 text-orange-600" />
+                        <h4 className="heading-xs mb-3 flex items-center font-semibold">
+                          <AppIcon name="stats" className="w-4 h-4 mr-2 text-orange-600" />
                           Critical Statistics ({structured.criticalStatistics.length})
                         </h4>
                         <div className="space-y-3">
@@ -199,8 +189,8 @@ export function EnhancedResearchViewer({ researchResult, className }: EnhancedRe
                     {/* Expert Insights */}
                     {structured?.expertInsights && structured.expertInsights.length > 0 && (
                       <div>
-                        <h4 className="font-semibold text-sm mb-3 flex items-center">
-                          <Target className="w-4 h-4 mr-2 text-indigo-600" />
+                        <h4 className="heading-xs mb-3 flex items-center font-semibold">
+                          <AppIcon name="target" className="w-4 h-4 mr-2 text-indigo-600" />
                           Expert Insights ({structured.expertInsights.length})
                         </h4>
                         <div className="space-y-3">
@@ -221,7 +211,7 @@ export function EnhancedResearchViewer({ researchResult, className }: EnhancedRe
                     {structured?.compellingQuotes && structured.compellingQuotes.length > 0 && (
                       <div>
                         <h4 className="font-semibold text-sm mb-3 flex items-center">
-                          <Quote className="w-4 h-4 mr-2 text-teal-600" />
+                          <AppIcon name="file" className="w-4 h-4 mr-2 text-teal-600" />
                           Compelling Quotes ({structured.compellingQuotes.length})
                         </h4>
                         <div className="space-y-3">
@@ -242,12 +232,12 @@ export function EnhancedResearchViewer({ researchResult, className }: EnhancedRe
                     {structured?.surprisingFacts && structured.surprisingFacts.length > 0 && (
                       <div>
                         <h4 className="font-semibold text-sm mb-3 flex items-center">
-                          <Zap className="w-4 h-4 mr-2 text-yellow-600" />
+                          <AppIcon name="energy" className="w-4 h-4 mr-2 text-[var(--semantic-warning)]" />
                           Surprising Facts ({structured.surprisingFacts.length})
                         </h4>
                         <div className="space-y-3">
                           {structured.surprisingFacts.map((item, index) => (
-                            <div key={index} className="bg-yellow-50 dark:bg-yellow-950 p-4 rounded-lg border-l-4 border-yellow-500">
+                            <div key={index} className="p-4 rounded-lg border-l-4 bg-[var(--semantic-warning)]/10 dark:bg-[var(--semantic-warning)]/15 border-[var(--semantic-warning)]">
                               <p className="text-sm font-medium text-foreground mb-2">{item.fact}</p>
                               <p className="text-xs text-muted-foreground mb-1">Why surprising: {item.why_surprising}</p>
                               <p className="text-xs text-muted-foreground">Relevance: {item.relevance}</p>
@@ -261,7 +251,7 @@ export function EnhancedResearchViewer({ researchResult, className }: EnhancedRe
                     {structured?.futureImplications && structured.futureImplications.length > 0 && (
                       <div>
                         <h4 className="font-semibold text-sm mb-3 flex items-center">
-                          <TrendingUp className="w-4 h-4 mr-2 text-red-600" />
+                          <AppIcon name="trending" className="w-4 h-4 mr-2 text-red-600" />
                           Future Implications ({structured.futureImplications.length})
                         </h4>
                         <div className="space-y-3">
@@ -281,7 +271,7 @@ export function EnhancedResearchViewer({ researchResult, className }: EnhancedRe
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <Lightbulb className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                    <AppIcon name="idea" className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
                     <h4 className="font-medium text-sm mb-2">Enhanced Research Not Available</h4>
                     <p className="text-xs text-muted-foreground">
                       This research was conducted before the enhanced analysis system was implemented.
@@ -297,7 +287,7 @@ export function EnhancedResearchViewer({ researchResult, className }: EnhancedRe
                   {/* Key Points */}
                   <div>
                     <h4 className="font-semibold text-sm mb-3 flex items-center">
-                      <List className="w-4 h-4 mr-2 text-primary" />
+                      <AppIcon name="list" className="w-4 h-4 mr-2 text-primary" />
                       Key Research Points ({researchResult.keyPoints?.length || 0})
                     </h4>
                     <div className="space-y-2">
@@ -318,7 +308,7 @@ export function EnhancedResearchViewer({ researchResult, className }: EnhancedRe
                       <Separator />
                       <div>
                         <h4 className="font-semibold text-sm mb-3 flex items-center">
-                          <BarChart3 className="w-4 h-4 mr-2 text-primary" />
+                          <AppIcon name="stats" className="w-4 h-4 mr-2 text-primary" />
                           Statistics ({researchResult.statistics.length})
                         </h4>
                         <div className="space-y-3">
@@ -340,7 +330,7 @@ export function EnhancedResearchViewer({ researchResult, className }: EnhancedRe
                 <div className="space-y-4">
                   <div>
                     <h4 className="font-semibold text-sm mb-3 flex items-center">
-                      <ExternalLink className="w-4 h-4 mr-2 text-primary" />
+                      <AppIcon name="external" className="w-4 h-4 mr-2 text-primary" />
                       Full Research Content
                     </h4>
                     <div className="space-y-3">

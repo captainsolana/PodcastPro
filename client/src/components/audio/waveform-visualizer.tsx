@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Play, Pause } from "lucide-react";
+import { AppIcon } from "@/components/ui/icon-registry";
 
 interface WaveformVisualizerProps {
   audioUrl: string;
@@ -194,9 +194,9 @@ export default function WaveformVisualizer({ audioUrl, className = "" }: Wavefor
           data-testid="button-play-pause"
         >
           {isPlaying ? (
-            <Pause className="w-4 h-4" />
+            <AppIcon name="pause" className="w-4 h-4" />
           ) : (
-            <Play className="w-4 h-4 ml-0.5" />
+            <AppIcon name="play" className="w-4 h-4 ml-0.5" />
           )}
         </Button>
         

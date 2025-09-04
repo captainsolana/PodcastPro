@@ -2,10 +2,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useProject } from "@/hooks/use-project";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, Clock, Play, Users, ArrowRight, RefreshCw } from "lucide-react";
+import { AppIcon } from "@/components/ui/icon-registry";
 import type { Project } from "@shared/schema";
 
 interface EpisodePlannerProps {
@@ -79,12 +80,12 @@ export default function EpisodePlanner({ project, researchResult, onPlanApproved
   };
 
   return (
-    <div className="space-y-6">
+  <div className="stack-lg">
       {/* Content Analysis */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <Users className="w-5 h-5" />
+            <AppIcon name="users" className="w-5 h-5" />
             <span>Content Analysis</span>
           </CardTitle>
         </CardHeader>
@@ -98,24 +99,38 @@ export default function EpisodePlanner({ project, researchResult, onPlanApproved
                 onClick={handleAnalyzeContent}
                 data-testid="button-analyze-content"
               >
-                <Users className="w-4 h-4 mr-2" />
+                <AppIcon name="users" className="w-4 h-4 mr-2" />
                 Analyze Content Depth
               </Button>
             </div>
           )}
 
           {isAnalyzingEpisodes && (
-            <div className="text-center py-8">
-              <RefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
-              <p className="text-muted-foreground">AI is analyzing your content...</p>
+            <div className="py-8 stack-md" aria-live="polite" aria-busy="true">
+              <div className="flex items-center gap-3 justify-center">
+                <div className="relative">
+                  <div className="w-10 h-10 rounded-full bg-[var(--accent-surface)]" />
+                  <div className="absolute inset-0 animate-ping rounded-full bg-[var(--semantic-accent)]/30" />
+                </div>
+                <div className="w-48">
+                  <div className="stack-xs">
+                    <Skeleton variant="title" className="w-40" />
+                    <Skeleton variant="text" lines={2} />
+                  </div>
+                </div>
+              </div>
+              <div className="max-w-md mx-auto">
+                <Skeleton variant="text" lines={3} />
+              </div>
+              <p className="body-sm text-muted-foreground text-center">AI is analyzing your content...</p>
             </div>
           )}
 
           {episodeAnalysisResult && (
-            <div className="space-y-6">
+            <div className="stack-lg">
               {/* AI Recommendation */}
               <Alert>
-                <CheckCircle className="h-4 w-4" />
+                <AppIcon name="success" className="h-4 w-4" />
                 <AlertDescription className="text-sm">
                   <strong>AI Recommendation:</strong> {episodeAnalysisResult.reasoning}
                 </AlertDescription>
@@ -124,15 +139,15 @@ export default function EpisodePlanner({ project, researchResult, onPlanApproved
               {/* Episode Plans */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Single Episode Option */}
-                <Card className={`cursor-pointer transition-all ${selectedPlan === "single" ? "ring-2 ring-primary" : "hover:shadow-md"}`}>
+                <Card className={`cursor-pointer transition-all ${selectedPlan === "single" ? "ring-2 ring-primary" : "hover:elevation-1"}`} data-elevation-tier={selectedPlan === "single" ? 2 : 1}>
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between mb-3">
-                      <h4 className="font-semibold text-sm">Single Episode</h4>
+                      <h4 className="heading-xs font-semibold">Single Episode</h4>
                       <Badge variant="outline" className="text-xs">
                         ~18 min
                       </Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground mb-4">
+                    <p className="body-sm text-muted-foreground mb-4">
                       Create one comprehensive episode covering all the research topics.
                     </p>
                     <Button
@@ -149,17 +164,17 @@ export default function EpisodePlanner({ project, researchResult, onPlanApproved
 
                 {/* Multi-Episode Option */}
                 {episodeAnalysisResult.isMultiEpisode && (
-                  <Card className={`cursor-pointer transition-all ${selectedPlan === "multi" ? "ring-2 ring-primary" : "hover:shadow-md"}`}>
+                  <Card className={`cursor-pointer transition-all ${selectedPlan === "multi" ? "ring-2 ring-primary" : "hover:elevation-1"}`} data-elevation-tier={selectedPlan === "multi" ? 2 : 1}>
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between mb-3">
-                        <h4 className="font-semibold text-sm">
+                        <h4 className="heading-xs font-semibold">
                           {episodeAnalysisResult.totalEpisodes}-Episode Series
                         </h4>
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge variant="soft" className="text-xs">
                           Recommended
                         </Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground mb-4">
+                      <p className="body-sm text-muted-foreground mb-4">
                         Break content into {episodeAnalysisResult.totalEpisodes} focused episodes for better engagement.
                       </p>
                       <Button
@@ -192,7 +207,7 @@ export default function EpisodePlanner({ project, researchResult, onPlanApproved
                             Episode {episode.episodeNumber}: {episode.title}
                           </h5>
                           <div className="flex items-center space-x-1 text-xs text-muted-foreground">
-                            <Clock className="w-3 h-3" />
+                            <AppIcon name="pending" className="w-3 h-3" />
                             <span>{episode.estimatedDuration} min</span>
                           </div>
                         </div>

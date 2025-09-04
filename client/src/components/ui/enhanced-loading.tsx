@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Loader2, Sparkles, Brain, Zap } from "lucide-react";
+import { AppIcon } from "@/components/ui/icon-registry";
 
 interface EnhancedLoadingProps {
   variant?: "default" | "ai" | "processing" | "research";
@@ -21,13 +21,13 @@ export function EnhancedLoading({
   const getIcon = () => {
     switch (variant) {
       case "ai":
-        return <Brain className="animate-pulse" />;
+  return <AppIcon name="bot" className="animate-pulse" />;
       case "processing":
-        return <Zap className="animate-pulse" />;
+  return <AppIcon name="energy" className="animate-pulse" />;
       case "research":
-        return <Sparkles className="animate-spin" />;
+  return <AppIcon name="spark" className="animate-spin" />;
       default:
-        return <Loader2 className="animate-spin" />;
+  return <AppIcon name="loading" className="animate-spin" />;
     }
   };
 

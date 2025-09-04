@@ -3,15 +3,22 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Semantic token layer (quick-win integration) */
+@import "./styles/tokens.css";
+/* Phase 5 motion utilities */
+@import "./styles/motion.css";
+
+/* Existing design tokens (will gradually migrate to semantic-* usage) */
 :root {
-  --background: hsl(225, 25%, 98%);
-  --foreground: hsl(222, 84%, 4.9%);
+  /* Map semantic tokens to existing Tailwind design variables (light) */
+  --background: var(--semantic-bg, hsl(225, 25%, 98%));
+  --foreground: var(--semantic-text-primary, hsl(222, 84%, 4.9%));
   --card: hsl(0, 0%, 100%);
   --card-foreground: hsl(222, 84%, 4.9%);
   --popover: hsl(0, 0%, 100%);
   --popover-foreground: hsl(222, 84%, 4.9%);
-  --primary: hsl(240, 100%, 67%);
-  --primary-foreground: hsl(0, 0%, 100%);
+  --primary: var(--semantic-accent, hsl(240, 100%, 67%));
+  --primary-foreground: var(--semantic-accent-fg, #ffffff);
   --secondary: hsl(220, 14.3%, 95.9%);
   --secondary-foreground: hsl(220.9, 39.3%, 11%);
   --muted: hsl(220, 14.3%, 95.9%);
@@ -296,7 +303,10 @@
   }
   
   .animate-fade-in-up {
-    animation: fadeInUp 0.5s ease-out;
+    animation: fadeInUp 0.5s var(--ease-standard);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .animate-fade-in-up { animation: none; opacity: 1; transform: none; }
   }
   
   .animate-delay-100 {

@@ -13,10 +13,10 @@ import type { IStorage } from "./storage";
 
 export class AzureCosmosStorage implements IStorage {
   private cosmosClient: CosmosClient;
-  private database: Database;
-  private projectsContainer: Container;
-  private usersContainer: Container;
-  private suggestionsContainer: Container;
+  private database!: Database;
+  private projectsContainer!: Container;
+  private usersContainer!: Container;
+  private suggestionsContainer!: Container;
   private devProjectsContainer?: Container; // For development writes
   private devUsersContainer?: Container; // For development writes
   private devSuggestionsContainer?: Container; // For development writes
@@ -316,6 +316,8 @@ export class AzureCosmosStorage implements IStorage {
       scriptContent: project.scriptContent || null,
       scriptAnalytics: project.scriptAnalytics || null,
       voiceSettings: project.voiceSettings || null,
+  episodeScripts: project.episodeScripts || [],
+  episodeAudioUrls: project.episodeAudioUrls || [],
       title: project.title,
     };
 

@@ -1,0 +1,553 @@
+/* =============================================
+ * DESIGN TOKENS (Batch 1 Foundation Expansion)
+ * ---------------------------------------------
+ * Groups:
+ *  - Color (existing semantic + new tonal surfaces)
+ *  - Spacing Scale
+ *  - Radius Scale
+ *  - Typography Scale
+ *  - Elevation (shadow layers)
+ *  - Component Specific Helpers (accent surfaces etc.)
+ *  NOTE: All new tokens are additive (no breaking changes).
+ * ============================================= */
+
+/* Default (light) theme */
+:root {
+  /* Base semantic colors */
+  --semantic-bg: #f8fafc;
+  --semantic-surface: #ffffff;
+  --semantic-surface-alt: #f1f5f9;
+  --semantic-border: #d9dee4;
+  --semantic-border-strong: #c2c9d2;
+  --semantic-text-primary: #1f2933;
+  --semantic-text-secondary: #495665;
+  --semantic-text-muted: #6b7480;
+  --semantic-accent: #2563eb;
+  --semantic-accent-hover: #1d4ed8;
+  --semantic-accent-fg: #ffffff;
+  --semantic-critical: #dc2626;
+  --semantic-warning: #d97706;
+  --semantic-success: #059669;
+  --semantic-info: #4f46e5;
+  --semantic-focus-ring: #0ea5e9;
+  --semantic-inset: #e2e8f0;
+
+  /* Tonal / subtle surfaces derived from semantic colors */
+  --accent-surface: color-mix(in srgb, var(--semantic-accent) 8%, var(--semantic-surface));
+  --accent-surface-strong: color-mix(in srgb, var(--semantic-accent) 14%, var(--semantic-surface));
+  --success-surface: color-mix(in srgb, var(--semantic-success) 10%, var(--semantic-surface));
+  --warning-surface: color-mix(in srgb, var(--semantic-warning) 10%, var(--semantic-surface));
+  --critical-surface: color-mix(in srgb, var(--semantic-critical) 10%, var(--semantic-surface));
+    --info-surface: color-mix(in srgb, var(--semantic-info) 10%, var(--semantic-surface));
+
+    /* Phase 4: Accent tier & extended semantic layering */
+    --accent-soft-bg: color-mix(in srgb, var(--semantic-accent) 6%, var(--semantic-surface));
+    --accent-subtle-border: color-mix(in srgb, var(--semantic-accent) 45%, transparent);
+    --accent-fade-start: color-mix(in srgb, var(--semantic-accent) 12%, transparent);
+    --accent-fade-end: color-mix(in srgb, var(--semantic-accent) 0%, transparent);
+    --gradient-accent-fade: linear-gradient(135deg, var(--accent-fade-start), var(--accent-fade-end));
+
+    /* Neutral elevated surface layering (light) */
+    --surface-elev-1: color-mix(in srgb, var(--semantic-surface-alt) 35%, var(--semantic-surface));
+    --surface-elev-2: color-mix(in srgb, var(--semantic-surface-alt) 55%, var(--semantic-surface));
+
+    /* Brand / seasonal palette hooks (defaults alias semantic) */
+    --brand-accent: var(--semantic-accent);
+    --brand-accent-hover: var(--semantic-accent-hover);
+    --brand-accent-fg: var(--semantic-accent-fg);
+
+  /* Spacing scale (4px base) */
+  --space-0: 0;
+  --space-1: 0.25rem; /* 4px */
+  --space-2: 0.5rem;  /* 8px */
+  --space-3: 0.75rem; /* 12px */
+  --space-4: 1rem;    /* 16px */
+  --space-5: 1.25rem; /* 20px */
+  --space-6: 1.5rem;  /* 24px */
+  --space-7: 1.75rem; /* 28px */
+  --space-8: 2rem;    /* 32px */
+  --space-10: 2.5rem; /* 40px */
+  --space-12: 3rem;   /* 48px */
+  --space-16: 4rem;   /* 64px */
+
+  /* Radius scale */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 16px;
+  --radius-full: 999px;
+
+  /* Typography scale (clamped for responsive fluid sizing) */
+  --font-size-xs: clamp(0.72rem, 0.70rem + 0.25vw, 0.78rem);
+  --font-size-sm: clamp(0.82rem, 0.80rem + 0.25vw, 0.88rem);
+  --font-size-base: clamp(0.95rem, 0.92rem + 0.3vw, 1rem);
+  --font-size-md: clamp(1.05rem, 1.0rem + 0.4vw, 1.15rem);
+  --font-size-lg: clamp(1.25rem, 1.18rem + 0.6vw, 1.45rem);
+  --font-size-xl: clamp(1.5rem, 1.4rem + 0.8vw, 1.75rem);
+  --font-size-2xl: clamp(1.85rem, 1.7rem + 1vw, 2.25rem);
+  --line-height-tight: 1.2;
+  --line-height-snug: 1.3;
+  --line-height-normal: 1.45;
+  --line-height-relaxed: 1.6;
+
+  /* Elevation (balanced for light theme) */
+  --elevation-1: 0 1px 2px -1px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06);
+  --elevation-2: 0 2px 4px -2px rgba(0,0,0,0.08), 0 4px 6px -1px rgba(0,0,0,0.06);
+  --elevation-3: 0 4px 8px -2px rgba(0,0,0,0.10), 0 8px 12px -2px rgba(0,0,0,0.08);
+  --elevation-4: 0 8px 16px -4px rgba(0,0,0,0.12), 0 12px 20px -4px rgba(0,0,0,0.10);
+
+  /* Focus halo (outer) & inset ring layering */
+  --focus-halo-color: color-mix(in srgb, var(--semantic-focus-ring) 70%, transparent);
+  --focus-halo-shadow: 0 0 0 3px var(--focus-halo-color);
+
+  /* Animation durations & easing (basic for now) */
+  --motion-fast: 120ms;
+  --motion-base: 180ms;
+  --motion-slow: 280ms; /* legacy (will keep) */
+  /* Phase 5: refined duration tier */
+  --motion-deliberate: 260ms;
+  --ease-standard: cubic-bezier(.4,0,.2,1);
+  --ease-emphasized: cubic-bezier(.2,0,0,1);
+  /* Extended motion token aliases */
+  --motion-duration-xs: 90ms;
+  --motion-duration-sm: 140ms;
+  --motion-duration-md: 200ms;
+  --motion-duration-lg: 320ms;
+  --motion-ease-standard: var(--ease-standard);
+  --motion-ease-emphasized: var(--ease-emphasized);
+  /* Phase 5: enter/exit semantics */
+  --motion-duration-deliberate: var(--motion-deliberate);
+  --motion-ease-enter: cubic-bezier(.4,0,.2,1);
+  --motion-ease-exit: cubic-bezier(.4,0,.6,1);
+
+  /* Semantic typography mapping (enables consistent heading/body rhythm)
+   * These map scale tokens to semantic roles so we can adjust globally later
+   */
+  --font-heading-xs: var(--font-size-sm);
+  --font-heading-sm: var(--font-size-base);
+  --font-heading-md: var(--font-size-lg);
+  --font-heading-lg: var(--font-size-xl);
+  --font-heading-xl: var(--font-size-2xl);
+  --font-body-sm: var(--font-size-sm);
+  --font-body: var(--font-size-base);
+  --font-body-lg: var(--font-size-md);
+
+  /* Phase 3: Extended dynamic type scale (display + h1–h6) */
+  --font-display: clamp(2.25rem, 1.4rem + 2.5vw, 3.25rem);
+  --font-h1: clamp(1.9rem, 1.2rem + 2vw, 2.6rem);
+  --font-h2: clamp(1.55rem, 1.05rem + 1.4vw, 2.0rem);
+  --font-h3: clamp(1.3rem, 0.95rem + 1.0vw, 1.6rem);
+  --font-h4: clamp(1.15rem, 0.9rem + 0.6vw, 1.3rem);
+  --font-h5: clamp(1.05rem, 0.85rem + 0.4vw, 1.15rem);
+  --font-h6: clamp(0.95rem, 0.8rem + 0.3vw, 1.05rem);
+  /* Phase 3: Letter‑spacing tuning */
+  --ls-display: -0.018em;
+  --ls-h1: -0.016em;
+  --ls-h2: -0.014em;
+  --ls-h3: -0.012em;
+  --ls-h4: -0.010em;
+  --ls-h5: -0.008em;
+  --ls-h6: -0.006em;
+  /* Phase 3: Body rhythm */
+  --line-height-body: 1.55;
+  --paragraph-spacing: 0.9em; /* top margin between paragraphs */
+  --inline-code-bg: var(--accent-surface);
+  --inline-code-border: var(--accent-subtle-border);
+  --inline-code-color: var(--semantic-text-primary);
+  --metric-chip-bg: var(--surface-elev-1);
+  --metric-chip-color: var(--semantic-text-secondary);
+  --metric-chip-border: var(--semantic-border);
+
+  /* Phase 4: Brand / seasonal palette slots (overridable via data-theme-pack attr) */
+  --brand-accent-alt: var(--brand-accent);
+  --brand-accent-alt-hover: var(--brand-accent-hover);
+  --brand-accent-soft: var(--accent-soft-bg);
+  --brand-accent-fade: var(--gradient-accent-fade);
+
+  /* Phase 9: personalization baseline adjustments */
+  --scale-font-sm: 0.95;
+  --scale-font-md: 1;
+  --scale-font-lg: 1.08;
+  --density-comfortable-gap: 0.75rem;
+  --density-compact-gap: 0.5rem;
+}
+
+/* Phase 4: Theme pack variants (applied via <body data-theme-pack="spring|sunset|ocean|forest">) */
+body[data-theme-pack="spring"] {
+  --brand-accent: #16a34a; /* green */
+  --brand-accent-hover: #15803d;
+  --brand-accent-fg: #ffffff;
+  --accent-soft-bg: color-mix(in srgb, #16a34a 10%, var(--semantic-surface));
+  --accent-subtle-border: color-mix(in srgb, #16a34a 55%, transparent);
+  --gradient-accent-fade: linear-gradient(135deg, color-mix(in srgb,#16a34a 18%,transparent), transparent);
+}
+body.dark[data-theme-pack="spring"] {
+  --accent-soft-bg: color-mix(in srgb, #16a34a 22%, var(--semantic-surface));
+}
+body[data-theme-pack="sunset"] {
+  --brand-accent: #f97316; /* orange */
+  --brand-accent-hover: #ea580c;
+  --brand-accent-fg: #ffffff;
+  --accent-soft-bg: color-mix(in srgb, #f97316 10%, var(--semantic-surface));
+  --accent-subtle-border: color-mix(in srgb, #f97316 55%, transparent);
+  --gradient-accent-fade: linear-gradient(135deg, color-mix(in srgb,#f97316 18%,transparent), transparent);
+}
+body.dark[data-theme-pack="sunset"] { --accent-soft-bg: color-mix(in srgb, #f97316 22%, var(--semantic-surface)); }
+body[data-theme-pack="ocean"] {
+  --brand-accent: #0ea5e9; /* cyan */
+  --brand-accent-hover: #0284c7;
+  --brand-accent-fg: #ffffff;
+  --accent-soft-bg: color-mix(in srgb, #0ea5e9 10%, var(--semantic-surface));
+  --accent-subtle-border: color-mix(in srgb, #0ea5e9 55%, transparent);
+  --gradient-accent-fade: linear-gradient(135deg, color-mix(in srgb,#0ea5e9 20%,transparent), transparent);
+}
+body.dark[data-theme-pack="ocean"] { --accent-soft-bg: color-mix(in srgb, #0ea5e9 22%, var(--semantic-surface)); }
+body[data-theme-pack="forest"] {
+  --brand-accent: #065f46; /* deep green */
+  --brand-accent-hover: #064e3b;
+  --brand-accent-fg: #ffffff;
+  --accent-soft-bg: color-mix(in srgb, #065f46 10%, var(--semantic-surface));
+  --accent-subtle-border: color-mix(in srgb, #065f46 55%, transparent);
+  --gradient-accent-fade: linear-gradient(135deg, color-mix(in srgb,#065f46 18%,transparent), transparent);
+}
+body.dark[data-theme-pack="forest"] { --accent-soft-bg: color-mix(in srgb, #065f46 22%, var(--semantic-surface)); }
+
+/* Phase 9: font scale + density data attribute mappings */
+[data-font-scale="sm"] { --font-size-base: clamp(0.9rem, 0.85rem + 0.28vw, 0.95rem); }
+[data-font-scale="lg"] { --font-size-base: clamp(1.02rem, 0.98rem + 0.32vw, 1.08rem); }
+[data-density="compact"] {
+  --space-2: 0.4rem;
+  --space-3: 0.6rem;
+  --space-4: 0.8rem;
+  --space-5: 1rem;
+  --space-6: 1.25rem;
+}
+
+/* Phase 9: focus mode styling */
+.focus-mode body, .focus-mode .sidebar, .focus-mode [aria-label="Workflow navigation sidebar"] { transition: opacity var(--motion-duration-md) var(--motion-ease-standard); }
+.focus-mode .sidebar { opacity: 0.15; pointer-events: none; }
+.focus-mode header { box-shadow: none; opacity: 0.25; }
+.focus-mode #main-content { position: relative; z-index: 2; }
+.focus-mode #main-content:before { content:""; position: fixed; inset:0; background: radial-gradient(circle at 50% 25%, transparent, rgba(0,0,0,0.55)); pointer-events:none; mix-blend-mode: multiply; }
+.focus-mode .editorial, .focus-mode .rich-text, .focus-mode [data-focus-surface] { box-shadow: 0 0 0 1px var(--semantic-border), 0 0 0 4px color-mix(in srgb,var(--semantic-accent) 25%, transparent); }
+
+/* Dark theme */
+.dark {
+  --semantic-bg: #0f1115;
+  --semantic-surface: #181b21;
+  --semantic-surface-alt: #1f242b;
+  --semantic-border: #2a3038;
+  --semantic-border-strong: #3a424c;
+  --semantic-text-primary: #f5f7fa;
+  --semantic-text-secondary: #b4bcc8;
+  --semantic-text-muted: #7a8594;
+  --semantic-accent: #3b82f6;
+  --semantic-accent-hover: #2563eb;
+  --semantic-accent-fg: #ffffff;
+  --semantic-critical: #ef4444;
+  --semantic-warning: #f59e0b;
+  --semantic-success: #10b981;
+  --semantic-info: #6366f1;
+  --semantic-focus-ring: #7dd3fc;
+  --semantic-inset: #0b0d10;
+
+  /* Tonal / subtle surfaces adjusted for dark (slightly higher mix %) */
+  --accent-surface: color-mix(in srgb, var(--semantic-accent) 20%, var(--semantic-surface));
+  --accent-surface-strong: color-mix(in srgb, var(--semantic-accent) 32%, var(--semantic-surface));
+  --success-surface: color-mix(in srgb, var(--semantic-success) 22%, var(--semantic-surface));
+  --warning-surface: color-mix(in srgb, var(--semantic-warning) 22%, var(--semantic-surface));
+  --critical-surface: color-mix(in srgb, var(--semantic-critical) 22%, var(--semantic-surface));
+  --info-surface: color-mix(in srgb, var(--semantic-info) 22%, var(--semantic-surface));
+
+  /* Elevation tuned for dark (lighter translucent layers) */
+  --elevation-1: 0 1px 2px -1px rgba(0,0,0,0.6), 0 1px 3px rgba(0,0,0,0.45);
+  --elevation-2: 0 2px 4px -2px rgba(0,0,0,0.55), 0 4px 6px -1px rgba(0,0,0,0.4);
+  --elevation-3: 0 4px 8px -2px rgba(0,0,0,0.55), 0 8px 12px -2px rgba(0,0,0,0.42);
+  --elevation-4: 0 8px 16px -4px rgba(0,0,0,0.5), 0 12px 20px -4px rgba(0,0,0,0.38);
+
+  --focus-halo-color: color-mix(in srgb, var(--semantic-focus-ring) 55%, transparent);
+  --focus-halo-shadow: 0 0 0 3px var(--focus-halo-color);
+  --motion-duration-xs: 90ms;
+  --motion-duration-sm: 140ms;
+  --motion-duration-md: 200ms;
+  --motion-duration-lg: 320ms;
+  --motion-ease-standard: var(--ease-standard);
+  --motion-ease-emphasized: var(--ease-emphasized);
+    --info-surface: color-mix(in srgb, var(--semantic-info) 22%, var(--semantic-surface));
+
+    /* Phase 4: accent tiers in dark (tuned mixes for contrast) */
+    --accent-soft-bg: color-mix(in srgb, var(--semantic-accent) 16%, var(--semantic-surface));
+    --accent-subtle-border: color-mix(in srgb, var(--semantic-accent) 55%, transparent);
+    --accent-fade-start: color-mix(in srgb, var(--semantic-accent) 30%, transparent);
+    --accent-fade-end: color-mix(in srgb, var(--semantic-accent) 0%, transparent);
+    --gradient-accent-fade: linear-gradient(135deg, var(--accent-fade-start), var(--accent-fade-end));
+
+    /* Elevated translucent layers (dark) */
+    --surface-elev-1: color-mix(in srgb, var(--semantic-surface-alt) 30%, transparent);
+    --surface-elev-2: color-mix(in srgb, var(--semantic-surface-alt) 55%, transparent);
+
+  --brand-accent: var(--semantic-accent);
+  --brand-accent-hover: var(--semantic-accent-hover);
+  --brand-accent-fg: var(--semantic-accent-fg);
+}
+/* High Contrast Mode */
+.hc {
+  --semantic-bg: #ffffff;
+  --semantic-surface: #ffffff;
+  --semantic-surface-alt: #f0f2f5;
+  --semantic-border: #20262d;
+  --semantic-border-strong: #0d1115;
+  --semantic-text-primary: #000000;
+  --semantic-text-secondary: #1a1f24;
+  --semantic-text-muted: #2f3942;
+  --semantic-accent: #0047ff;
+  --semantic-accent-hover: #0037c4;
+  --semantic-accent-fg: #ffffff;
+  --semantic-critical: #b80000;
+  --semantic-warning: #8a4b00;
+  --semantic-success: #006f42;
+  --semantic-info: #002f9e;
+  --semantic-focus-ring: #ff9900;
+  --semantic-inset: #dbe0e6;
+  --accent-surface: #e5edff;
+  --accent-surface-strong: #ccdbff;
+  --success-surface: #d6f5e8;
+  --warning-surface: #fbe9d2;
+  --critical-surface: #ffe1e1;
+  --info-surface: #dce6ff;
+  --elevation-1: 0 0 0 1px var(--semantic-border), 0 1px 2px rgba(0,0,0,0.08);
+  --elevation-2: 0 0 0 1px var(--semantic-border-strong), 0 2px 4px rgba(0,0,0,0.12);
+  --elevation-3: 0 0 0 1px var(--semantic-border-strong), 0 4px 8px rgba(0,0,0,0.16);
+  --elevation-4: 0 0 0 1px var(--semantic-border-strong), 0 8px 16px rgba(0,0,0,0.20);
+  /* High contrast accent tiers (reduce blend for clarity) */
+  --accent-soft-bg: color-mix(in srgb, var(--semantic-accent) 12%, var(--semantic-surface));
+  --accent-subtle-border: var(--semantic-accent);
+  --accent-fade-start: color-mix(in srgb, var(--semantic-accent) 25%, transparent);
+  --accent-fade-end: color-mix(in srgb, var(--semantic-accent) 0%, transparent);
+  --gradient-accent-fade: linear-gradient(135deg, var(--accent-fade-start), var(--accent-fade-end));
+  --surface-elev-1: var(--semantic-surface-alt);
+  --surface-elev-2: color-mix(in srgb, var(--semantic-surface-alt) 65%, var(--semantic-surface));
+  --brand-accent: var(--semantic-accent);
+  --brand-accent-hover: var(--semantic-accent-hover);
+  --brand-accent-fg: var(--semantic-accent-fg);
+}
+
+/* Utility classes (opt-in) */
+.token-surface { background: var(--semantic-surface); }
+.token-surface-alt { background: var(--semantic-surface-alt); }
+.token-border { border-color: var(--semantic-border); }
+.token-border-strong { border-color: var(--semantic-border-strong); }
+.token-text-primary { color: var(--semantic-text-primary); }
+.token-text-secondary { color: var(--semantic-text-secondary); }
+.token-text-muted { color: var(--semantic-text-muted); }
+
+/* New utility helpers */
+.elevation-1 { box-shadow: var(--elevation-1); }
+.elevation-2 { box-shadow: var(--elevation-2); }
+.elevation-3 { box-shadow: var(--elevation-3); }
+.elevation-4 { box-shadow: var(--elevation-4); }
+
+/* Elevation tier semantics (apply via data-elevation-tier attr on container/Card)
+ * 0: flat / structural (no shadow)
+ * 1: default content surface (elevation-1)
+ * 2: interactive emphasis cluster (elevation-2 + subtle hover to 3)
+ * 3: overlay/dialog level (elevation-3 or 4 depending on density)
+ */
+[data-elevation-tier="1"] { box-shadow: var(--elevation-1); }
+[data-elevation-tier="2"] { box-shadow: var(--elevation-2); }
+[data-elevation-tier="3"] { box-shadow: var(--elevation-3); }
+[data-elevation-tier="1"].interactive:hover { box-shadow: var(--elevation-2); transition: box-shadow var(--motion-base) var(--ease-standard); }
+[data-elevation-tier="2"].interactive:hover { box-shadow: var(--elevation-3); transition: box-shadow var(--motion-base) var(--ease-standard); }
+.radius-xs { border-radius: var(--radius-xs); }
+.radius-sm { border-radius: var(--radius-sm); }
+.radius-md { border-radius: var(--radius-md); }
+.radius-lg { border-radius: var(--radius-lg); }
+.radius-xl { border-radius: var(--radius-xl); }
+.focus-halo { box-shadow: var(--focus-halo-shadow); }
+.focus-ring { outline:2px solid var(--semantic-focus-ring); outline-offset:2px; }
+
+/* Phase 7: Accessibility core utilities */
+.visually-hidden { position:absolute !important; width:1px !important; height:1px !important; padding:0 !important; margin:-1px !important; overflow:hidden !important; clip:rect(0 0 0 0) !important; white-space:nowrap !important; border:0 !important; }
+
+/* Interactive focus defaults (only if not already styled by component library) */
+button:focus-visible, [role="button"]:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline:2px solid var(--semantic-focus-ring);
+  outline-offset:2px;
+}
+
+/* High contrast adjustment */
+.hc button:focus-visible, .hc [role="button"]:focus-visible, .hc a:focus-visible, .hc input:focus-visible, .hc select:focus-visible, .hc textarea:focus-visible {
+  outline-color: var(--semantic-accent);
+}
+
+/* Accent surface helpers */
+.surface-accent { background: var(--accent-surface); }
+.surface-accent-strong { background: var(--accent-surface-strong); }
+.surface-accent-soft { background: var(--accent-soft-bg); }
+.surface-elev-1 { background: var(--surface-elev-1); }
+.surface-elev-2 { background: var(--surface-elev-2); }
+.border-accent-subtle { border-color: var(--accent-subtle-border); }
+.bg-accent-fade { background: var(--gradient-accent-fade); }
+.surface-success { background: var(--success-surface); }
+.surface-warning { background: var(--warning-surface); }
+.surface-critical { background: var(--critical-surface); }
+.surface-info { background: var(--info-surface); }
+
+/* =============================================
+ * TYPOGRAPHY UTILITIES (Semantic, opt-in)
+ * ---------------------------------------------
+ * Replace ad-hoc Tailwind text-{size} usages with these
+ * for consistent vertical rhythm & easier future theming.
+ * (Incremental adoption: start with key headings, expand gradually.)
+ * ============================================= */
+.heading-xs { font-size: var(--font-heading-xs); line-height: var(--line-height-tight); font-weight:600; letter-spacing:-0.01em; }
+.heading-sm { font-size: var(--font-heading-sm); line-height: var(--line-height-tight); font-weight:600; letter-spacing:-0.01em; }
+.heading-md { font-size: var(--font-heading-md); line-height: var(--line-height-snug); font-weight:600; letter-spacing:-0.012em; }
+.heading-lg { font-size: var(--font-heading-lg); line-height: var(--line-height-snug); font-weight:600; letter-spacing:-0.014em; }
+.heading-xl { font-size: var(--font-heading-xl); line-height: var(--line-height-tight); font-weight:600; letter-spacing:-0.016em; }
+.body-sm { font-size: var(--font-body-sm); line-height: var(--line-height-body); }
+.body { font-size: var(--font-body); line-height: var(--line-height-body); }
+.body-lg { font-size: var(--font-body-lg); line-height: var(--line-height-body); }
+
+/* Phase 3: New semantic heading utilities */
+.display { font-size: var(--font-display); line-height: 1.1; font-weight:600; letter-spacing: var(--ls-display); }
+.h1 { font-size: var(--font-h1); line-height: 1.18; font-weight:600; letter-spacing: var(--ls-h1); }
+.h2 { font-size: var(--font-h2); line-height: 1.22; font-weight:600; letter-spacing: var(--ls-h2); }
+.h3 { font-size: var(--font-h3); line-height: 1.28; font-weight:600; letter-spacing: var(--ls-h3); }
+.h4 { font-size: var(--font-h4); line-height: 1.32; font-weight:600; letter-spacing: var(--ls-h4); }
+.h5 { font-size: var(--font-h5); line-height: 1.36; font-weight:600; letter-spacing: var(--ls-h5); }
+.h6 { font-size: var(--font-h6); line-height: 1.4; font-weight:600; letter-spacing: var(--ls-h6); }
+
+/* Phase 3: Editorial long-form container */
+.editorial, .rich-text { font-size: var(--font-body); line-height: var(--line-height-body); }
+.editorial p, .rich-text p { margin: 0; }
+.editorial p + p, .rich-text p + p { margin-top: var(--paragraph-spacing); }
+.editorial h1, .rich-text h1 { font-size: var(--font-h1); line-height:1.18; font-weight:600; letter-spacing: var(--ls-h1); }
+.editorial h2, .rich-text h2 { font-size: var(--font-h2); line-height:1.22; font-weight:600; letter-spacing: var(--ls-h2); }
+.editorial h3, .rich-text h3 { font-size: var(--font-h3); line-height:1.28; font-weight:600; letter-spacing: var(--ls-h3); }
+.editorial code:not(pre code), .rich-text code:not(pre code) { background: var(--inline-code-bg); color: var(--inline-code-color); border:1px solid var(--inline-code-border); padding: 0.15em 0.4em; border-radius: var(--radius-sm); font-size: 0.85em; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+/* Inline metric chip */
+.metric-inline { display:inline-flex; align-items:center; gap:0.25em; background: var(--metric-chip-bg); color: var(--metric-chip-color); border:1px solid var(--metric-chip-border); padding:0.15em 0.55em; border-radius: var(--radius-full); font-size: 0.75rem; line-height:1.2; font-weight:500; }
+
+/* Utility to apply paragraph spacing to arbitrary container */
+.flow-paragraphs > p + p { margin-top: var(--paragraph-spacing); }
+
+/* Reduce letter-spacing on existing heading utilities for Phase 3 */
+.heading-xs, .heading-sm, .heading-md, .heading-lg, .heading-xl { letter-spacing: -0.01em; }
+
+/* Helper to apply consistent vertical spacing stack when needed */
+.flow-stack > * + * { margin-top: var(--space-4); }
+
+/* Vertical stack utilities (consistent rhythm) */
+.stack-xs > * + * { margin-top: var(--space-2); }
+.stack-sm > * + * { margin-top: var(--space-3); }
+.stack-md > * + * { margin-top: var(--space-4); }
+.stack-lg > * + * { margin-top: var(--space-6); }
+.stack-xl > * + * { margin-top: var(--space-8); }
+
+/* Skeleton shimmer */
+@keyframes skeleton-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+.skeleton-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+  animation: skeleton-shimmer 1.4s var(--ease-standard) infinite;
+  mix-blend-mode: plus-lighter;
+}
+
+/* Reduced motion preference: disable shimmer animation for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer { animation: none; opacity: 0.55; }
+}
+
+/* Micro-interaction: ripple (Phase 3 motion) */
+@keyframes pp-ripple {
+  0% { transform: scale(0.2); opacity: 0.55; }
+  60% { transform: scale(1); opacity: 0.25; }
+  100% { transform: scale(1.1); opacity: 0; }
+}
+.animate-ripple {
+  animation: pp-ripple var(--motion-duration-md) var(--motion-ease-emphasized) forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-ripple { animation: none; opacity: 0; }
+}
+
+/* =====================================================
+ * Phase 0 Additions (missing explicit token names)
+ * ===================================================== */
+:root, .dark, .hc {
+  /* Alias tokens for spec wording */
+  --semantic-outline: var(--semantic-border-strong);
+  --semantic-accent-subtle: var(--accent-soft-bg);
+}
+
+/* =====================================================
+ * Phase 1 Utilities (reading width + section framing)
+ * ===================================================== */
+.reading-max { max-width:72ch; margin-inline:auto; }
+.section-frame { background:color-mix(in srgb,var(--semantic-text-primary) 2%, var(--semantic-bg)); border:1px solid var(--semantic-border); border-radius:var(--radius-lg); padding:var(--space-6); }
+.section-frame + .section-frame { margin-top:var(--space-8); }
+
+/* =====================================================
+ * Phase 2 Badges / Chips (solid, soft, outline) height 22px
+ * ===================================================== */
+.badge { --_badge-bg: var(--semantic-surface-alt); --_badge-fg: var(--semantic-text-secondary); --_badge-brd: var(--semantic-border); display:inline-flex; align-items:center; gap:0.4em; height:22px; padding:0 0.65em; font-size:11px; font-weight:600; letter-spacing:.02em; border-radius:var(--radius-full); border:1px solid var(--_badge-brd); background:var(--_badge-bg); color:var(--_badge-fg); line-height:1; white-space:nowrap; }
+.badge[data-variant="solid"] { --_badge-bg: var(--brand-accent); --_badge-fg: var(--brand-accent-fg); --_badge-brd: color-mix(in srgb,var(--brand-accent) 85%, #000); }
+.badge[data-variant="soft"] { --_badge-bg: var(--accent-soft-bg); --_badge-fg: var(--brand-accent); --_badge-brd: var(--accent-subtle-border); }
+.badge[data-variant="outline"] { --_badge-bg: transparent; --_badge-fg: var(--brand-accent); --_badge-brd: var(--brand-accent); }
+.badge[data-tone="success"] { --_badge-bg: var(--success-surface); --_badge-fg: var(--semantic-success); --_badge-brd: color-mix(in srgb,var(--semantic-success) 65%, transparent); }
+.badge[data-tone="warning"] { --_badge-bg: var(--warning-surface); --_badge-fg: var(--semantic-warning); --_badge-brd: color-mix(in srgb,var(--semantic-warning) 65%, transparent); }
+.badge[data-tone="critical"] { --_badge-bg: var(--critical-surface); --_badge-fg: var(--semantic-critical); --_badge-brd: color-mix(in srgb,var(--semantic-critical) 65%, transparent); }
+.badge[data-tone="info"] { --_badge-bg: var(--info-surface); --_badge-fg: var(--semantic-info); --_badge-brd: color-mix(in srgb,var(--semantic-info) 65%, transparent); }
+
+/* =====================================================
+ * Phase 3 Additional Typography (lead, micro)
+ * ===================================================== */
+.lead { font-size: clamp(1.05rem, 0.9rem + 0.6vw, 1.35rem); line-height:1.45; font-weight:500; letter-spacing:-0.012em; }
+.micro { font-size: 0.68rem; line-height:1.2; letter-spacing:0.04em; text-transform:uppercase; font-weight:600; }
+
+/* =====================================================
+ * Phase 5 Progress Bar Utility
+ * ===================================================== */
+.pp-progress { position:relative; width:100%; height:6px; background:var(--semantic-inset); border-radius:var(--radius-full); overflow:hidden; }
+.pp-progress > .bar { position:absolute; inset:0; width:0%; background:linear-gradient(90deg,var(--brand-accent),color-mix(in srgb,var(--brand-accent) 60%, var(--semantic-accent-hover))); border-radius:inherit; box-shadow:0 0 0 1px color-mix(in srgb,var(--brand-accent) 65%, transparent), 0 0 0 4px color-mix(in srgb,var(--brand-accent) 25%, transparent); transition:width var(--motion-duration-lg) var(--motion-ease-standard), background var(--motion-duration-sm) linear; }
+.pp-progress[data-state="indeterminate"] > .bar { animation: pp-progress-indet 1.4s var(--motion-ease-standard) infinite; width:40%; }
+@keyframes pp-progress-indet { 0% { transform:translateX(-60%);} 50% { transform:translateX(20%);} 100% { transform:translateX(120%);} }
+
+/* =====================================================
+ * Phase 6 Spark bar utility (tiny inline bars)
+ * ===================================================== */
+.spark { --_spark-h:14px; display:inline-flex; align-items:flex-end; gap:2px; height:var(--_spark-h); }
+.spark span { width:4px; background:linear-gradient(var(--brand-accent), color-mix(in srgb,var(--brand-accent) 30%, transparent)); border-radius:2px 2px 0 0; transform-origin:bottom; animation: spark-rise 1s ease-in-out both; }
+@keyframes spark-rise { 0% { scale:1 0.1; opacity:0; } 60% { opacity:1; } 100% { scale:1 1; opacity:1; } }
+
+/* =====================================================
+ * Phase 7 Dual-layer focus (apply class `focus-dual` or data attribute)
+ * ===================================================== */
+.focus-dual:focus-visible { outline:2px solid var(--semantic-focus-ring); outline-offset:2px; box-shadow:0 0 0 4px color-mix(in srgb,var(--semantic-focus-ring) 55%, transparent); }
+@media (pointer:coarse) { .touch-target { min-height:44px; min-width:44px; } }
+
+/* =====================================================
+ * Phase 1 Episode Ribbon Progress Styles (rectangular segments)
+ * ===================================================== */
+.episode-ribbon { display:flex; gap:2px; }
+.episode-ribbon button { position:relative; flex:0 0 auto; width:42px; height:26px; font-size:12px; font-weight:500; border-radius:4px; border:1px solid var(--semantic-border); background:var(--semantic-surface); color:var(--semantic-text-secondary); transition:all var(--motion-duration-sm) var(--motion-ease-standard); }
+.episode-ribbon button[data-state="current"] { border-color: var(--brand-accent); color: var(--brand-accent); box-shadow:0 0 0 1px var(--brand-accent); background:var(--accent-soft-bg); font-weight:600; }
+.episode-ribbon button[data-state="completed"] { background:var(--brand-accent); border-color:color-mix(in srgb,var(--brand-accent) 75%, #000); color:var(--brand-accent-fg); }
+.episode-ribbon button[data-has-script="true"][data-state="pending"] { background:var(--accent-soft-bg); color:var(--brand-accent); }
+.episode-ribbon button:not([data-state="current"]):hover { background:var(--accent-soft-bg); color:var(--brand-accent); }
+.episode-ribbon button .status-dot { position:absolute; top:2px; right:2px; width:6px; height:6px; border-radius:50%; background:var(--semantic-success); }
+.episode-ribbon button[data-has-script="true"] .status-dot { background:var(--brand-accent); }
+
+/* =====================================================
+ * Phase 2 Card header subtle inset divider
+ * ===================================================== */
+.card-header-divider { position:relative; }
+.card-header-divider:after { content:""; position:absolute; left:-24px; right:-24px; bottom:0; height:1px; background:linear-gradient(90deg,transparent,var(--semantic-border),transparent); box-shadow:0 1px 0 var(--semantic-inset); }
+

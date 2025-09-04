@@ -1,7 +1,7 @@
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { RefreshCw, Download, Lightbulb } from "lucide-react";
+import { AppIcon } from "@/components/ui/icon-registry";
 import type { Project, ScriptAnalytics } from "@shared/schema";
 
 interface ScriptEditorProps {
@@ -31,16 +31,16 @@ export default function ScriptEditor({ content, onChange, analytics, onSave, pro
   };
 
   return (
-    <Card className="h-full">
+  <Card className="h-full" data-elevation-tier={1}>
       {/* Script Header */}
       <CardHeader className="border-b border-border">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-lg">
+            <CardTitle className="heading-sm">
               {episodeInfo ? (
                 <>
                   {episodeInfo.episodeTitle || `Episode ${episodeInfo.currentEpisode}`}
-                  <span className="text-sm font-normal text-muted-foreground ml-2">
+                  <span className="body-sm font-normal text-muted-foreground ml-2">
                     ({episodeInfo.currentEpisode} of {episodeInfo.totalEpisodes})
                   </span>
                 </>
@@ -48,7 +48,7 @@ export default function ScriptEditor({ content, onChange, analytics, onSave, pro
                 project.title
               )}
             </CardTitle>
-            <p className="text-sm text-muted-foreground">
+            <p className="body-sm text-muted-foreground">
               Estimated duration: {analytics?.speechTime ? `${Math.floor(analytics.speechTime / 60)} minutes` : "16 minutes"}
             </p>
           </div>
@@ -59,7 +59,7 @@ export default function ScriptEditor({ content, onChange, analytics, onSave, pro
               onClick={onSave}
               data-testid="button-save-script"
             >
-              <RefreshCw className="w-4 h-4" />
+              <AppIcon name="refresh" className="w-4 h-4" />
             </Button>
             <Button
               variant="ghost"
@@ -67,7 +67,7 @@ export default function ScriptEditor({ content, onChange, analytics, onSave, pro
               onClick={handleExport}
               data-testid="button-export-script"
             >
-              <Download className="w-4 h-4" />
+              <AppIcon name="download" className="w-4 h-4" />
             </Button>
           </div>
         </div>

@@ -4,20 +4,7 @@ import { Slider } from "@/components/ui/slider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  Play, 
-  Pause, 
-  SkipBack, 
-  SkipForward, 
-  Download, 
-  Volume2, 
-  VolumeX,
-  Repeat,
-  Timer,
-  Activity,
-  Share2,
-  Music
-} from "lucide-react";
+import { AppIcon } from "@/components/ui/icon-registry";
 import { useToast } from "@/hooks/use-toast";
 
 interface AudioChapter {
@@ -301,7 +288,7 @@ export default function EnhancedAudioPlayer({
           <div>
             <h3 className="font-semibold text-lg">{title}</h3>
             {currentChapter && (
-              <Badge variant="secondary" className="mt-1">
+              <Badge variant="soft" className="mt-1">
                 {currentChapter.title}
               </Badge>
             )}
@@ -310,15 +297,16 @@ export default function EnhancedAudioPlayer({
             <Button
               variant="ghost"
               size="sm"
+              className="focus-dual"
               onClick={() => setShowWaveform(!showWaveform)}
             >
-              <Activity className="w-4 h-4" />
+              <AppIcon name="activity" className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={shareAudio}>
-              <Share2 className="w-4 h-4" />
+            <Button variant="ghost" size="sm" className="focus-dual" onClick={shareAudio}>
+              <AppIcon name="share" className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={downloadAudio}>
-              <Download className="w-4 h-4" />
+            <Button variant="ghost" size="sm" className="focus-dual" onClick={downloadAudio}>
+              <AppIcon name="download" className="w-4 h-4" />
             </Button>
           </div>
         </div>
@@ -396,8 +384,8 @@ export default function EnhancedAudioPlayer({
 
         {/* Main Controls */}
         <div className="flex items-center justify-center space-x-4">
-          <Button variant="ghost" size="sm" onClick={skipBackward}>
-            <SkipBack className="w-4 h-4" />
+          <Button variant="ghost" size="sm" className="focus-dual" onClick={skipBackward}>
+            <AppIcon name="skipBack" className="w-4 h-4" />
             <span className="ml-1 text-xs">15s</span>
           </Button>
           
@@ -410,15 +398,15 @@ export default function EnhancedAudioPlayer({
             {isLoading ? (
               <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
             ) : isPlaying ? (
-              <Pause className="w-6 h-6" />
+              <AppIcon name="pause" className="w-6 h-6" />
             ) : (
-              <Play className="w-6 h-6 ml-1" />
+              <AppIcon name="play" className="w-6 h-6 ml-1" />
             )}
           </Button>
 
-          <Button variant="ghost" size="sm" onClick={skipForward}>
+          <Button variant="ghost" size="sm" className="focus-dual" onClick={skipForward}>
             <span className="mr-1 text-xs">30s</span>
-            <SkipForward className="w-4 h-4" />
+            <AppIcon name="skipForward" className="w-4 h-4" />
           </Button>
         </div>
 
@@ -426,8 +414,8 @@ export default function EnhancedAudioPlayer({
         <div className="flex items-center justify-between">
           {/* Volume Control */}
           <div className="flex items-center space-x-2">
-            <Button variant="ghost" size="sm" onClick={toggleMute}>
-              {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            <Button variant="ghost" size="sm" className="focus-dual" onClick={toggleMute}>
+              {isMuted ? <AppIcon name="volumeMute" className="w-4 h-4" /> : <AppIcon name="volume" className="w-4 h-4" />}
             </Button>
             <Slider
               value={[isMuted ? 0 : volume]}
@@ -440,7 +428,7 @@ export default function EnhancedAudioPlayer({
 
           {/* Playback Speed */}
           <div className="flex items-center space-x-2">
-            <Timer className="w-4 h-4 text-muted-foreground" />
+            <AppIcon name="timer" className="w-4 h-4 text-muted-foreground" />
             <Select value={playbackRate.toString()} onValueChange={handlePlaybackRateChange}>
               <SelectTrigger className="w-20">
                 <SelectValue />
@@ -461,9 +449,10 @@ export default function EnhancedAudioPlayer({
           <Button
             variant={isLooping ? "default" : "ghost"}
             size="sm"
+            className="focus-dual"
             onClick={toggleLoop}
           >
-            <Repeat className="w-4 h-4" />
+            <AppIcon name="repeat" className="w-4 h-4" />
           </Button>
         </div>
 
@@ -477,13 +466,13 @@ export default function EnhancedAudioPlayer({
               </div>
             )}
             {isDragging && (
-              <Badge variant="secondary">
+              <Badge variant="soft">
                 Seeking to {formatTime(dragTime)}
               </Badge>
             )}
             {currentChapter && !isDragging && (
               <Badge variant="outline" style={{ borderColor: currentChapter.color }}>
-                <Music className="w-3 h-3 mr-1" />
+                <AppIcon name="music" className="w-3 h-3 mr-1" />
                 {currentChapter.title}
               </Badge>
             )}

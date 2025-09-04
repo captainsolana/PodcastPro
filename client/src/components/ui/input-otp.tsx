@@ -1,6 +1,6 @@
 import * as React from "react"
 import { OTPInput, OTPInputContext } from "input-otp"
-import { Dot } from "lucide-react"
+import { AppIcon } from "@/components/ui/icon-registry"
 
 import { cn } from "@/lib/utils"
 
@@ -61,7 +61,7 @@ const InputOTPSeparator = React.forwardRef<
   React.ComponentPropsWithoutRef<"div">
 >(({ ...props }, ref) => (
   <div ref={ref} role="separator" {...props}>
-    <Dot />
+  <AppIcon name="circle" />
   </div>
 ))
 InputOTPSeparator.displayName = "InputOTPSeparator"

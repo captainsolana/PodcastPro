@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+import { AppIcon } from "@/components/ui/icon-registry";
 import { cn } from "@/lib/utils";
 
 interface ProgressStep {
@@ -31,7 +31,7 @@ export default function ProgressSteps({ steps, className }: ProgressStepsProps) 
         >
           <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-200">
             {step.status === "completed" ? (
-              <Check className="w-4 h-4" />
+              <AppIcon name="check" className="w-4 h-4" />
             ) : (
               step.number
             )}

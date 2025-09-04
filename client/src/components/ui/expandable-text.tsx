@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { AppIcon } from "@/components/ui/icon-registry";
 import { cn } from "@/lib/utils";
 
 interface ExpandableTextProps {
@@ -45,12 +45,12 @@ export function ExpandableText({
         >
           {isExpanded ? (
             <>
-              <ChevronUp className="w-3 h-3 mr-1" />
+              <AppIcon name="chevronUp" className="w-3 h-3 mr-1" />
               Show less
             </>
           ) : (
             <>
-              <ChevronDown className="w-3 h-3 mr-1" />
+              <AppIcon name="chevronDown" className="w-3 h-3 mr-1" />
               Show more
             </>
           )}

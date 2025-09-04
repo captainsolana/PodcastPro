@@ -6,6 +6,7 @@ import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useRovingTabs } from "@/hooks/use-roving-tabs";
 import WaveformVisualizer from "@/components/audio/waveform-visualizer";
 import EnhancedAudioPlayer from "@/components/audio/enhanced-audio-player";
 import AdvancedVoiceCustomization, { type AdvancedVoiceSettings } from "@/components/audio/advanced-voice-customization";
@@ -13,8 +14,10 @@ import AudioPreviewModal from "@/components/audio/audio-preview-modal";
 import { useProject } from "@/hooks/use-project";
 import { useToast } from "@/hooks/use-toast";
 import { useAutoSave } from "@/hooks/use-auto-save";
-import { LoadingState } from "@/components/ui/loading-state";
-import { Play, Download, RefreshCw, Volume2, CheckCircle, FileAudio, ChevronLeft, RotateCcw, Edit3, Save, Mic, FileText, Headphones } from "lucide-react";
+import AutoSaveIndicator from "@/components/ui/auto-save-indicator";
+import { LoadingState } from "@/components/ui/loading-state"; // legacy spinner (will phase out)
+import { Skeleton } from "@/components/ui/skeleton";
+import { AppIcon } from "@/components/ui/icon-registry";
 import type { Project, VoiceSettings } from "@shared/schema";
 
 interface AudioGenerationProps {
@@ -83,7 +86,9 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
   const { 
     updateProject,
     generateAudio,
+  generateAudioSegment,
     isGeneratingAudio,
+  isGeneratingAudioSegment,
     audioResult
   } = useProject(project.id);
   const { toast } = useToast();
@@ -320,18 +325,21 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
     }
   };
 
-  // Auto-save functionality for voice settings
-  const { isSaving } = useAutoSave({
+  // Enhanced auto-save for voice settings (persistent draft + conflict detection)
+  const voiceAutoSave = useAutoSave({
     data: { voiceSettings },
+    storageKey: `voice-settings-draft:${project.id}`,
+    serverVersion: project.updatedAt || undefined,
     onSave: async (data) => {
       await updateProject({
         id: project.id,
         updates: {
-          voiceSettings: data.voiceSettings,
+          voiceSettings: data.voiceSettings
         }
       });
     },
-    enabled: JSON.stringify(voiceSettings) !== JSON.stringify(project.voiceSettings)
+    enabled: true,
+    showToast: false
   });
 
   // Handle audio generation result
@@ -498,6 +506,28 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
 
   const audioUrl = getCurrentEpisodeAudio() || audioResult?.audioUrl;
   const isAudioReady = !!audioUrl;
+  // Basic segmentation (paragraph-level) for per-segment regeneration prototype
+  interface Segment { id: string; index: number; text: string; wordCount: number; }
+  const segments: Segment[] = (getCurrentEpisodeScript() || '')
+    .split(/\n\n+/)
+    .map((s: string) => s.trim())
+    .filter((s: string) => Boolean(s))
+    .map((text: string, i: number) => ({ id: String(i), index: i, text, wordCount: text.split(/\s+/).length }));
+  const [regeneratingSegment, setRegeneratingSegment] = useState<string | null>(null);
+  async function regenerateSegment(segId: string) {
+  const seg = segments.find((s: Segment) => s.id === segId);
+    if (!seg) return;
+    setRegeneratingSegment(segId);
+    try {
+      const basicSettings = { model: voiceSettings.model, speed: voiceSettings.speed };
+      generateAudioSegment({ segmentText: seg.text, voiceSettings: basicSettings, segmentIndex: seg.index });
+      toast({ title: 'Segment regeneration started', description: `Segment ${seg.index + 1} audio is being generated.` });
+    } catch (e:any) {
+      toast({ title: 'Segment regeneration failed', description: e.message || 'Unknown error', variant: 'destructive' });
+    } finally {
+      setRegeneratingSegment(null);
+    }
+  }
 
   return (
     <div className="flex-1 flex flex-col">
@@ -505,16 +535,18 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
       <div className="border-b border-border bg-card/50 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <FileAudio className="w-5 h-5 text-primary" />
+            <AppIcon name="fileAudio" className="w-5 h-5 text-primary" />
             <h2 className="text-lg font-semibold">Audio Generation</h2>
-            {isSaving && (
-              <LoadingState 
-                isLoading={true} 
-                loadingText="Saving..." 
-                size="sm"
-                className="text-xs text-muted-foreground"
-              />
-            )}
+            <AutoSaveIndicator 
+              status={voiceAutoSave.status}
+              isSaving={voiceAutoSave.isSaving}
+              onForceSave={voiceAutoSave.forceSave}
+              onDiscard={voiceAutoSave.discardDraft}
+              onApplyDraft={() => {
+                const draft = voiceAutoSave.restoreDraft();
+                if (draft?.voiceSettings) setVoiceSettings(draft.voiceSettings);
+              }}
+            />
           </div>
           <div className="flex items-center space-x-2">
             <Button
@@ -523,7 +555,7 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
               onClick={() => updateProject({ id: project.id, updates: { phase: 2 } })}
               data-testid="button-back-to-script"
             >
-              <ChevronLeft className="w-4 h-4 mr-2" />
+              <AppIcon name="chevronLeft" className="w-4 h-4 mr-2" />
               Back to Script
             </Button>
             {isAudioReady && (
@@ -534,7 +566,7 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
                 disabled={isGeneratingAudio}
                 data-testid="button-regenerate-audio"
               >
-                <RotateCcw className="w-4 h-4 mr-2" />
+                <AppIcon name="rotate" className="w-4 h-4 mr-2" />
                 Regenerate Audio
               </Button>
             )}
@@ -594,11 +626,10 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
               </div>
               {audioUrl && (
                 <Button
-                  variant="outline"
+                  variant="success"
                   size="sm"
                   onClick={handleMarkEpisodeComplete}
                   disabled={isGeneratingAudio}
-                  className="text-green-600 border-green-600 hover:bg-green-50"
                 >
                   Mark Complete & Next
                 </Button>
@@ -613,7 +644,7 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
                   size="sm"
                   onClick={handleGenerateAllRemainingAudio}
                   disabled={isGeneratingAudio}
-                  className="bg-purple-600 hover:bg-purple-700"
+                  className="bg-[var(--semantic-info)] hover:bg-[color-mix(in_srgb,var(--semantic-info)_90%,#000)]"
                 >
                   Generate All Remaining Audio
                 </Button>
@@ -625,46 +656,47 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
 
       {/* Main Content */}
       <div className="flex-1 p-6">
-        <div className="max-w-7xl mx-auto space-y-6">
+  <div className="max-w-7xl mx-auto stack-lg">
           {/* Enhanced Audio Generation with Tabs */}
-          <Card>
+          <Card data-elevation-tier={1} className="interactive">
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <Headphones className="w-5 h-5" />
+                  <AppIcon name="headphones" className="w-5 h-5" />
                   <span>Enhanced Audio Production</span>
                   {isMultiEpisode && (
                     <span className="text-sm text-muted-foreground">- Episode {currentEpisode}</span>
                   )}
                 </div>
                 {audioUrl && (
-                  <Badge className="bg-success text-white">
-                    <CheckCircle className="w-3 h-3 mr-1" />
+                  <Badge variant="success">
+                    <AppIcon name="success" className="w-3 h-3 mr-1" />
                     Audio Ready
                   </Badge>
                 )}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                <TabsList className="grid w-full grid-cols-3">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="stack-lg">
+                {(() => { const { containerRef } = useRovingTabs([activeTab]); return (
+                <TabsList ref={containerRef as any} className="grid w-full grid-cols-3 gap-0" role="tablist" aria-label="Audio production views">
                   <TabsTrigger value="script" className="flex items-center space-x-2">
-                    <FileText className="w-4 h-4" />
+                    <AppIcon name="file" className="w-4 h-4" />
                     <span>Script Editor</span>
                   </TabsTrigger>
                   <TabsTrigger value="voice" className="flex items-center space-x-2">
-                    <Mic className="w-4 h-4" />
+                    <AppIcon name="mic" className="w-4 h-4" />
                     <span>Voice Settings</span>
                   </TabsTrigger>
                   <TabsTrigger value="audio" className="flex items-center space-x-2">
-                    <Headphones className="w-4 h-4" />
+                    <AppIcon name="headphones" className="w-4 h-4" />
                     <span>Audio Player</span>
                   </TabsTrigger>
-                </TabsList>
+                </TabsList> ); })()}
 
                 {/* Script Preview Tab */}
                 <TabsContent value="script" className="space-y-4">
-                  <Card>
+                  <Card data-elevation-tier={1} className="interactive">
                     <CardHeader>
                       <CardTitle className="flex items-center justify-between">
                         Script Preview
@@ -673,7 +705,7 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
                           size="sm"
                           onClick={() => updateProject({ id: project.id, updates: { phase: 2 } })}
                         >
-                          <Edit3 className="w-4 h-4 mr-2" />
+                          <AppIcon name="edit" className="w-4 h-4 mr-2" />
                           Edit Script
                         </Button>
                       </CardTitle>
@@ -728,7 +760,7 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
                 <TabsContent value="audio" className="space-y-4">
                   {!audioUrl && !isGeneratingAudio && (
                     <div className="text-center py-12 space-y-4">
-                      <FileAudio className="w-16 h-16 mx-auto text-muted-foreground" />
+                      <AppIcon name="fileAudio" className="w-16 h-16 mx-auto text-muted-foreground" />
                       <div>
                         <h3 className="text-lg font-semibold mb-2">Ready to Generate Audio</h3>
                         <p className="text-muted-foreground mb-6">
@@ -749,7 +781,7 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
                           size="lg"
                           className="bg-primary hover:bg-primary/90"
                         >
-                          <Play className="w-5 h-5 mr-2" />
+                          <AppIcon name="play" className="w-5 h-5 mr-2" />
                           Generate Audio
                         </Button>
                       </div>
@@ -757,17 +789,29 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
                   )}
 
                   {isGeneratingAudio && (
-                    <div className="text-center py-12 space-y-4">
-                      <LoadingState 
-                        isLoading={true}
-                        loadingText="Creating your enhanced podcast audio..."
-                        size="lg"
-                        className="justify-center"
-                      />
-                      <div className="text-sm text-muted-foreground space-y-1">
-                        <p>• Applying voice personality: {voiceSettings.personality}</p>
-                        <p>• Processing {getCurrentEpisodeScript()?.split(' ').length || 0} words</p>
-                        <p>• Optimizing audio quality</p>
+                    <div className="py-12 space-y-8 flex flex-col items-center" aria-busy="true" aria-label="Generating audio">
+                      <div className="space-y-4 w-full max-w-xl">
+                        <div className="flex items-center space-x-3">
+                          <Skeleton variant="circle" className="w-10 h-10" />
+                          <div className="flex-1 space-y-2">
+                            <Skeleton variant="title" className="w-72" />
+                            <Skeleton variant="text" lines={2} />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-4">
+                          <Skeleton className="h-20" />
+                          <Skeleton className="h-20" />
+                          <Skeleton className="h-20" />
+                        </div>
+                        <div className="space-y-3">
+                          <Skeleton variant="text" lines={3} />
+                        </div>
+                        <div className="space-y-2 text-center text-sm text-muted-foreground">
+                          <p>Applying voice personality: {voiceSettings.personality}</p>
+                          <p>Processing {getCurrentEpisodeScript()?.split(' ').length || 0} words</p>
+                          <p>Optimizing audio quality…</p>
+                        </div>
+                        <div className="sr-only" aria-live="polite">Generating podcast audio with selected voice personality…</div>
                       </div>
                     </div>
                   )}
@@ -782,6 +826,32 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
                         }
                         transcript={getCurrentEpisodeScript() || undefined}
                       />
+                      {segments.length > 1 && (
+                        <Card data-elevation-tier={1} className="interactive">
+                          <CardHeader>
+                            <CardTitle className="text-sm">Segments (prototype)</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-2 max-h-72 overflow-auto pr-1">
+                              {segments.map(seg => (
+                                <div key={seg.id} className="group border rounded-md p-2 text-xs flex flex-col gap-1 bg-muted/30 hover:bg-muted/50 transition-colors">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-medium">Segment {seg.index + 1}</span>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-muted-foreground">{seg.wordCount}w</span>
+                                      <Button size="xs" variant="outline" disabled={isGeneratingAudio || isGeneratingAudioSegment || regeneratingSegment === seg.id} onClick={() => regenerateSegment(seg.id)}>
+                                        {regeneratingSegment === seg.id || isGeneratingAudioSegment ? 'Regenerating…' : 'Regenerate'}
+                                      </Button>
+                                    </div>
+                                  </div>
+                                  <div className="line-clamp-2 text-muted-foreground leading-snug">{seg.text}</div>
+                                </div>
+                              ))}
+                            </div>
+                            <p className="mt-2 text-[10px] text-muted-foreground">Future enhancement: regenerate only this segment and seamlessly stitch audio.</p>
+                          </CardContent>
+                        </Card>
+                      )}
                       
                       <div className="flex items-center justify-center space-x-4">
                         <Button
@@ -789,7 +859,7 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
                           onClick={handleGenerateAudio}
                           disabled={isGeneratingAudio}
                         >
-                          <RefreshCw className="w-4 h-4 mr-2" />
+                          <AppIcon name="refresh" className="w-4 h-4 mr-2" />
                           Regenerate Audio
                         </Button>
                         
@@ -797,7 +867,7 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
                           onClick={() => window.location.href = "/"}
                           className="bg-success hover:bg-success/90"
                         >
-                          <CheckCircle className="w-4 h-4 mr-2" />
+                          <AppIcon name="success" className="w-4 h-4 mr-2" />
                           Complete Project
                         </Button>
                       </div>

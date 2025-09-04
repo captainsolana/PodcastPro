@@ -1,0 +1,32 @@
+/* Phase 5: Reusable motion utility layer */
+
+@keyframes pp-fade-in {
+  from { opacity:0; transform: translateY(4px); }
+  to { opacity:1; transform: translateY(0); }
+}
+@keyframes pp-scale-in {
+  from { opacity:0; transform: scale(.96); }
+  to { opacity:1; transform: scale(1); }
+}
+@keyframes pp-slide-left-in {
+  from { opacity:0; transform: translateX(8px); }
+  to { opacity:1; transform: translateX(0); }
+}
+
+.motion-fade-in { animation: pp-fade-in var(--motion-duration-sm) var(--motion-ease-enter) both; }
+.motion-scale-in { animation: pp-scale-in var(--motion-duration-sm) var(--motion-ease-emphasized) both; }
+.motion-slide-left-in { animation: pp-slide-left-in var(--motion-duration-sm) var(--motion-ease-enter) both; }
+
+/* Deliberate variants */
+.motion-fade-in-deliberate { animation: pp-fade-in var(--motion-duration-deliberate) var(--motion-ease-enter) both; }
+.motion-scale-in-deliberate { animation: pp-scale-in var(--motion-duration-deliberate) var(--motion-ease-emphasized) both; }
+
+/* Pressable helper (for non-button elements) */
+.pressable { transition: transform var(--motion-duration-sm) var(--motion-ease-standard); }
+.pressable:active { transform: scale(.97); }
+
+/* Reduced motion respect */
+@media (prefers-reduced-motion: reduce) {
+  .motion-fade-in, .motion-scale-in, .motion-slide-left-in, .motion-fade-in-deliberate, .motion-scale-in-deliberate { animation: none; opacity:1; transform:none; }
+  .pressable { transition: none; }
+}

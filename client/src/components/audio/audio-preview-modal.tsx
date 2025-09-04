@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import WaveformVisualizer from "./waveform-visualizer";
-import { RefreshCw, Check, X } from "lucide-react";
+import { AppIcon } from "@/components/ui/icon-registry";
 
 interface AudioPreviewModalProps {
   audioUrl: string;
@@ -31,7 +31,7 @@ export default function AudioPreviewModal({
               onClick={onClose}
               data-testid="button-close-preview"
             >
-              <X className="w-4 h-4" />
+              <AppIcon name="close" className="w-4 h-4" />
             </Button>
           </div>
         </DialogHeader>
@@ -56,12 +56,12 @@ export default function AudioPreviewModal({
             >
               {isRegenerating ? (
                 <>
-                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  <AppIcon name="refresh" className="w-4 h-4 mr-2 animate-spin" />
                   Regenerating...
                 </>
               ) : (
                 <>
-                  <RefreshCw className="w-4 h-4 mr-2" />
+                  <AppIcon name="refresh" className="w-4 h-4 mr-2" />
                   Regenerate
                 </>
               )}
@@ -71,7 +71,7 @@ export default function AudioPreviewModal({
               className="flex-1 bg-success hover:bg-success/90"
               data-testid="button-approve-segment"
             >
-              <Check className="w-4 h-4 mr-2" />
+              <AppIcon name="check" className="w-4 h-4 mr-2" />
               Approve
             </Button>
           </div>

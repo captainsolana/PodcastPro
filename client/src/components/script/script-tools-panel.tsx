@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { Bot, Save, Play, RefreshCw, Volume2, BarChart3 } from "lucide-react";
+import { AppIcon } from "@/components/ui/icon-registry";
 import type { Project, ScriptAnalytics, VoiceSettings } from "@shared/schema";
 
 interface ScriptToolsPanelProps {
@@ -45,7 +45,7 @@ export default function ScriptToolsPanel({
           <CardContent className="p-4">
             <div className="flex items-center space-x-2 mb-3">
               <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center">
-                <Bot className="text-white w-3 h-3" />
+                <AppIcon name="bot" className="text-white w-3 h-3" />
               </div>
               <h4 className="font-semibold text-sm">AI Assistant</h4>
               <div className="w-2 h-2 bg-success rounded-full animate-thinking"></div>
@@ -64,10 +64,10 @@ export default function ScriptToolsPanel({
                     <div className="flex items-center justify-between">
                       <h5 className="font-medium text-xs text-primary">{suggestion.type}</h5>
                       {suggestion.priority && (
-                        <span className={`text-xs px-1.5 py-0.5 rounded ${
-                          suggestion.priority === 'high' ? 'bg-red-100 text-red-800' :
-                          suggestion.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-green-100 text-green-800'
+                        <span className={`text-xs px-1.5 py-0.5 rounded font-medium border ${
+                          suggestion.priority === 'high' ? 'bg-[var(--semantic-critical)]/15 text-[var(--semantic-critical)] border-[var(--semantic-critical)]/40' :
+                          suggestion.priority === 'medium' ? 'bg-[var(--semantic-warning)]/15 text-[var(--semantic-warning)] border-[var(--semantic-warning)]/40' :
+                          'bg-[var(--semantic-success)]/15 text-[var(--semantic-success)] border-[var(--semantic-success)]/40'
                         }`}>
                           {suggestion.priority}
                         </span>
@@ -119,12 +119,12 @@ export default function ScriptToolsPanel({
                 >
                   {isGeneratingSuggestions ? (
                     <>
-                      <RefreshCw className="w-3 h-3 mr-2 animate-spin" />
+                      <AppIcon name="refresh" className="w-3 h-3 mr-2 animate-spin" />
                       Analyzing...
                     </>
                   ) : (
                     <>
-                      <Bot className="w-3 h-3 mr-2" />
+                      <AppIcon name="bot" className="w-3 h-3 mr-2" />
                       Get Suggestions
                     </>
                   )}
@@ -138,7 +138,7 @@ export default function ScriptToolsPanel({
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-sm">
-              <BarChart3 className="w-4 h-4" />
+              <AppIcon name="stats" className="w-4 h-4" />
               <span>Script Analytics</span>
             </CardTitle>
           </CardHeader>
@@ -171,7 +171,7 @@ export default function ScriptToolsPanel({
             <div>
               <label className="text-xs text-muted-foreground">Voice Model</label>
               <div className="mt-1">
-                <Badge variant="secondary" className="text-xs">
+                <Badge variant="soft" className="text-xs">
                   {voiceSettings.model} (OpenAI TTS)
                 </Badge>
               </div>
@@ -195,7 +195,7 @@ export default function ScriptToolsPanel({
             variant="outline"
             data-testid="button-save-draft"
           >
-            <Save className="w-4 h-4 mr-2" />
+            <AppIcon name="save" className="w-4 h-4 mr-2" />
             Save Draft
           </Button>
         </div>

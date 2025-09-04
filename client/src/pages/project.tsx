@@ -9,6 +9,10 @@ import AudioGeneration from "@/components/phases/audio-generation";
 import { AlertCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { LiveStatusProvider } from "@/components/accessibility/live-status";
+import { PreferencesProvider } from '@/components/personalization/preferences-context';
+import { SkipLink } from "@/components/accessibility/skip-link";
+import { ShortcutHelp } from "@/components/accessibility/shortcut-help";
 
 export default function Project() {
   const { id } = useParams();
@@ -34,7 +38,7 @@ export default function Project() {
           <CardContent className="pt-6">
             <div className="flex mb-4 gap-2">
               <AlertCircle className="h-8 w-8 text-destructive" />
-              <h1 className="text-2xl font-bold text-foreground">Project Not Found</h1>
+              <h1 className="h2 font-semibold text-foreground">Project Not Found</h1>
             </div>
             <p className="mt-4 text-sm text-muted-foreground">
               The project you're looking for doesn't exist or has been deleted.
@@ -104,12 +108,51 @@ export default function Project() {
   };
 
   return (
-    <div className="min-h-screen flex bg-background">
-      <Sidebar project={project} onPhaseChange={handlePhaseChange} />
-      <div className="flex-1 flex flex-col">
-        <Header project={project} onPhaseChange={handlePhaseChange} />
-        {renderPhaseContent()}
+    <LiveStatusProvider>
+      <PreferencesProvider>
+      <div className="min-h-screen flex bg-[var(--semantic-bg)] text-[var(--semantic-text-primary)]">
+        <SkipLink />
+        <ShortcutHelp />
+        <Sidebar project={project} onPhaseChange={handlePhaseChange} />
+        <div className="flex-1 flex flex-col" id="main-content" tabIndex={-1}>
+          <nav className="sr-only" aria-label="In-page skip links">
+            <a href="#script-editor" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-primary text-primary-foreground px-3 py-1 rounded">Skip to Script Editor</a>
+            <a href="#script-analytics-heading" className="sr-only focus:not-sr-only focus:absolute focus:top-10 focus:left-2 bg-primary text-primary-foreground px-3 py-1 rounded">Skip to Analytics Summary</a>
+          </nav>
+          <div className="flex-1 flex flex-col w-full max-w-6xl mx-auto self-stretch">
+            <Header project={project} onPhaseChange={handlePhaseChange} />
+            {renderPhaseContent()}
+            {/* Mini Progress Footer (persistent insight) */}
+            {(() => {
+              const episodePlan = (project as any).episodePlan;
+              if (!episodePlan?.isMultiEpisode) return null;
+              const episodes = episodePlan.episodes || [];
+              const total = episodePlan.totalEpisodes || episodes.length || 0;
+              if (!total) return null;
+              const completed = episodes.filter((e: any) => e.status === 'completed').length;
+              const scriptsReady = episodes.filter((e: any) => e.status === 'completed' || (e as any).scriptGenerated).length;
+              const episodeAudioUrls = (project as any).episodeAudioUrls || {};
+              const audioReady = Object.keys(episodeAudioUrls).length;
+              const percent = Math.round((completed / total) * 100);
+              return (
+                <div className="mt-2 border-t border-border/60 bg-card/70 backdrop-blur-sm px-4 py-2 text-xs flex items-center gap-4 overflow-x-auto" aria-label="Batch progress summary">
+                  <div className="flex items-center gap-2"><span className="font-medium">Episodes:</span><span>{completed}/{total} done</span></div>
+                  <div className="flex items-center gap-2"><span className="font-medium">Scripts:</span><span>{scriptsReady}/{total}</span></div>
+                  <div className="flex items-center gap-2"><span className="font-medium">Audio:</span><span>{audioReady}/{total}</span></div>
+                  <div className="flex items-center gap-2 min-w-[140px]">
+                    <span className="font-medium">Overall:</span>
+                    <div className="h-2 flex-1 bg-[var(--semantic-inset)] rounded overflow-hidden relative">
+                      <div className="h-full bg-[var(--semantic-accent)] transition-all duration-[var(--motion-duration-md)] ease-[var(--motion-ease-standard)]" style={{ width: percent + '%' }} />
+                    </div>
+                    <span>{percent}%</span>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
       </div>
-    </div>
+      </PreferencesProvider>
+    </LiveStatusProvider>
   );
 }

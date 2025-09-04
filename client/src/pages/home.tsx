@@ -66,8 +66,8 @@ export default function Home() {
                 <Mic className="text-white w-7 h-7" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Podcast Maker</h1>
-                <p className="text-sm text-muted-foreground font-medium">AI-Powered Podcast Creation Platform</p>
+                <h1 className="heading-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Podcast Maker</h1>
+                <p className="body-sm text-muted-foreground font-medium">AI-Powered Podcast Creation Platform</p>
               </div>
             </div>
             <div className="hidden md:flex items-center space-x-6 text-sm">
@@ -93,10 +93,10 @@ export default function Home() {
           {/* Create New Project */}
           <div className="lg:col-span-2 space-y-8">
             <div className="text-center lg:text-left mb-8">
-              <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+              <h2 className="heading-xl font-bold mb-4 bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
                 Create Your AI Podcast
               </h2>
-              <p className="text-lg text-muted-foreground max-w-2xl">
+              <p className="body-lg text-muted-foreground max-w-2xl">
                 Transform your ideas into professional podcasts with our AI-powered platform. From concept to audio in minutes.
               </p>
             </div>
@@ -183,8 +183,8 @@ export default function Home() {
                     <div className="w-16 h-16 gradient-bg rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:shadow-xl transition-all duration-300">
                       <span className="text-white font-bold text-lg">1</span>
                     </div>
-                    <h3 className="font-bold text-base mb-3 text-foreground">Prompt & Research</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
+                    <h3 className="heading-sm mb-3 text-foreground font-semibold">Prompt & Research</h3>
+                    <p className="body-sm text-muted-foreground leading-relaxed">
                       AI refines your idea and conducts comprehensive research to build a solid foundation
                     </p>
                   </div>
@@ -193,8 +193,8 @@ export default function Home() {
                     <div className="w-16 h-16 gradient-secondary rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:shadow-xl transition-all duration-300">
                       <span className="text-white font-bold text-lg">2</span>
                     </div>
-                    <h3 className="font-bold text-base mb-3 text-foreground">Script Generation</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
+                    <h3 className="heading-sm mb-3 text-foreground font-semibold">Script Generation</h3>
+                    <p className="body-sm text-muted-foreground leading-relaxed">
                       Create engaging, well-structured scripts with natural flow and professional quality
                     </p>
                   </div>
@@ -203,8 +203,8 @@ export default function Home() {
                     <div className="w-16 h-16 gradient-accent rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:shadow-xl transition-all duration-300">
                       <span className="text-white font-bold text-lg">3</span>
                     </div>
-                    <h3 className="font-bold text-base mb-3 text-foreground">Audio Generation</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
+                    <h3 className="heading-sm mb-3 text-foreground font-semibold">Audio Generation</h3>
+                    <p className="body-sm text-muted-foreground leading-relaxed">
                       Transform scripts into high-quality audio with customizable AI voices
                     </p>
                   </div>
@@ -238,7 +238,7 @@ export default function Home() {
                       <Mic className="w-8 h-8 text-muted-foreground" />
                     </div>
                     <h3 className="font-semibold text-foreground mb-2">No projects yet</h3>
-                    <p className="text-sm text-muted-foreground mb-4">Create your first podcast to get started</p>
+                    <p className="body-sm text-muted-foreground mb-4">Create your first podcast to get started</p>
                     <Button variant="outline" size="sm">
                       <Plus className="w-4 h-4 mr-2" />
                       Get Started

@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { CheckCircle, Clock, AlertCircle, Zap } from "lucide-react";
+import { AppIcon } from "@/components/ui/icon-registry";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface ProjectStatusProps {
@@ -93,9 +93,9 @@ export function ProjectStatus({ project, className }: ProjectStatusProps) {
                     : "bg-gray-100 text-gray-500 border-2 border-gray-300"
                 )}>
                   {phase.status === "completed" ? (
-                    <CheckCircle className="w-4 h-4" />
+                    <AppIcon name="success" className="w-4 h-4" />
                   ) : phase.status === "current" ? (
-                    <Clock className="w-4 h-4" />
+                    <AppIcon name="pending" className="w-4 h-4" />
                   ) : (
                     <span>{phase.phase}</span>
                   )}
@@ -114,7 +114,7 @@ export function ProjectStatus({ project, className }: ProjectStatusProps) {
                       {phase.name}
                     </h4>
                     {phase.status === "current" && (
-                      <Zap className="w-3 h-3 text-blue-500" />
+                      <AppIcon name="energy" className="w-3 h-3 text-blue-500" />
                     )}
                   </div>
 
@@ -123,7 +123,7 @@ export function ProjectStatus({ project, className }: ProjectStatusProps) {
                     {phase.items.map((item, itemIndex) => (
                       <div key={itemIndex} className="flex items-center space-x-2 text-xs">
                         {item.done ? (
-                          <CheckCircle className="w-3 h-3 text-green-500" />
+                          <AppIcon name="success" className="w-3 h-3 text-green-500" />
                         ) : (
                           <div className="w-3 h-3 rounded-full border border-gray-300" />
                         )}

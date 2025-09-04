@@ -234,6 +234,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Prototype: generate audio for a single segment (partial regeneration stub)
+  app.post("/api/ai/generate-audio-segment", async (req, res) => {
+    try {
+      const { segmentText, voiceSettings, segmentIndex } = req.body;
+      if (!segmentText || typeof segmentIndex !== 'number') {
+        return res.status(400).json({ message: "segmentText and segmentIndex are required" });
+      }
+      // For now we reuse full audio generation service (placeholder) – future: targeted TTS API
+      console.log('Route: Segment audio regeneration requested', { segmentIndex, length: segmentText.length });
+      const result = await openAIService.generateAudio(segmentText, voiceSettings || { model: 'nova', speed: 1.0 });
+      res.json({ ...result, segmentIndex });
+    } catch (error) {
+      console.error('Route: Segment audio generation error:', error);
+      res.status(500).json({ message: (error as Error).message || 'Failed to generate segment audio' });
+    }
+  });
+
   app.post("/api/ai/preview-voice", async (req, res) => {
     try {
       const { text, voiceSettings } = req.body;
