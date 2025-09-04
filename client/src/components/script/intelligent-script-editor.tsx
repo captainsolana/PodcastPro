@@ -173,17 +173,6 @@ export default function IntelligentScriptEditor({
     return 'critical';
   };
 
-  // Real-time analysis (debounced)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (content.trim()) {
-        analyzeScript(content);
-      }
-    }, 1000); // Debounce for 1 second
-
-    return () => clearTimeout(timer);
-  }, [content]);
-
   const analyzeScript = useCallback(async (scriptContent: string) => {
     setIsAnalyzing(true);
     
@@ -191,7 +180,10 @@ export default function IntelligentScriptEditor({
       // Simulate API call for script analysis
       const analysisResult = await performScriptAnalysis(scriptContent);
       setAnalysis(analysisResult);
-      onAnalysisChange?.(analysisResult);
+      // Use setTimeout to prevent potential infinite loops
+      setTimeout(() => {
+        onAnalysisChange?.(analysisResult);
+      }, 0);
     } catch (error) {
       console.error('Script analysis failed:', error);
       toast({
@@ -202,118 +194,175 @@ export default function IntelligentScriptEditor({
     } finally {
       setIsAnalyzing(false);
     }
-  }, [onAnalysisChange, toast]);
+  }, [toast]); // Removed onAnalysisChange to prevent dependency loops
+
+  // Real-time analysis (debounced)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (content.trim() && content.length < 50000) { // Prevent analysis on very large content
+        analyzeScript(content);
+      }
+    }, 1000); // Debounce for 1 second
+
+    return () => clearTimeout(timer);
+  }, [content, analyzeScript]);
 
   // Mock analysis function (replace with actual API call)
   const performScriptAnalysis = async (scriptContent: string): Promise<ScriptAnalysis> => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
+    try {
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-    const words = scriptContent.split(/\s+/).filter(w => w.length > 0);
-    const sentences = scriptContent.split(/[.!?]+/).filter(s => s.trim().length > 0);
-    const paragraphs = scriptContent.split(/\n\s*\n/).filter(p => p.trim().length > 0);
-    const pauseMarkers = (scriptContent.match(/\[pause\]/g) || []).length;
+      const words = scriptContent.split(/\s+/).filter(w => w.length > 0);
+      const sentences = scriptContent.split(/[.!?]+/).filter(s => s.trim().length > 0);
+      const paragraphs = scriptContent.split(/\n\s*\n/).filter(p => p.trim().length > 0);
+      const pauseMarkers = (scriptContent.match(/\[pause\]/g) || []).length;
 
-    // Calculate basic metrics
-    const wordCount = words.length;
-    const avgWordsPerSentence = wordCount / Math.max(sentences.length, 1);
-    const speakingPace = 150; // Average words per minute
-    const estimatedDuration = wordCount / speakingPace;
+      // Calculate basic metrics with safeguards
+      const wordCount = Math.max(words.length, 1);
+      const avgWordsPerSentence = wordCount / Math.max(sentences.length, 1);
+      const speakingPace = 150; // Average words per minute
+      const estimatedDuration = wordCount / speakingPace;
 
-    // Readability scoring
-    const fleschKincaidGrade = Math.max(0, 0.39 * avgWordsPerSentence + 11.8 * (syllableCount(scriptContent) / wordCount) - 15.59);
-    const fleschReadingEase = Math.max(0, 206.835 - 1.015 * avgWordsPerSentence - 84.6 * (syllableCount(scriptContent) / wordCount));
+      // Safe syllable counting
+      const totalSyllables = Math.max(syllableCount(scriptContent), wordCount * 0.5); // Fallback to half word count
 
-    let complexity: ScriptAnalysis['readability']['complexity'] = 'Average';
-    if (fleschKincaidGrade < 6) complexity = 'Simple';
-    else if (fleschKincaidGrade > 12) complexity = 'Complex';
-    else if (fleschKincaidGrade > 16) complexity = 'Very Complex';
+      // Readability scoring with bounds checking
+      const fleschKincaidGrade = Math.max(0, Math.min(20, 0.39 * avgWordsPerSentence + 11.8 * (totalSyllables / wordCount) - 15.59));
+      const fleschReadingEase = Math.max(0, Math.min(100, 206.835 - 1.015 * avgWordsPerSentence - 84.6 * (totalSyllables / wordCount)));
 
-    // Engagement scoring
-    const hooks = (scriptContent.match(/\b(imagine|picture this|what if|here's the thing)\b/gi) || []).length;
-    const questions = (scriptContent.match(/\?/g) || []).length;
-    const stories = (scriptContent.match(/\b(story|tale|example|case)\b/gi) || []).length;
-    const statistics = (scriptContent.match(/\b\d+(\.\d+)?%?\b/g) || []).length;
-    
-    const engagementScore = Math.min(100, (hooks * 10) + (questions * 5) + (stories * 8) + (statistics * 6));
+      let complexity: ScriptAnalysis['readability']['complexity'] = 'Average';
+      if (fleschKincaidGrade < 6) complexity = 'Simple';
+      else if (fleschKincaidGrade > 12) complexity = 'Complex';
+      else if (fleschKincaidGrade > 16) complexity = 'Very Complex';
 
-    // SEO analysis
-    const commonWords = extractKeywords(scriptContent);
-    const seoScore = Math.min(100, (commonWords.length * 5) + (wordCount > 1000 ? 20 : 0));
+      // Engagement scoring
+      const hooks = (scriptContent.match(/\b(imagine|picture this|what if|here's the thing)\b/gi) || []).length;
+      const questions = (scriptContent.match(/\?/g) || []).length;
+      const stories = (scriptContent.match(/\b(story|tale|example|case)\b/gi) || []).length;
+      const statistics = (scriptContent.match(/\b\d+(\.\d+)?%?\b/g) || []).length;
+      
+      const engagementScore = Math.min(100, (hooks * 10) + (questions * 5) + (stories * 8) + (statistics * 6));
 
-    // Generate suggestions
-    const suggestions: Suggestion[] = [];
-    
-    if (fleschKincaidGrade > 12) {
-      suggestions.push({
-        id: 'readability-complex',
-        type: 'style',
-        severity: 'medium',
-        message: 'Content may be too complex for general audience',
-        explanation: 'Consider breaking down complex sentences and using simpler vocabulary.'
-      });
+      // SEO analysis with error handling
+      const commonWords = extractKeywords(scriptContent);
+      const seoScore = Math.min(100, (commonWords.length * 5) + (wordCount > 1000 ? 20 : 0));
+
+      // Generate suggestions
+      const suggestions: Suggestion[] = [];
+      
+      if (fleschKincaidGrade > 12) {
+        suggestions.push({
+          id: 'readability-complex',
+          type: 'style',
+          severity: 'medium',
+          message: 'Content may be too complex for general audience',
+          explanation: 'Consider breaking down complex sentences and using simpler vocabulary.'
+        });
+      }
+
+      if (engagementScore < 30) {
+        suggestions.push({
+          id: 'engagement-low',
+          type: 'engagement',
+          severity: 'high',
+          message: 'Low engagement score - add more hooks, questions, or stories',
+          explanation: 'Engaging content includes rhetorical questions, relatable examples, and attention-grabbing phrases.'
+        });
+      }
+
+      if (estimatedDuration < 5) {
+        suggestions.push({
+          id: 'duration-short',
+          type: 'timing',
+          severity: 'low',
+          message: 'Script may be too short for a podcast episode',
+          explanation: 'Most podcast episodes are 15-60 minutes long. Consider expanding on key points.'
+        });
+      }
+
+      return {
+        readability: {
+          fleschKincaidGrade: Math.round(fleschKincaidGrade * 10) / 10,
+          fleschReadingEase: Math.round(fleschReadingEase),
+          complexity
+        },
+        engagement: {
+          score: engagementScore,
+          hooks,
+          questions,
+          stories,
+          statistics
+        },
+        timing: {
+          wordCount,
+          estimatedDuration: Math.round(estimatedDuration * 10) / 10,
+          speakingPace,
+          pauseCount: pauseMarkers
+        },
+        seo: {
+          score: seoScore,
+          keywords: commonWords.slice(0, 10),
+          titleSuggestions: generateTitleSuggestions(scriptContent),
+          descriptionSuggestion: generateDescription(scriptContent)
+        },
+        improvements: suggestions
+      };
+    } catch (error) {
+      console.error('Error in performScriptAnalysis:', error);
+      // Return a default analysis if something goes wrong
+      return {
+        readability: {
+          fleschKincaidGrade: 8,
+          fleschReadingEase: 60,
+          complexity: 'Average'
+        },
+        engagement: {
+          score: 50,
+          hooks: 0,
+          questions: 0,
+          stories: 0,
+          statistics: 0
+        },
+        timing: {
+          wordCount: scriptContent.split(/\s+/).length,
+          estimatedDuration: scriptContent.split(/\s+/).length / 150,
+          speakingPace: 150,
+          pauseCount: 0
+        },
+        seo: {
+          score: 40,
+          keywords: [],
+          titleSuggestions: ['Your Podcast Title'],
+          descriptionSuggestion: 'A great podcast episode.'
+        },
+        improvements: []
+      };
     }
-
-    if (engagementScore < 30) {
-      suggestions.push({
-        id: 'engagement-low',
-        type: 'engagement',
-        severity: 'high',
-        message: 'Low engagement score - add more hooks, questions, or stories',
-        explanation: 'Engaging content includes rhetorical questions, relatable examples, and attention-grabbing phrases.'
-      });
-    }
-
-    if (estimatedDuration < 5) {
-      suggestions.push({
-        id: 'duration-short',
-        type: 'timing',
-        severity: 'low',
-        message: 'Script may be too short for a podcast episode',
-        explanation: 'Most podcast episodes are 15-60 minutes long. Consider expanding on key points.'
-      });
-    }
-
-    return {
-      readability: {
-        fleschKincaidGrade: Math.round(fleschKincaidGrade * 10) / 10,
-        fleschReadingEase: Math.round(fleschReadingEase),
-        complexity
-      },
-      engagement: {
-        score: engagementScore,
-        hooks,
-        questions,
-        stories,
-        statistics
-      },
-      timing: {
-        wordCount,
-        estimatedDuration: Math.round(estimatedDuration * 10) / 10,
-        speakingPace,
-        pauseCount: pauseMarkers
-      },
-      seo: {
-        score: seoScore,
-        keywords: commonWords.slice(0, 10),
-        titleSuggestions: generateTitleSuggestions(scriptContent),
-        descriptionSuggestion: generateDescription(scriptContent)
-      },
-      improvements: suggestions
-    };
   };
 
   // Helper functions
   const syllableCount = (text: string): number => {
-    return text.toLowerCase().replace(/[^a-z]/g, '').replace(/[^aeiouy]+/g, ' ').trim().split(' ').length;
+    if (!text || text.length === 0) return 0;
+    
+    // Simple syllable counting - count vowel groups
+    const vowelMatches = text.toLowerCase().match(/[aeiouy]+/g);
+    return vowelMatches ? vowelMatches.length : 1;
   };
 
   const extractKeywords = (text: string): string[] => {
-    const words = text.toLowerCase().match(/\b[a-z]{3,}\b/g) || [];
+    if (!text || text.length === 0) return [];
+    
+    // Limit text processing for performance
+    const limitedText = text.length > 10000 ? text.substring(0, 10000) : text;
+    const words = limitedText.toLowerCase().match(/\b[a-z]{3,}\b/g) || [];
     const frequency: Record<string, number> = {};
     
+    // Common stop words to exclude
+    const stopWords = new Set(['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'her', 'was', 'one', 'our', 'had', 'day', 'get', 'has', 'him', 'how', 'its', 'may', 'new', 'now', 'old', 'see', 'two', 'way', 'who', 'boy', 'did', 'end', 'few', 'got', 'man', 'own', 'say', 'she', 'too', 'use']);
+    
     words.forEach(word => {
-      if (!['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'her', 'was', 'one', 'our', 'had', 'day'].includes(word)) {
+      if (!stopWords.has(word)) {
         frequency[word] = (frequency[word] || 0) + 1;
       }
     });
