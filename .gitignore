@@ -41,25 +41,31 @@ Context_summarized.md
 
 # Personal documentation (keep private)
 attached_assets/
-CHECKPOINT_*.md
-COMPREHENSIVE_*.md
-DOMAIN_AWARE_*.md
-PERFORMANCE_*.md
-RESEARCH_*.md
-CONTENT_ANALYSIS_*.md
-SAVE_PROGRESS_*.md
-context.md
-Context_summarized.md
-IMPROVEMENT_ROADMAP.md
+
+# Documentation files - exclude all .md files except README.md
+*.md
+!README.md
+
+# Previous specific exclusions (now covered by *.md pattern above)
+# CHECKPOINT_*.md
+# COMPREHENSIVE_*.md
+# DOMAIN_AWARE_*.md
+# PERFORMANCE_*.md
+# RESEARCH_*.md
+# CONTENT_ANALYSIS_*.md
+# SAVE_PROGRESS_*.md
+# context.md
+# Context_summarized.md
+# IMPROVEMENT_ROADMAP.md
 
 # Agent development context files (for AI assistant use only)
-context*.md
-Context*.md
-*context*.md
-*Context*.md
-WORKFLOW_IMPROVEMENTS*.md
-PHASE_2_UI_IMPROVEMENTS.md
-TESTING_CHECKLIST.md
+# context*.md
+# Context*.md
+# *context*.md
+# *Context*.md
+# WORKFLOW_IMPROVEMENTS*.md
+# PHASE_2_UI_IMPROVEMENTS.md
+# TESTING_CHECKLIST.md
 
 # IDE
 .vscode/
