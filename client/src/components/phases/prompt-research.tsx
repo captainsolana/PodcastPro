@@ -35,6 +35,32 @@ export default function PromptResearch({ project }: PromptResearchProps) {
   } = useProject(project.id);
   const { toast } = useToast();
 
+  // Maintain a local version history so previously generated research is still viewable
+  // Initialize with any persisted project.researchData
+  const [researchVersions, setResearchVersions] = useState<any[]>(
+    project.researchData ? [project.researchData] : []
+  );
+  const [activeResearchIndex, setActiveResearchIndex] = useState(0);
+
+  // When a fresh researchResult arrives, append as a new version if unique
+  useEffect(() => {
+    if (researchResult) {
+      setResearchVersions((prev) => {
+        const serialized = JSON.stringify(researchResult);
+        const exists = prev.some((v) => JSON.stringify(v) === serialized);
+        if (exists) return prev;
+        return [...prev, researchResult];
+      });
+    }
+  }, [researchResult]);
+
+  // Auto-focus newest version when added
+  useEffect(() => {
+    if (researchVersions.length > 0) {
+      setActiveResearchIndex(researchVersions.length - 1);
+    }
+  }, [researchVersions.length]);
+
   // Enhanced auto-save with draft + conflict support
   const autoSave = useAutoSave({
     data: { originalPrompt: prompt, refinedPrompt },
@@ -137,7 +163,8 @@ export default function PromptResearch({ project }: PromptResearchProps) {
   };
 
   const handleProceedToScript = async () => {
-    if (!refinedPrompt || !researchResult || !episodePlan) {
+  const currentResearch = researchResult || researchVersions[researchVersions.length - 1];
+  if (!refinedPrompt || !currentResearch || !episodePlan) {
       toast({
         title: "Error",
         description: "Please complete all steps including episode planning.",
@@ -152,7 +179,7 @@ export default function PromptResearch({ project }: PromptResearchProps) {
         updates: {
           phase: 2,
           refinedPrompt,
-          researchData: researchResult,
+      researchData: currentResearch,
           episodePlan: episodePlan,
           currentEpisode: 1,
         },
@@ -321,7 +348,8 @@ export default function PromptResearch({ project }: PromptResearchProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {!researchResult && !isResearching && (
+              {/* Show initial call-to-action ONLY if no stored versions exist */}
+              {researchVersions.length === 0 && !isResearching && (
                 <div className="text-center py-8">
                   <p className="text-muted-foreground mb-4">Ready to conduct deep research on your topic</p>
                   <Button 
@@ -361,54 +389,65 @@ export default function PromptResearch({ project }: PromptResearchProps) {
                 </div>
               )}
 
-              {researchResult && (
+              {researchVersions.length > 0 && (
                 <div className="stack-lg">
-                  {/* Success Message with Actions */}
-                  <div className="bg-success/10 p-4 rounded-lg border-l-4 border-success">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="heading-xs mb-2">Research Completed Successfully!</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Comprehensive research has been completed. Review the findings below.
-                        </p>
-                      </div>
-                      <Button 
-                        variant="outline"
-                        size="sm"
-                        onClick={handleConductResearch}
-                        disabled={isResearching}
-                        data-testid="button-redo-research"
-                      >
-                          <AppIcon name="rotate" className="w-4 h-4 mr-2" />
-                        Redo Research
-                      </Button>
+                  <div className="flex items-center justify-between bg-success/10 p-4 rounded-lg border-l-4 border-success">
+                    <div>
+                      <h4 className="heading-xs mb-1">Research Available</h4>
+                      <p className="text-xs text-muted-foreground">{researchVersions.length} version{researchVersions.length>1?"s":""} stored · Select to view or regenerate for updates.</p>
                     </div>
-                  </div>
-                  
-                  {/* Scrollable Research Viewer */}
-                  <ResearchViewer 
-                    researchResult={researchResult}
-                    className="mb-6"
-                  />
-
-                  {/* Next Step Button */}
-                  <div className="text-center py-4 border-t border-border">
-                    <p className="text-muted-foreground mb-4">Ready to plan your episode structure!</p>
                     <Button 
-                      onClick={() => setShowEpisodePlanner(true)}
-                      data-testid="button-plan-episodes"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleConductResearch}
+                      disabled={isResearching}
+                      data-testid="button-redo-research"
                     >
-                        <AppIcon name="calendar" className="w-4 h-4 mr-2" />
-                      Plan Episodes
+                        <AppIcon name="rotate" className="w-4 h-4 mr-2" />
+                      {isResearching?"Regenerating...":"Regenerate"}
                     </Button>
                   </div>
+
+                  {/* Version Switcher */}
+                  {researchVersions.length > 1 ? (
+                    <Tabs value={activeResearchIndex.toString()} onValueChange={(v)=>setActiveResearchIndex(Number(v))} className="w-full">
+                      <TabsList>
+                        {researchVersions.map((_,i)=>(
+                          <TabsTrigger key={i} value={i.toString()} className="text-xs">
+                            {(i+1)+"/"+researchVersions.length}
+                          </TabsTrigger>
+                        ))}
+                      </TabsList>
+                      {researchVersions.map((rv,i)=>(
+                        <TabsContent key={i} value={i.toString()} className="mt-4">
+                          <ResearchViewer researchResult={rv} className="mb-2" />
+                        </TabsContent>
+                      ))}
+                    </Tabs>
+                  ) : (
+                    <ResearchViewer researchResult={researchVersions[0]} className="mb-2" />
+                  )}
+
+                  {/* Next Step */}
+                  {!showEpisodePlanner && !episodePlan && (
+                    <div className="text-center py-4 border-t border-border">
+                      <p className="text-muted-foreground mb-4">Ready to plan your episode structure!</p>
+                      <Button 
+                        onClick={() => setShowEpisodePlanner(true)}
+                        data-testid="button-plan-episodes"
+                      >
+                          <AppIcon name="calendar" className="w-4 h-4 mr-2" />
+                        Plan Episodes
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
 
               {showEpisodePlanner && (
                 <EpisodePlanner
                   project={{...project, refinedPrompt}}
-                  researchResult={researchResult}
+                  researchResult={researchResult || researchVersions[activeResearchIndex]}
                   onPlanApproved={handleEpisodePlanApproved}
                 />
               )}
@@ -427,10 +466,22 @@ export default function PromptResearch({ project }: PromptResearchProps) {
                   </div>
 
                   {/* Research Viewer with scrollable content */}
-                  <ResearchViewer 
-                    researchResult={researchResult}
-                    className="mb-6"
-                  />
+                  {researchVersions.length > 1 ? (
+                    <Tabs value={activeResearchIndex.toString()} onValueChange={(v)=>setActiveResearchIndex(Number(v))} className="w-full mb-2">
+                      <TabsList>
+                        {researchVersions.map((_,i)=>(
+                          <TabsTrigger key={i} value={i.toString()} className="text-xs">{(i+1)+"/"+researchVersions.length}</TabsTrigger>
+                        ))}
+                      </TabsList>
+                      {researchVersions.map((rv,i)=>(
+                        <TabsContent key={i} value={i.toString()} className="mt-4">
+                          <ResearchViewer researchResult={rv} className="mb-2" />
+                        </TabsContent>
+                      ))}
+                    </Tabs>
+                  ) : (
+                    <ResearchViewer researchResult={researchVersions[0]} className="mb-2" />
+                  )}
 
                   {/* Proceed Button */}
                   <div className="pt-4 border-t border-border">
