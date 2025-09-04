@@ -11,6 +11,28 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       colors: {
+        // Modern design system colors
+        'bg-primary': 'var(--bg-primary)',
+        'bg-secondary': 'var(--bg-secondary)',
+        'bg-elevated': 'var(--bg-elevated)',
+        'bg-surface': 'var(--bg-surface)',
+        'bg-subtle': 'var(--bg-subtle)',
+        
+        'text-primary': 'var(--text-primary)',
+        'text-secondary': 'var(--text-secondary)',
+        'text-muted': 'var(--text-muted)',
+        'text-subtle': 'var(--text-subtle)',
+        'text-inverse': 'var(--text-inverse)',
+        
+        'accent-primary': 'var(--accent-primary)',
+        'accent-secondary': 'var(--accent-secondary)',
+        'accent-tertiary': 'var(--accent-tertiary)',
+        
+        'border-primary': 'var(--border-primary)',
+        'border-secondary': 'var(--border-secondary)',
+        'border-accent': 'var(--border-accent)',
+        
+        // Legacy shadcn colors (maintain compatibility)
         background: "var(--background)",
         foreground: "var(--foreground)",
         card: {
@@ -64,9 +86,31 @@ export default {
         },
       },
       fontFamily: {
-        sans: ["var(--font-sans)"],
+        display: ["var(--font-display)"],
+        sans: ["var(--font-body)"],
         serif: ["var(--font-serif)"],
         mono: ["var(--font-mono)"],
+      },
+      fontSize: {
+        'display-xl': 'var(--font-display-xl)',
+        'display-lg': 'var(--font-display-lg)',
+        'display-md': 'var(--font-display-md)',
+        'display-sm': 'var(--font-display-sm)',
+        'heading-xl': 'var(--font-heading-xl)',
+        'heading-lg': 'var(--font-heading-lg)',
+        'heading-md': 'var(--font-heading-md)',
+        'heading-sm': 'var(--font-heading-sm)',
+        'heading-xs': 'var(--font-heading-xs)',
+        'body-xl': 'var(--font-body-xl)',
+        'body-lg': 'var(--font-body-lg)',
+        'body-md': 'var(--font-body-md)',
+        'body-sm': 'var(--font-body-sm)',
+        'body-xs': 'var(--font-body-xs)',
+      },
+      boxShadow: {
+        'glow-primary': 'var(--glow-primary)',
+        'glow-secondary': 'var(--glow-secondary)',
+        'glow-success': 'var(--glow-success)',
       },
       keyframes: {
         "accordion-down": {

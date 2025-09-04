@@ -1,0 +1,329 @@
+/* =============================================
+ * PROFESSIONAL STUDIO DESIGN TOKENS
+ * ---------------------------------------------
+ * High-contrast, studio-grade professional theme
+ * with excellent readability and visual hierarchy
+ * ============================================= */
+
+/* Professional Studio Theme - High Contrast */
+:root {
+  /* Premium studio backgrounds */
+  --bg-primary: #fafafa;           /* Clean neutral white */
+  --bg-secondary: #f5f5f5;         /* Subtle gray background */
+  --bg-elevated: #ffffff;          /* Pure white surfaces */
+  --bg-surface: #ffffff;           /* Clean white cards */
+  --bg-subtle: #f9f9f9;           /* Very light gray */
+
+  /* Professional studio accent colors */
+  --accent-primary: #1a365d;       /* Deep professional blue */
+  --accent-secondary: #2c5aa0;     /* Medium professional blue */
+  --accent-tertiary: #0891b2;      /* Professional teal */
+  --accent-primary-hover: #153c5c;
+  --accent-secondary-hover: #264d87;
+  --accent-tertiary-hover: #0e7490;
+
+  /* High-contrast text for excellent readability */
+  --text-primary: #1a202c;         /* Very dark gray, almost black */
+  --text-secondary: #2d3748;       /* Dark gray */
+  --text-muted: #4a5568;           /* Medium gray */
+  --text-subtle: #718096;          /* Light gray */
+  --text-inverse: #ffffff;         /* White text */
+
+  /* Professional utility colors */
+  --success: #0f7b0f;              /* Professional green */
+  --warning: #d69e2e;              /* Professional amber */
+  --error: #c53030;                /* Professional red */
+  --info: #3182ce;                 /* Professional blue */
+
+  /* Clean surface layers with subtle depth */
+  --surface-elevated-1: #ffffff;
+  --surface-elevated-2: #f7fafc;
+  --surface-elevated-3: #edf2f7;
+  
+  /* Professional border system with clear definition */
+  --border-primary: #d1d5db;       /* Clear, visible borders */
+  --border-secondary: #e5e7eb;     /* Subtle borders */
+  --border-accent: rgba(26, 54, 93, 0.3);
+  
+  /* Professional shadows with depth */
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.15), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.15), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+  
+  /* Sophisticated glow effects */
+  --glow-primary: 0 0 0 3px rgba(26, 54, 93, 0.1);
+  --glow-secondary: 0 0 0 3px rgba(44, 90, 160, 0.1);
+  --glow-success: 0 0 0 3px rgba(15, 123, 15, 0.1);
+
+  /* Enhanced Typography Scale for Professional Studio */
+  /* Display typography - for hero sections */
+  --font-display-xl: clamp(3rem, 5vw, 4.5rem);
+  --font-display-lg: clamp(2.25rem, 4vw, 3rem);
+  --font-display-md: clamp(1.875rem, 3vw, 2.25rem);
+  --font-display-sm: clamp(1.5rem, 2.5vw, 1.875rem);
+
+  /* Heading hierarchy with excellent readability */
+  --font-heading-xl: clamp(1.75rem, 2.5vw, 2.25rem);
+  --font-heading-lg: clamp(1.5rem, 2vw, 1.875rem);
+  --font-heading-md: clamp(1.25rem, 1.5vw, 1.5rem);
+  --font-heading-sm: clamp(1.125rem, 1.25vw, 1.25rem);
+  --font-heading-xs: 1rem;
+
+  /* Body text with improved readability */
+  --font-body-xl: 1.25rem;
+  --font-body-lg: 1.125rem;
+  --font-body-md: 1rem;
+  --font-body-sm: 0.875rem;
+  --font-body-xs: 0.75rem;
+
+  /* Line heights optimized for readability */
+  --line-height-tight: 1.25;
+  --line-height-snug: 1.375;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.625;
+  --line-height-loose: 2;
+
+  /* Professional font families */
+  --font-display: 'Inter Display', 'SF Pro Display', system-ui, sans-serif;
+  --font-body: 'Inter', 'SF Pro Text', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
+
+  /* Font weights */
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+    --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
+  /* Professional Gradient System */
+  --gradient-primary: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+  --gradient-secondary: linear-gradient(135deg, var(--accent-secondary) 0%, var(--accent-tertiary) 100%);
+  --gradient-subtle: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-elevated) 100%);
+
+  /* Border Radius System */
+  --radius-none: 0;
+  --radius-xs: 0.125rem;    /* 2px */
+  --radius-sm: 0.25rem;     /* 4px */
+  --radius-md: 0.375rem;    /* 6px */
+  --radius-lg: 0.5rem;      /* 8px */
+  --radius-xl: 0.75rem;     /* 12px */
+  --radius-2xl: 1rem;       /* 16px */
+  --radius-3xl: 1.5rem;     /* 24px */
+  --radius-full: 9999px;
+}
+
+/* Enhanced Spacing Scale */
+:root {
+  /* Base spacing (4px system) */
+  --space-0: 0;
+  --space-0-5: 0.125rem;    /* 2px */
+  --space-1: 0.25rem;       /* 4px */
+  --space-1-5: 0.375rem;    /* 6px */
+  --space-2: 0.5rem;        /* 8px */
+  --space-2-5: 0.625rem;    /* 10px */
+  --space-3: 0.75rem;       /* 12px */
+  --space-3-5: 0.875rem;    /* 14px */
+  --space-4: 1rem;          /* 16px */
+  --space-5: 1.25rem;       /* 20px */
+  --space-6: 1.5rem;        /* 24px */
+  --space-7: 1.75rem;       /* 28px */
+  --space-8: 2rem;          /* 32px */
+  --space-9: 2.25rem;       /* 36px */
+  --space-10: 2.5rem;       /* 40px */
+  --space-11: 2.75rem;      /* 44px */
+  --space-12: 3rem;         /* 48px */
+  --space-14: 3.5rem;       /* 56px */
+  --space-16: 4rem;         /* 64px */
+  --space-20: 5rem;         /* 80px */
+  --space-24: 6rem;         /* 96px */
+  --space-32: 8rem;         /* 128px */
+  --space-40: 10rem;        /* 160px */
+  --space-48: 12rem;        /* 192px */
+  --space-56: 14rem;        /* 224px */
+  --space-64: 16rem;        /* 256px */
+}
+
+/* Enhanced Border Radius Scale */
+:root {
+  /* ========== DEFAULT LIGHT THEME ========== */
+  /* Clean professional backgrounds */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --bg-elevated: #ffffff;
+  --bg-surface: #f8fafc;
+  --bg-subtle: #f1f5f9;
+
+  /* Professional accent colors */
+  --accent-primary: #3b82f6;       /* Clean blue */
+  --accent-secondary: #6366f1;     /* Purple accent */
+  --accent-tertiary: #10b981;      /* Success green */
+  --accent-primary-hover: #2563eb;
+  --accent-secondary-hover: #4f46e5;
+  --accent-tertiary-hover: #059669;
+
+  /* Clear text hierarchy */
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --text-subtle: #94a3b8;
+  --text-inverse: #ffffff;
+
+  /* Clean utility colors */
+  --success: #059669;
+  --warning: #d97706;
+  --error: #dc2626;
+  --info: #0284c7;
+
+  /* Subtle surface layers */
+  --surface-elevated-1: #f8fafc;
+  --surface-elevated-2: #f1f5f9;
+  --surface-elevated-3: #e2e8f0;
+  
+  /* Clean border system */
+  --border-primary: #e2e8f0;
+  --border-secondary: #f1f5f9;
+  --border-accent: rgba(59, 130, 246, 0.2);
+  
+  /* Subtle shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  
+  /* Subtle glow effects */
+  --glow-primary: 0 0 0 1px rgba(59, 130, 246, 0.1);
+  --glow-secondary: 0 0 0 1px rgba(99, 102, 241, 0.1);
+  --glow-success: 0 0 0 1px rgba(16, 185, 129, 0.1);
+
+  /* ========== BORDER RADIUS ========== */
+  --radius-none: 0;
+  --radius-xs: 0.125rem;    /* 2px */
+  --radius-sm: 0.25rem;     /* 4px */
+  --radius-md: 0.375rem;    /* 6px */
+  --radius-lg: 0.5rem;      /* 8px */
+  --radius-xl: 0.75rem;     /* 12px */
+  --radius-2xl: 1rem;       /* 16px */
+  --radius-3xl: 1.5rem;     /* 24px */
+  --radius-full: 9999px;
+}
+
+/* Animation & Transition System */
+:root {
+  /* Easing curves */
+  --ease-linear: linear;
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --ease-elastic: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+  /* Duration scale */
+  --duration-75: 75ms;
+  --duration-100: 100ms;
+  --duration-150: 150ms;
+  --duration-200: 200ms;
+  --duration-300: 300ms;
+  --duration-500: 500ms;
+  --duration-700: 700ms;
+  --duration-1000: 1000ms;
+
+  /* Common transitions */
+  --transition-fast: all var(--duration-150) var(--ease-out);
+  --transition-base: all var(--duration-200) var(--ease-out);
+  --transition-slow: all var(--duration-300) var(--ease-out);
+  --transition-colors: color var(--duration-150) var(--ease-out), 
+                       background-color var(--duration-150) var(--ease-out), 
+                       border-color var(--duration-150) var(--ease-out);
+  --transition-transform: transform var(--duration-200) var(--ease-out);
+  --transition-opacity: opacity var(--duration-200) var(--ease-out);
+}
+
+/* Gradient System */
+:root {
+  /* Primary gradients */
+  --gradient-primary: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+  --gradient-primary-vertical: linear-gradient(180deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+  --gradient-secondary: linear-gradient(135deg, var(--accent-secondary) 0%, var(--accent-tertiary) 100%);
+  
+  /* Background gradients */
+  --gradient-bg-subtle: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  --gradient-bg-elevated: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-elevated) 100%);
+  
+  /* Overlay gradients */
+  --gradient-overlay-dark: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.4) 100%);
+  --gradient-overlay-light: linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.4) 100%);
+  
+  /* Accent overlays */
+  --gradient-accent-soft: linear-gradient(135deg, 
+    color-mix(in srgb, var(--accent-primary) 10%, transparent) 0%, 
+    color-mix(in srgb, var(--accent-secondary) 10%, transparent) 100%);
+}
+
+/* Component-Specific Design Tokens */
+:root {
+  /* Buttons */
+  --button-height-sm: var(--space-8);
+  --button-height-md: var(--space-10);
+  --button-height-lg: var(--space-12);
+  --button-padding-x-sm: var(--space-3);
+  --button-padding-x-md: var(--space-4);
+  --button-padding-x-lg: var(--space-6);
+
+  /* Cards */
+  --card-padding: var(--space-6);
+  --card-radius: var(--radius-xl);
+  --card-border: var(--border-primary);
+
+  /* Forms */
+  --input-height: var(--space-10);
+  --input-padding-x: var(--space-3);
+  --input-radius: var(--radius-lg);
+  --input-border: var(--border-primary);
+  --input-focus-ring: 0 0 0 2px var(--accent-primary);
+
+  /* Navigation */
+  --nav-height: var(--space-16);
+  --sidebar-width: 320px;
+  --sidebar-width-collapsed: var(--space-16);
+
+  /* Audio player specific */
+  --player-height: var(--space-20);
+  --waveform-height: var(--space-24);
+  --control-size: var(--space-12);
+}
+
+/* Accessibility & Focus States */
+:root {
+  --focus-ring-color: var(--accent-primary);
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --focus-ring: 0 0 0 var(--focus-ring-offset) var(--bg-primary), 
+                0 0 0 calc(var(--focus-ring-offset) + var(--focus-ring-width)) var(--focus-ring-color);
+  
+  /* High contrast mode */
+  --hc-border: 1px solid;
+  --hc-focus-ring: 3px solid var(--accent-primary);
+}
+
+/* Responsive Breakpoints */
+:root {
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+}
+
+/* Container System */
+:root {
+  --container-sm: 640px;
+  --container-md: 768px;
+  --container-lg: 1024px;
+  --container-xl: 1280px;
+  --container-2xl: 1400px;
+  --container-padding: var(--space-6);
+}

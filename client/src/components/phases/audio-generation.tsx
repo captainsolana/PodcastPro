@@ -9,6 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useRovingTabs } from "@/hooks/use-roving-tabs";
 import WaveformVisualizer from "@/components/audio/waveform-visualizer";
 import EnhancedAudioPlayer from "@/components/audio/enhanced-audio-player";
+import ModernAudioPlayer from "@/components/modern/modern-audio-player";
+import ModernPhaseCard from "@/components/modern/modern-phase-card";
 import AdvancedVoiceCustomization, { type AdvancedVoiceSettings } from "@/components/audio/advanced-voice-customization";
 import AudioPreviewModal from "@/components/audio/audio-preview-modal";
 import { useProject } from "@/hooks/use-project";
@@ -535,7 +537,7 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
       <div className="border-b border-border bg-card/50 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <AppIcon name="fileAudio" className="w-5 h-5 text-primary" />
+            <AppIcon name="fileAudio" className="w-5 h-5 text-text-primary" />
             <h2 className="text-lg font-semibold">Audio Generation</h2>
             <AutoSaveIndicator 
               status={voiceAutoSave.status}
@@ -597,7 +599,7 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
                         relative w-10 h-10 p-0 rounded-full 
                         ${isCompleted ? "ring-2 ring-green-500 ring-offset-1" : ""}
                         ${isCurrentEpisode ? "ring-2 ring-primary ring-offset-1" : ""}
-                        ${hasAudio ? "bg-blue-100 text-blue-700" : ""}
+                        ${hasAudio ? "bg-green-100 text-green-800" : ""}
                       `}
                       onClick={() => !isCurrentEpisode && handleEpisodeChange(episode.episodeNumber)}
                       disabled={isGeneratingAudio}
@@ -610,7 +612,7 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
                         </div>
                       )}
                       {hasAudio && (
-                        <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
+                        <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
                           <span className="text-white text-xs">♪</span>
                         </div>
                       )}
@@ -658,25 +660,14 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
       <div className="flex-1 p-6">
   <div className="max-w-7xl mx-auto stack-lg">
           {/* Enhanced Audio Generation with Tabs */}
-          <Card data-elevation-tier={1} className="interactive">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <AppIcon name="headphones" className="w-5 h-5" />
-                  <span>Enhanced Audio Production</span>
-                  {isMultiEpisode && (
-                    <span className="text-sm text-muted-foreground">- Episode {currentEpisode}</span>
-                  )}
-                </div>
-                {audioUrl && (
-                  <Badge variant="success">
-                    <AppIcon name="success" className="w-3 h-3 mr-1" />
-                    Audio Ready
-                  </Badge>
-                )}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+          <ModernPhaseCard
+            title="Enhanced Audio Production"
+            phase={3}
+            currentPhase={project.phase}
+            icon="headphones"
+            className="interactive"
+            badge={audioUrl ? "Audio Ready" : undefined}
+          >
               <Tabs value={activeTab} onValueChange={setActiveTab} className="stack-lg">
                 {(() => { const { containerRef } = useRovingTabs([activeTab]); return (
                 <TabsList ref={containerRef as any} className="grid w-full grid-cols-3 gap-0" role="tablist" aria-label="Audio production views">
@@ -818,13 +809,13 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
 
                   {audioUrl && (
                     <div className="space-y-6">
-                      <EnhancedAudioPlayer
+                      <ModernAudioPlayer
                         audioUrl={audioUrl}
                         title={isMultiEpisode 
                           ? `${project.title} - Episode ${currentEpisode}` 
                           : (project.title || "Podcast Episode")
                         }
-                        transcript={getCurrentEpisodeScript() || undefined}
+                        className="w-full"
                       />
                       {segments.length > 1 && (
                         <Card data-elevation-tier={1} className="interactive">
@@ -875,8 +866,7 @@ export default function AudioGeneration({ project }: AudioGenerationProps) {
                   )}
                 </TabsContent>
               </Tabs>
-            </CardContent>
-          </Card>
+          </ModernPhaseCard>
         </div>
       </div>
 

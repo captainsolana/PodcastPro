@@ -37,7 +37,7 @@ export function ResearchViewer({ researchResult, className }: ResearchViewerProp
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <AppIcon name="file" className="w-5 h-5 text-primary" />
+            <AppIcon name="file" className="w-5 h-5 text-text-primary" />
             <CardTitle className="heading-sm">Research Results</CardTitle>
             <Badge variant="soft" className="text-xs">
               {researchResult.keyPoints?.length || 0} key points
@@ -120,12 +120,12 @@ export function ResearchViewer({ researchResult, className }: ResearchViewerProp
                   <div>
                     <Separator className="my-3" />
                     <h4 className="heading-xs mb-2 flex items-center">
-                      <AppIcon name="stats" className="w-4 h-4 mr-2 text-primary" />
+                      <AppIcon name="stats" className="w-4 h-4 mr-2 text-text-primary" />
                       Key Statistics
                     </h4>
                     <div className="space-y-2">
                       {researchResult.statistics.slice(0, isExpanded ? undefined : 2).map((stat: any, index: number) => (
-                        <div key={index} className="bg-accent/10 p-3 rounded-lg">
+                        <div key={index} className="bg-gray-50 border border-gray-200 p-3 rounded-lg">
                           <p className="text-sm font-medium text-foreground break-words overflow-wrap-anywhere">{stat.fact}</p>
                           <p className="text-xs text-muted-foreground mt-1">Source: {stat.source}</p>
                         </div>
@@ -146,13 +146,13 @@ export function ResearchViewer({ researchResult, className }: ResearchViewerProp
                 {/* Full Key Points */}
                 <div>
                   <h4 className="heading-xs mb-3 flex items-center">
-                    <AppIcon name="list" className="w-4 h-4 mr-2 text-primary" />
+                    <AppIcon name="list" className="w-4 h-4 mr-2 text-text-primary" />
                     All Key Points ({researchResult.keyPoints?.length || 0})
                   </h4>
                   <div className="space-y-2">
                     {researchResult.keyPoints?.map((point: string, index: number) => (
                       <div key={index} className="flex items-start space-x-3">
-                        <div className="w-6 h-6 bg-primary/10 text-primary rounded-full flex items-center justify-center text-xs font-medium mt-0.5">
+                        <div className="w-6 h-6 bg-gray-100 border border-gray-300 text-gray-700 rounded-full flex items-center justify-center text-xs font-medium mt-0.5">
                           {index + 1}
                         </div>
                         <p className="text-sm text-foreground leading-relaxed break-words overflow-wrap-anywhere">{point}</p>
@@ -167,12 +167,12 @@ export function ResearchViewer({ researchResult, className }: ResearchViewerProp
                     <Separator />
                     <div>
                       <h4 className="heading-xs mb-3 flex items-center">
-                        <AppIcon name="stats" className="w-4 h-4 mr-2 text-primary" />
+                        <AppIcon name="stats" className="w-4 h-4 mr-2 text-text-primary" />
                         All Statistics ({researchResult.statistics.length})
                       </h4>
                       <div className="space-y-3">
                         {researchResult.statistics.map((stat: any, index: number) => (
-                          <div key={index} className="bg-accent/10 p-4 rounded-lg border-l-4 border-primary">
+                          <div key={index} className="bg-gray-50 border border-gray-200 p-4 rounded-lg border-l-4 border-l-blue-500">
                             <p className="text-sm font-medium text-foreground break-words overflow-wrap-anywhere">{stat.fact}</p>
                             <p className="text-xs text-muted-foreground mt-2">Source: {stat.source}</p>
                           </div>
@@ -188,12 +188,12 @@ export function ResearchViewer({ researchResult, className }: ResearchViewerProp
                     <Separator />
                     <div>
                       <h4 className="heading-xs mb-3 flex items-center">
-                        <AppIcon name="file" className="w-4 h-4 mr-2 text-primary" />
+                        <AppIcon name="file" className="w-4 h-4 mr-2 text-text-primary" />
                         Suggested Episode Outline
                       </h4>
                       <div className="space-y-2">
                         {researchResult.outline.map((item: string, index: number) => (
-                          <div key={index} className="flex items-center space-x-3 p-2 rounded-lg hover:bg-accent/5 transition-colors">
+                          <div key={index} className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors">
                             <div className="w-6 h-6 bg-secondary text-secondary-foreground rounded-full flex items-center justify-center text-xs font-medium">
                               {index + 1}
                             </div>
@@ -211,7 +211,7 @@ export function ResearchViewer({ researchResult, className }: ResearchViewerProp
               <div className="space-y-4">
                 <div>
                       <h4 className="heading-xs mb-3 flex items-center">
-                    <AppIcon name="external" className="w-4 h-4 mr-2 text-primary" />
+                    <AppIcon name="external" className="w-4 h-4 mr-2 text-text-primary" />
                     Full Research Content
                   </h4>
                   <div className="space-y-3">

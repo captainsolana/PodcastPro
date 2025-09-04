@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import EpisodePlanner from "./episode-planner";
 import { ResearchViewer } from "@/components/ui/research-viewer";
 import { AppIcon } from "@/components/ui/icon-registry";
+import ModernPhaseCard from "@/components/modern/modern-phase-card";
 import type { Project } from "@shared/schema";
 
 interface PromptResearchProps {
@@ -204,7 +205,7 @@ export default function PromptResearch({ project }: PromptResearchProps) {
       <div className="border-b bg-muted/50 px-6 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <AppIcon name="file" className="w-5 h-5 text-primary" />
+            <AppIcon name="file" className="w-5 h-5 text-text-primary" />
             <h2 className="heading-md">Prompt & Research</h2>
             <AutoSaveIndicator 
               status={autoSave.status} 
@@ -243,14 +244,13 @@ export default function PromptResearch({ project }: PromptResearchProps) {
       <div className="flex-1 p-6">
   <div className="max-w-4xl mx-auto stack-lg">
           {/* Original Prompt */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-                <AppIcon name="file" className="w-5 h-5" />
-              <span>Original Idea</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <ModernPhaseCard
+          title="Prompt & Research"
+          phase={1}
+          currentPhase={project.phase}
+          icon="file"
+          className="w-full"
+        >
             <Textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
@@ -291,8 +291,7 @@ export default function PromptResearch({ project }: PromptResearchProps) {
                 </Button>
               )}
             </div>
-          </CardContent>
-        </Card>
+        </ModernPhaseCard>
 
         {/* Refined Prompt */}
         {(refinedPrompt || refinePromptResult) && (

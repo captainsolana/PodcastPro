@@ -1,7 +1,7 @@
 import { useParams } from "wouter";
 import { useState } from "react";
 import { useProject } from "@/hooks/use-project";
-import Sidebar from "@/components/layout/sidebar";
+import ModernSidebar from "@/components/modern/modern-sidebar";
 import Header from "@/components/layout/header";
 import PromptResearch from "@/components/phases/prompt-research";
 import ScriptGeneration from "@/components/phases/script-generation";
@@ -110,19 +110,34 @@ export default function Project() {
   return (
     <LiveStatusProvider>
       <PreferencesProvider>
-      <div className="min-h-screen flex bg-[var(--semantic-bg)] text-[var(--semantic-text-primary)]">
+      <div className="min-h-screen flex flex-col lg:flex-row bg-[var(--semantic-bg)] text-[var(--semantic-text-primary)]">
         <SkipLink />
         <ShortcutHelp />
-        <Sidebar project={project} onPhaseChange={handlePhaseChange} />
-        <div className="flex-1 flex flex-col" id="main-content" tabIndex={-1}>
+        
+        {/* Sidebar - Responsive */}
+        <div className="lg:flex-shrink-0">
+          <ModernSidebar project={project} onPhaseChange={handlePhaseChange} />
+        </div>
+        
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col min-w-0" id="main-content" tabIndex={-1}>
           <nav className="sr-only" aria-label="In-page skip links">
             <a href="#script-editor" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-primary text-primary-foreground px-3 py-1 rounded">Skip to Script Editor</a>
             <a href="#script-analytics-heading" className="sr-only focus:not-sr-only focus:absolute focus:top-10 focus:left-2 bg-primary text-primary-foreground px-3 py-1 rounded">Skip to Analytics Summary</a>
           </nav>
-          <div className="flex-1 flex flex-col w-full max-w-6xl mx-auto self-stretch">
+          
+          {/* Content Container with max-width and proper overflow */}
+          <div className="flex-1 flex flex-col w-full max-w-6xl mx-auto self-stretch overflow-hidden">
             <Header project={project} onPhaseChange={handlePhaseChange} />
-            {renderPhaseContent()}
-            {/* Mini Progress Footer (persistent insight) */}
+            
+            {/* Phase Content - Prevent overlap */}
+            <main className="flex-1 overflow-y-auto">
+              <div className="min-h-0"> {/* Critical for proper flex behavior */}
+                {renderPhaseContent()}
+              </div>
+            </main>
+            
+            {/* Mini Progress Footer - Mobile responsive */}
             {(() => {
               const episodePlan = (project as any).episodePlan;
               if (!episodePlan?.isMultiEpisode) return null;
@@ -135,16 +150,25 @@ export default function Project() {
               const audioReady = Object.keys(episodeAudioUrls).length;
               const percent = Math.round((completed / total) * 100);
               return (
-                <div className="mt-2 border-t border-border/60 bg-card/70 backdrop-blur-sm px-4 py-2 text-xs flex items-center gap-4 overflow-x-auto" aria-label="Batch progress summary">
-                  <div className="flex items-center gap-2"><span className="font-medium">Episodes:</span><span>{completed}/{total} done</span></div>
-                  <div className="flex items-center gap-2"><span className="font-medium">Scripts:</span><span>{scriptsReady}/{total}</span></div>
-                  <div className="flex items-center gap-2"><span className="font-medium">Audio:</span><span>{audioReady}/{total}</span></div>
-                  <div className="flex items-center gap-2 min-w-[140px]">
+                <div className="border-t border-border/60 bg-card/70 backdrop-blur-sm px-3 sm:px-4 py-2 text-[10px] sm:text-xs flex flex-wrap items-center gap-2 sm:gap-4 overflow-x-auto" aria-label="Batch progress summary">
+                  <div className="flex items-center gap-1 sm:gap-2 whitespace-nowrap">
+                    <span className="font-medium">Episodes:</span>
+                    <span>{completed}/{total}</span>
+                  </div>
+                  <div className="flex items-center gap-1 sm:gap-2 whitespace-nowrap">
+                    <span className="font-medium">Scripts:</span>
+                    <span>{scriptsReady}/{total}</span>
+                  </div>
+                  <div className="flex items-center gap-1 sm:gap-2 whitespace-nowrap">
+                    <span className="font-medium">Audio:</span>
+                    <span>{audioReady}/{total}</span>
+                  </div>
+                  <div className="flex items-center gap-1 sm:gap-2 min-w-[100px] sm:min-w-[140px] flex-1">
                     <span className="font-medium">Overall:</span>
-                    <div className="h-2 flex-1 bg-[var(--semantic-inset)] rounded overflow-hidden relative">
+                    <div className="h-1.5 sm:h-2 flex-1 bg-[var(--semantic-inset)] rounded overflow-hidden relative min-w-[60px]">
                       <div className="h-full bg-[var(--semantic-accent)] transition-all duration-[var(--motion-duration-md)] ease-[var(--motion-ease-standard)]" style={{ width: percent + '%' }} />
                     </div>
-                    <span>{percent}%</span>
+                    <span className="text-[9px] sm:text-[10px]">{percent}%</span>
                   </div>
                 </div>
               );

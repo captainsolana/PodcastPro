@@ -1,7 +1,7 @@
 {
   "typescript.preferences.includePackageJsonAutoImports": "auto",
   "editor.codeActionsOnSave": {
-    "source.fixAll": true
+    "source.fixAll": "explicit"
   },
   "files.associations": {
     "*.env*": "dotenv"

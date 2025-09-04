@@ -20,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AppIcon } from "@/components/ui/icon-registry";
 import { ScriptAnalytics } from '@/components/script/script-analytics';
 import { EmptyState } from "@/components/ui/empty-state";
+import ModernPhaseCard from "@/components/modern/modern-phase-card";
 import type { Project } from "@shared/schema";
 
 interface ScriptGenerationProps {
@@ -238,17 +239,17 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
     const baseCls = "text-xs flex items-center gap-1 rounded px-2 py-1 border transition-colors";
     switch (status) {
       case 'saving':
-        return <div className={`${baseCls} border-accent-subtle text-blue-600 dark:text-blue-400 bg-accent-surface`}>Saving…</div>;
+        return <div className={`${baseCls} border-blue-300 text-blue-800 bg-blue-50`}>Saving…</div>;
       case 'saved':
-        return <div className={`${baseCls} border-accent-subtle text-emerald-600 dark:text-emerald-400 bg-surface-success`}>Saved</div>;
+        return <div className={`${baseCls} border-green-300 text-green-800 bg-green-50`}>Saved</div>;
       case 'error':
-        return <div className={`${baseCls} border border-red-400 text-red-600 bg-surface-critical`}>Save failed</div>;
+        return <div className={`${baseCls} border border-red-300 text-red-800 bg-red-50`}>Save failed</div>;
       case 'conflict':
-        return <div className={`${baseCls} border border-amber-400 text-amber-700 bg-surface-warning`}>Conflict</div>;
+        return <div className={`${baseCls} border border-amber-300 text-amber-800 bg-amber-50`}>Conflict</div>;
       case 'draft':
-        return <div className={`${baseCls} border-accent-subtle text-indigo-600 dark:text-indigo-400 bg-surface-info`}>Recovered Draft</div>;
+        return <div className={`${baseCls} border-indigo-300 text-indigo-800 bg-indigo-50`}>Recovered Draft</div>;
       case 'dirty':
-        return <div className={`${baseCls} border-accent-subtle text-muted-foreground bg-accent-surface`}>Unsaved</div>;
+        return <div className={`${baseCls} border-gray-300 text-gray-700 bg-gray-50`}>Unsaved</div>;
       default:
         return <div className={`${baseCls} border-transparent text-muted-foreground`}>{autoSave.isSaving ? 'Saving…' : 'Idle'}</div>;
     }
@@ -751,7 +752,7 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
       <div className="border-b border-border bg-card/50 px-6 py-4 shrink-0">
   <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center space-x-2">
-            <AppIcon name="file" className="w-5 h-5 text-primary" />
+            <AppIcon name="file" className="w-5 h-5 text-text-primary" />
             <h2 className="text-lg font-semibold">Script Generation</h2>
             <div className="ml-2 flex items-center gap-2">
               {autoSave.isSaving && (
@@ -884,7 +885,13 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
   <div className="flex-1 flex flex-col" aria-busy={isGeneratingScript || isGeneratingEpisodeScript || isGeneratingSuggestions || showBatchModal ? 'true' : undefined}>
         {/* Content Tabs */}
         <div className="flex-1 flex min-h-0">
-          <div className="flex-1 flex flex-col">
+          <ModernPhaseCard
+            title="Script Generation"
+            phase={2}
+            currentPhase={project.phase}
+            icon="file"
+            className="flex-1 flex flex-col"
+          >
             <Tabs defaultValue="editor" className="flex-1 flex flex-col">
               <div className="border-b border-border bg-card px-6">
                 <TabsList className="h-auto p-0 bg-transparent">
@@ -1034,7 +1041,7 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
                                   <div className="flex items-center space-x-2">
                                     {hasScript && <div className="text-xs text-[var(--semantic-success)] bg-[var(--semantic-success)]/15 px-2 py-1 rounded">Script Ready</div>}
                                     {episode.status === "completed" && <div className="text-xs text-[var(--semantic-success)]">✓ Complete</div>}
-                                    {isCurrentEpisode && <div className="text-xs text-primary bg-primary/10 px-2 py-1 rounded">Current</div>}
+                                    {isCurrentEpisode && <div className="text-xs text-white bg-blue-600 px-2 py-1 rounded">Current</div>}
                                   </div>
                                 </div>
                               </CardHeader>
@@ -1240,9 +1247,7 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
                 onApplySuggestion={handleApplySuggestion}
                 isGeneratingSuggestions={isGeneratingSuggestions}
               />
-            </div>
-            </div>
-          </div>
+          </ModernPhaseCard>
         </div>
         {/* Phase 6 Analytics Sidebar */}
         {scriptAnalysis && (
@@ -1253,6 +1258,8 @@ export default function ScriptGeneration({ project }: ScriptGenerationProps) {
           ]} />
         )}
       </div>
-      </div>
+    </div>
+  </div>
+    </div>
   );
 }

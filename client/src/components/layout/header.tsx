@@ -135,127 +135,164 @@ export default function Header({ project, onPhaseChange }: HeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-50 glass-surface depth-floating border-b border-[color-mix(in_srgb,var(--semantic-border)_55%,transparent)] min-h-[68px]">
-      <div className="px-5 py-3 w-full max-w-7xl mx-auto">
-        {/* Breadcrumb Navigation */}
-        <BreadcrumbNav 
-          items={getBreadcrumbItems()}
-          onBack={() => setLocation("/")}
-          className="mb-2"
-        />
+    <header className="sticky top-0 z-50 glass-surface depth-floating border-b border-[color-mix(in_srgb,var(--semantic-border)_55%,transparent)]">
+      <div className="px-3 sm:px-5 py-2 sm:py-3 w-full max-w-7xl mx-auto">
+        {/* Mobile-First Breadcrumb Navigation */}
+        <div className="flex items-center justify-between mb-2">
+          <BreadcrumbNav 
+            items={getBreadcrumbItems()}
+            onBack={() => setLocation("/")}
+            className="min-w-0 flex-1"
+          />
+          {/* Mobile Actions */}
+          <div className="flex items-center gap-1 lg:hidden">
+            <ThemeToggle />
+            <Button aria-label="Show keyboard shortcuts" variant="ghost" size="icon" onClick={openShortcutHelp} className="w-8 h-8">
+              <AppIcon name="keyboard" className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
         
-        {/* Phase Navigation (Refined) */}
-  <div className="flex items-center justify-between mb-1 h-10">
-          <nav aria-label="Workflow phases" className="flex items-center gap-1 md:gap-2">
+        {/* Responsive Phase Navigation */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+          <nav aria-label="Workflow phases" className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
             {phases.map(p => {
               const isActive = p.number === project.phase;
               const isCompleted = p.number < project.phase;
-              const canNavigate = p.number <= project.phase; // forward gating handled outside for future rules
+              const canNavigate = p.number <= project.phase;
               return (
                 <button
                   key={p.number}
                   disabled={!canNavigate}
                   onClick={() => onPhaseChange && onPhaseChange(p.number)}
-                  className={`group relative px-3 md:px-3.5 py-1.5 rounded-md text-sm font-medium h-9 inline-flex items-center transition-colors
-                    ${isActive ? 'text-[var(--semantic-accent)]' : isCompleted ? 'text-[var(--semantic-text-secondary)] hover:text-[var(--semantic-accent)]' : 'text-[var(--semantic-text-muted)] hover:text-[var(--semantic-text-secondary)]'}
+                  className={`group relative px-2 sm:px-3 py-1.5 rounded-lg text-sm font-medium min-h-[36px] inline-flex items-center transition-all whitespace-nowrap
+                    ${isActive ? 'text-[var(--semantic-accent)] bg-[var(--semantic-accent)]/10' : 
+                      isCompleted ? 'text-[var(--semantic-text-secondary)] hover:text-[var(--semantic-accent)] hover:bg-[var(--semantic-accent)]/5' : 
+                      'text-[var(--semantic-text-muted)] hover:text-[var(--semantic-text-secondary)]'}
                     ${!canNavigate ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                   `}
                 >
-                  <span className="flex items-center gap-2">
-                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-semibold border
-                      ${isActive ? 'border-[var(--semantic-accent)] text-[var(--semantic-accent)]' : isCompleted ? 'border-[var(--semantic-success)] text-[var(--semantic-success)]' : 'border-[var(--semantic-border-strong)] text-[var(--semantic-text-muted)]'}`}> 
-                      {isCompleted ? <AppIcon name="success" className="w-3.5 h-3.5" /> : p.number}
+                  <span className="flex items-center gap-1.5">
+                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-semibold border transition-colors
+                      ${isActive ? 'border-[var(--semantic-accent)] text-[var(--semantic-accent)] bg-white' : 
+                        isCompleted ? 'border-[var(--semantic-success)] text-[var(--semantic-success)] bg-green-50' : 
+                        'border-[var(--semantic-border-strong)] text-[var(--semantic-text-muted)] bg-gray-50'}`}> 
+                      {isCompleted ? <AppIcon name="success" className="w-3 h-3" /> : p.number}
                     </span>
-                    <span className="hidden sm:inline-block">{p.title}</span>
+                    <span className="text-xs sm:text-sm">{p.title}</span>
                   </span>
                   {isActive && (
-                    <span className="absolute inset-x-2 -bottom-px h-[3px] rounded-full bg-[var(--semantic-accent)] shadow-[0_0_0_1px_rgba(59,130,246,0.4)]" />
+                    <span className="absolute inset-x-1 -bottom-0.5 h-0.5 rounded-full bg-[var(--semantic-accent)]" />
                   )}
                 </button>
               );
             })}
           </nav>
-          <div className="hidden md:flex items-center gap-3 text-[11px] md:text-[12px] text-[var(--semantic-text-muted)]/90 tracking-tight h-9">
-            <div className="flex items-center gap-1"><AppIcon name="pending" className="w-4 h-4" /><span>Phase {project.phase}/3</span></div>
-            <div className="flex items-center gap-1"><AppIcon name="calendar" className="w-4 h-4" /><span>Updated {new Date(project.updatedAt || '').toLocaleDateString()}</span></div>
+          
+          {/* Phase Info - Responsive */}
+          <div className="flex items-center gap-3 text-[10px] sm:text-[11px] text-[var(--semantic-text-muted)] overflow-x-auto">
+            <div className="flex items-center gap-1 whitespace-nowrap">
+              <AppIcon name="pending" className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span>Phase {project.phase}/3</span>
+            </div>
+            <div className="hidden sm:flex items-center gap-1 whitespace-nowrap">
+              <AppIcon name="calendar" className="w-4 h-4" />
+              <span>Updated {new Date(project.updatedAt || '').toLocaleDateString()}</span>
+            </div>
           </div>
         </div>
         
-        {/* Main Header Content */}
-  <div className="flex items-center justify-between h-10">
+        {/* Project Title & Actions */}
+        <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-semibold mb-0 truncate tracking-tight leading-tight gradient-accent-text">
+            <h1 className="text-lg sm:text-xl font-semibold mb-1 truncate tracking-tight leading-tight gradient-accent-text">
               {project.title}
             </h1>
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-2 text-sm">
-                <span className="px-2 py-1 rounded-md glass-surface text-[var(--semantic-text-secondary)] border border-[var(--glass-border)] shadow-sm">
-                  {getPhaseTitle()}
-                </span>
-                <span className="hidden md:inline-block text-xs text-[var(--semantic-text-muted)] max-w-md truncate">
-                  {getPhaseDescription()}
-                </span>
-              </div>
-              <span className="text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-[var(--semantic-inset)] border border-[var(--semantic-border)]/70 text-[var(--semantic-text-muted)]/90 font-medium">Workflow</span>
+              <span className="px-2 py-1 rounded-md glass-surface text-[var(--semantic-text-secondary)] border border-[var(--glass-border)] shadow-sm text-xs sm:text-sm">
+                {getPhaseTitle()}
+              </span>
+              <span className="hidden lg:inline-block text-xs text-[var(--semantic-text-muted)] max-w-md truncate">
+                {getPhaseDescription()}
+              </span>
+              <span className="text-[8px] sm:text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-[var(--semantic-inset)] border border-[var(--semantic-border)]/70 text-[var(--semantic-text-muted)]/90 font-medium">
+                Workflow
+              </span>
             </div>
           </div>
           
-          <div className="flex items-center space-x-2 h-10">
-            <ThemeToggle />
-            <Button aria-label="Toggle high contrast mode" variant="ghost" size="icon" onClick={toggleHighContrast} className="w-8 h-8" title="High Contrast Mode">
-              <AppIcon name="contrast" className="w-4 h-4" />
-            </Button>
-            <Button aria-label="Show keyboard shortcuts" variant="ghost" size="icon" onClick={openShortcutHelp} className="w-8 h-8" title="Keyboard Shortcuts">
-              <AppIcon name="keyboard" className="w-4 h-4" />
-            </Button>
-            <PersonalizationPanel />
-            <ThemePackSelector />
-            <div className="flex items-center gap-2">
-              {!isOnline && (
-                <span className="px-2 py-1 text-[10px] rounded bg-[var(--warning-surface)] text-[var(--semantic-warning)] border border-[var(--semantic-warning)]/40">Offline</span>
-              )}
-              {queueSize > 0 && (
-                <span className="px-2 py-1 text-[10px] rounded bg-[var(--info-surface)] text-[var(--semantic-info)] border border-[var(--semantic-info)]/40" title="Queued changes will sync when online">{queueSize} Pending</span>
+          {/* Action Buttons - Responsive */}
+          <div className="flex items-center gap-1 sm:gap-2">
+            {/* Primary Actions */}
+            <div className="flex items-center gap-1">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleSaveProgress}
+                disabled={isSaving}
+                data-testid="button-save-progress"
+                className="text-xs sm:text-sm h-8 sm:h-9"
+              >
+                {isSaving ? (
+                  <LoadingState 
+                    isLoading={true}
+                    loadingText="Saving..."
+                    size="sm"
+                  />
+                ) : (
+                  <>
+                    <AppIcon name="save" className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                    <span className="hidden sm:inline">Save</span>
+                  </>
+                )}
+              </Button>
+              
+              {project.phase >= 2 && (
+                <Button 
+                  variant={project.phase === 3 ? "outline" : "default"}
+                  size="sm"
+                  onClick={() => {
+                    if (onPhaseChange) {
+                      onPhaseChange(3);
+                    } else {
+                      updateProject({ id: project.id, updates: { phase: 3 } });
+                    }
+                  }}
+                  data-testid="button-navigate-to-audio"
+                  className={`text-xs sm:text-sm h-8 sm:h-9 ${project.phase === 3 ? "" : "bg-[var(--semantic-accent)] hover:bg-[var(--semantic-accent-hover)]"}`}
+                >
+                  <AppIcon name="play" className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                  <span className="hidden sm:inline">{project.phase === 3 ? "Audio" : "Audio Generation"}</span>
+                </Button>
               )}
             </div>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={handleSaveProgress}
-              disabled={isSaving}
-              data-testid="button-save-progress"
-            >
-              {isSaving ? (
-                <LoadingState 
-                  isLoading={true}
-                  loadingText="Saving..."
-                  size="sm"
-                />
-              ) : (
-                <>
-                  <AppIcon name="save" className="w-4 h-4 mr-2" />
-                  Save Progress
-                </>
-              )}
-            </Button>
-            {project.phase >= 2 && (
-              <Button 
-                variant={project.phase === 3 ? "outline" : "default"}
-                size="sm"
-                onClick={() => {
-                  if (onPhaseChange) {
-                    onPhaseChange(3);
-                  } else {
-                    updateProject({ id: project.id, updates: { phase: 3 } });
-                  }
-                }}
-                data-testid="button-navigate-to-audio"
-                className={project.phase === 3 ? "" : "bg-[var(--semantic-accent)] hover:bg-[var(--semantic-accent-hover)]"}
-              >
-                <AppIcon name="play" className="w-4 h-4 mr-2" />
-                {project.phase === 3 ? "Audio Generation" : "Go to Audio Generation"}
+
+            {/* Secondary Actions - Collapsible */}
+            <div className="hidden lg:flex items-center gap-1">
+              <ThemeToggle />
+              <Button aria-label="Toggle high contrast mode" variant="ghost" size="icon" onClick={toggleHighContrast} className="w-8 h-8" title="High Contrast Mode">
+                <AppIcon name="contrast" className="w-4 h-4" />
               </Button>
-            )}
+              <Button aria-label="Show keyboard shortcuts" variant="ghost" size="icon" onClick={openShortcutHelp} className="w-8 h-8" title="Keyboard Shortcuts">
+                <AppIcon name="keyboard" className="w-4 h-4" />
+              </Button>
+              <PersonalizationPanel />
+              <ThemePackSelector />
+            </div>
+
+            {/* Status Indicators */}
+            <div className="flex items-center gap-1">
+              {!isOnline && (
+                <span className="px-1.5 py-0.5 text-[9px] sm:text-[10px] rounded bg-[var(--warning-surface)] text-[var(--semantic-warning)] border border-[var(--semantic-warning)]/40">
+                  Offline
+                </span>
+              )}
+              {queueSize > 0 && (
+                <span className="px-1.5 py-0.5 text-[9px] sm:text-[10px] rounded bg-[var(--info-surface)] text-[var(--semantic-info)] border border-[var(--semantic-info)]/40" title="Queued changes will sync when online">
+                  {queueSize}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
