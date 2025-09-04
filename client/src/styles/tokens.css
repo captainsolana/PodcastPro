@@ -485,6 +485,18 @@ button:focus-visible, [role="button"]:focus-visible, a:focus-visible, input:focu
   /* Alias tokens for spec wording */
   --semantic-outline: var(--semantic-border-strong);
   --semantic-accent-subtle: var(--accent-soft-bg);
+  /* Sonic Studio Brand Additions (Phase: Identity Elevation) */
+  --brand-gradient-start: #6d3bff; /* violet */
+  --brand-gradient-mid: #4338ca; /* indigo */
+  --brand-gradient-end: #0ea5e9; /* electric cyan */
+  --brand-gradient: linear-gradient(110deg,var(--brand-gradient-start),var(--brand-gradient-mid) 48%,var(--brand-gradient-end));
+  --glass-bg: color-mix(in srgb, var(--semantic-surface) 72%, transparent);
+  --glass-border: color-mix(in srgb, var(--semantic-border) 65%, transparent);
+  --glass-tint: color-mix(in srgb, var(--brand-gradient-mid) 9%, transparent);
+  --glass-blur-strength: 18px;
+  --elevation-base: 0 1px 2px -1px rgba(0,0,0,0.06), 0 0 0 1px color-mix(in srgb,var(--semantic-border) 85%, transparent);
+  --elevation-floating: 0 4px 14px -4px rgba(0,0,0,0.12), 0 0 0 1px color-mix(in srgb,var(--semantic-border) 75%, transparent);
+  --elevation-spotlight: 0 8px 32px -6px rgba(0,0,0,0.28), 0 0 0 1px color-mix(in srgb,var(--semantic-border) 60%, transparent);
 }
 
 /* =====================================================
@@ -550,4 +562,21 @@ button:focus-visible, [role="button"]:focus-visible, a:focus-visible, input:focu
  * ===================================================== */
 .card-header-divider { position:relative; }
 .card-header-divider:after { content:""; position:absolute; left:-24px; right:-24px; bottom:0; height:1px; background:linear-gradient(90deg,transparent,var(--semantic-border),transparent); box-shadow:0 1px 0 var(--semantic-inset); }
+
+/* =====================================================
+ * Sonic Studio: Glass & Depth Utilities
+ * ===================================================== */
+.glass-surface { position:relative; background:linear-gradient(140deg,color-mix(in srgb,var(--glass-bg) 88%, transparent),color-mix(in srgb,var(--glass-bg) 78%, transparent)) padding-box; backdrop-filter: blur(var(--glass-blur-strength)) saturate(140%); -webkit-backdrop-filter: blur(var(--glass-blur-strength)) saturate(140%); border:1px solid var(--glass-border); border-radius:var(--radius-lg); }
+.glass-surface[data-tone="accent"] { background:linear-gradient(145deg,color-mix(in srgb,var(--glass-tint) 40%, var(--glass-bg)), color-mix(in srgb,var(--glass-tint) 15%, var(--glass-bg))); }
+.glass-surface:before { content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; background:radial-gradient(circle at 20% 15%,color-mix(in srgb,var(--brand-gradient-start) 22%, transparent),transparent 55%), radial-gradient(circle at 80% 75%,color-mix(in srgb,var(--brand-gradient-end) 18%, transparent),transparent 60%); mix-blend-mode:overlay; opacity:0.55; }
+.gradient-accent-text { background: var(--brand-gradient); -webkit-background-clip:text; color:transparent; background-clip:text; }
+/* Depth hierarchy tiers */
+[data-depth="base"], .depth-base { box-shadow: var(--elevation-base); }
+[data-depth="floating"], .depth-floating { box-shadow: var(--elevation-floating); }
+[data-depth="spotlight"], .depth-spotlight { box-shadow: var(--elevation-spotlight); }
+.divider-soft { height:1px; background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--semantic-border) 65%, transparent),transparent); }
+.divider-raised { height:1px; background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--semantic-border-strong) 75%, transparent),transparent); box-shadow:0 1px 0 color-mix(in srgb,var(--semantic-inset) 85%, transparent); }
+.toolbar-floating { position:relative; background:linear-gradient(140deg,color-mix(in srgb,var(--glass-bg) 88%, transparent),color-mix(in srgb,var(--glass-bg) 78%, transparent)) padding-box; backdrop-filter: blur(var(--glass-blur-strength)) saturate(140%); -webkit-backdrop-filter: blur(var(--glass-blur-strength)) saturate(140%); border:1px solid var(--glass-border); border-radius:var(--radius-lg); box-shadow: var(--elevation-floating); }
+.panel-spotlight { position:relative; background:linear-gradient(145deg,color-mix(in srgb,var(--glass-tint) 40%, var(--glass-bg)), color-mix(in srgb,var(--glass-tint) 15%, var(--glass-bg))) padding-box; backdrop-filter: blur(var(--glass-blur-strength)) saturate(150%); -webkit-backdrop-filter: blur(var(--glass-blur-strength)) saturate(150%); border:1px solid var(--glass-border); border-radius:var(--radius-xl); box-shadow: var(--elevation-spotlight); }
+
 

@@ -51,7 +51,7 @@ export default function Sidebar({ project, onPhaseChange }: SidebarProps) {
   const audiosReady = Object.keys(episodeAudioUrls).length;
 
   return (
-    <div className="w-72 bg-card/50 backdrop-blur-sm border-r border-border/50 shadow-lg" aria-label="Workflow navigation sidebar">
+  <div className="w-72 glass-surface depth-base border-r border-[color-mix(in_srgb,var(--semantic-border)_55%,transparent)]" aria-label="Workflow navigation sidebar">
       <div className="p-6">
         <div 
           className="group flex items-center space-x-3 mb-8 cursor-pointer hover:scale-105 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--semantic-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--semantic-bg)] rounded-md"
@@ -72,7 +72,7 @@ export default function Sidebar({ project, onPhaseChange }: SidebarProps) {
         </div>
 
         {/* Current Project Info */}
-        <div className="card-enhanced p-4 mb-6 animate-fade-in-up">
+  <div className="glass-surface depth-floating p-4 mb-6 animate-fade-in-up">
           <h3 className="font-semibold text-foreground mb-2 truncate">{project.title}</h3>
           <ExpandableText maxLines={2} showButton={false}>
             <p className="text-sm text-muted-foreground">
@@ -105,7 +105,7 @@ export default function Sidebar({ project, onPhaseChange }: SidebarProps) {
                   disabled={!canNavigateToPhase(p.number)}
                   style={{ animationDelay: `${idx * 0.06}s` }}
                   className={`group w-full relative flex items-center gap-3 rounded-md border px-3 py-3 text-left transition-all animate-fade-in-up focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--semantic-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--semantic-bg)]
-                    ${isActive ? 'border-accent-subtle surface-accent-soft shadow-sm' : 'border-[var(--semantic-border)] bg-[var(--semantic-surface)]'}
+                    ${isActive ? 'glass-surface depth-floating' : 'glass-surface'}
                     ${isDone ? 'opacity-90 hover:opacity-100' : ''}
                     ${!canNavigateToPhase(p.number) ? 'cursor-not-allowed opacity-50' : 'hover:border-[var(--semantic-border-strong)] hover:bg-[var(--semantic-surface-alt)]'}
                   `}

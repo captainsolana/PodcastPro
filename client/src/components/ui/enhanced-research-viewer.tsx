@@ -54,8 +54,9 @@ export function EnhancedResearchViewer({ researchResult, className }: EnhancedRe
                           (structured?.surprisingFacts?.length || 0);
 
   return (
-  <Card className={cn("w-full enhanced-research-viewer interactive", className)} data-elevation-tier={1}>
-      <CardHeader className="pb-3">
+  <Card className={cn("w-full enhanced-research-viewer interactive glass-surface depth-floating border border-[color-mix(in_srgb,var(--semantic-border)_55%,transparent)]", className)} data-depth="floating">
+      <CardHeader className="pb-3 relative">
+        <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-[color-mix(in_srgb,var(--semantic-border)_65%,transparent)] to-transparent" />
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <AppIcon name="idea" className="w-5 h-5 text-primary" />
@@ -84,10 +85,10 @@ export function EnhancedResearchViewer({ researchResult, className }: EnhancedRe
         </div>
 
         {/* Tab Navigation */}
-    <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="w-full">
+  <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="w-full">
       {/** Keyboard-accessible tab list using roving tabindex */}
       {(() => { const { containerRef } = useRovingTabs([activeTab]); return (
-  <TabsList ref={containerRef as any} className="grid w-full grid-cols-3 gap-0" role="tablist" aria-label="Research views">
+  <TabsList ref={containerRef as any} className="grid w-full grid-cols-3 gap-0 rounded-md overflow-hidden bg-[color-mix(in_srgb,var(--semantic-surface-alt)_65%,transparent)]/60 backdrop-blur-md" role="tablist" aria-label="Research views">
             {tabs.map((tab) => {
         const iconKey = tab.icon;
               return (

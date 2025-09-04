@@ -135,8 +135,8 @@ export default function Header({ project, onPhaseChange }: HeaderProps) {
   };
 
   return (
-    <header className="bg-card/80 backdrop-blur-sm border-b border-border/50 sticky top-0 z-40 min-h-[64px]">
-      <div className="px-5 py-3 w-full max-w-6xl mx-auto">
+    <header className="sticky top-0 z-50 glass-surface depth-floating border-b border-[color-mix(in_srgb,var(--semantic-border)_55%,transparent)] min-h-[68px]">
+      <div className="px-5 py-3 w-full max-w-7xl mx-auto">
         {/* Breadcrumb Navigation */}
         <BreadcrumbNav 
           items={getBreadcrumbItems()}
@@ -184,12 +184,12 @@ export default function Header({ project, onPhaseChange }: HeaderProps) {
         {/* Main Header Content */}
   <div className="flex items-center justify-between h-10">
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-semibold text-foreground mb-0 truncate tracking-tight leading-tight">
+            <h1 className="text-xl font-semibold mb-0 truncate tracking-tight leading-tight gradient-accent-text">
               {project.title}
             </h1>
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex items-center gap-2 text-sm">
-                <span className="px-2 py-1 rounded-md bg-[var(--semantic-surface-alt)] text-[var(--semantic-text-secondary)] border border-[var(--semantic-border)]">
+                <span className="px-2 py-1 rounded-md glass-surface text-[var(--semantic-text-secondary)] border border-[var(--glass-border)] shadow-sm">
                   {getPhaseTitle()}
                 </span>
                 <span className="hidden md:inline-block text-xs text-[var(--semantic-text-muted)] max-w-md truncate">

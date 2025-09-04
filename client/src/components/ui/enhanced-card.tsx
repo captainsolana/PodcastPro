@@ -12,12 +12,12 @@ const EnhancedCard = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "card-enhanced animate-fade-in-up",
-      hover && "hover:shadow-lg hover:-translate-y-1",
-      gradient && "bg-gradient-to-br from-card to-muted/20",
+      "glass-surface depth-base animate-fade-in-up transition-transform",
+      hover && "hover:depth-floating hover:-translate-y-0.5",
+      gradient && "relative overflow-hidden",
+      gradient && "before:content-[''] before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_20%_15%,rgba(255,255,255,0.25),transparent_55%),radial-gradient(circle_at_80%_75%,rgba(255,255,255,0.15),transparent_60%)] before:opacity-60 before:pointer-events-none",
       {
         "p-0": padding === "none",
-        // sm = 16px, md = 20px, lg = 24px (Phase 2 unified spacing)
         "p-4": padding === "sm",
         "p-5": padding === "md",
         "p-6": padding === "lg",

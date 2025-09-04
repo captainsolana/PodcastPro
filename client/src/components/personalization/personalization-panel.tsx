@@ -26,7 +26,7 @@ export function PersonalizationPanel() {
           <Icons.palette className="w-4 h-4" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-72 p-4 space-y-4" side="bottom" align="end">
+  <PopoverContent className="w-72 p-4 space-y-4 glass-surface depth-floating" side="bottom" align="end">
         <div>
           <h3 className="text-sm font-semibold mb-1">Text Size</h3>
           <div className="flex gap-2">
