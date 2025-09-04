@@ -163,7 +163,17 @@ export default function IntelligentScriptEditor({
   const [analysis, setAnalysis] = useState<ScriptAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [focusedSuggestion, setFocusedSuggestion] = useState<Suggestion | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
   const { toast } = useToast();
+  
+  // Move useRovingTabs to top level to fix hooks error
+  const { containerRef } = useRovingTabs([]);
+
+  // Component mount effect to prevent premature analysis
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
 
   // Phase 5 extension: map numeric scores to progress status for dynamic color animation
   const scoreStatus = (value: number): 'success' | 'info' | 'warning' | 'critical' | 'default' => {
@@ -174,58 +184,143 @@ export default function IntelligentScriptEditor({
   };
 
   const analyzeScript = useCallback(async (scriptContent: string) => {
+    console.log('🔍 analyzeScript called with content length:', scriptContent.length);
+    
+    // Aggressive early returns to prevent freezing
+    if (!scriptContent || scriptContent.length === 0) {
+      console.log('❌ No content to analyze');
+      return;
+    }
+    
+    if (scriptContent.length > 30000) {
+      console.log('❌ Content too large, using simplified analysis');
+      toast({
+        title: "Large Content Detected",
+        description: "Using simplified analysis for large content.",
+        variant: "default",
+      });
+      // Continue with simplified analysis instead of returning
+    }
+    
+    if (isAnalyzing) {
+      console.log('❌ Already analyzing, skipping');
+      return;
+    }
+
+    console.log('✅ Starting analysis...');
     setIsAnalyzing(true);
     
     try {
       // Simulate API call for script analysis
       const analysisResult = await performScriptAnalysis(scriptContent);
+      console.log('✅ Analysis complete:', analysisResult);
       setAnalysis(analysisResult);
       // Use setTimeout to prevent potential infinite loops
       setTimeout(() => {
         onAnalysisChange?.(analysisResult);
       }, 0);
     } catch (error) {
-      console.error('Script analysis failed:', error);
+      console.error('❌ Script analysis failed:', error);
       toast({
         title: "Analysis Failed",
         description: "Unable to analyze script. Please try again.",
         variant: "destructive",
       });
     } finally {
+      console.log('🏁 Analysis finished');
       setIsAnalyzing(false);
     }
-  }, [toast]); // Removed onAnalysisChange to prevent dependency loops
+  }, [toast, isAnalyzing]); // Removed onAnalysisChange to prevent dependency loops
 
-  // Real-time analysis (debounced)
+  // DISABLED: Real-time analysis to prevent freezing
+  // Manual analysis only via button click
+  /*
   useEffect(() => {
+    // Don't analyze until component is fully mounted
+    if (!isMounted || !content.trim() || content.length > 20000) {
+      return;
+    }
+
     const timer = setTimeout(() => {
-      if (content.trim() && content.length < 50000) { // Prevent analysis on very large content
+      // Double-check component state before analysis
+      if (isMounted && content.trim() && content.length < 20000) {
         analyzeScript(content);
       }
-    }, 1000); // Debounce for 1 second
+    }, 1500); // Increased debounce for better performance
 
     return () => clearTimeout(timer);
-  }, [content, analyzeScript]);
+  }, [content, analyzeScript, isMounted]);
+  */
 
   // Mock analysis function (replace with actual API call)
   const performScriptAnalysis = async (scriptContent: string): Promise<ScriptAnalysis> => {
     try {
+      // Prevent analysis of extremely large content to avoid freezing
+      if (scriptContent.length > 30000) {
+        console.log('📊 Large content detected, using simplified analysis');
+        // Return simplified analysis for large content
+        const wordCount = scriptContent.split(/\s+/).filter(w => w.length > 0).length;
+        return {
+          readability: {
+            fleschKincaidGrade: 8.0,
+            fleschReadingEase: 70,
+            complexity: 'Average'
+          },
+          engagement: {
+            score: 50,
+            hooks: 0,
+            questions: 0,
+            stories: 0,
+            statistics: 0
+          },
+          timing: {
+            wordCount,
+            estimatedDuration: Math.round((wordCount / 150) * 10) / 10,
+            speakingPace: 150,
+            pauseCount: 0
+          },
+          seo: {
+            score: 60,
+            keywords: ['content', 'analysis', 'large'],
+            titleSuggestions: ['Large Content Analysis', 'Content Overview', 'Script Summary'],
+            descriptionSuggestion: 'A comprehensive analysis of your large content script.'
+          },
+          improvements: [{
+            id: 'large-content',
+            type: 'style',
+            severity: 'medium',
+            message: 'Content is too large for detailed analysis',
+            explanation: 'Consider breaking this into smaller sections for more detailed insights.'
+          }]
+        };
+      }
+
+      // For very large content (20K-30K), use sampling for analysis
+      let analysisContent = scriptContent;
+      if (scriptContent.length > 20000) {
+        console.log('📊 Large content detected, using content sampling for analysis');
+        // Take first 10K + last 5K characters for analysis
+        analysisContent = scriptContent.substring(0, 10000) + scriptContent.substring(scriptContent.length - 5000);
+        console.log(`📊 Sampled content: ${analysisContent.length} chars from original ${scriptContent.length} chars`);
+      }
+
       // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 300)); // Reduced delay
 
-      const words = scriptContent.split(/\s+/).filter(w => w.length > 0);
-      const sentences = scriptContent.split(/[.!?]+/).filter(s => s.trim().length > 0);
-      const paragraphs = scriptContent.split(/\n\s*\n/).filter(p => p.trim().length > 0);
-      const pauseMarkers = (scriptContent.match(/\[pause\]/g) || []).length;
+      const words = analysisContent.split(/\s+/).filter(w => w.length > 0);
+      const sentences = analysisContent.split(/[.!?]+/).filter(s => s.trim().length > 0);
+      const paragraphs = analysisContent.split(/\n\s*\n/).filter(p => p.trim().length > 0);
+      const pauseMarkers = (analysisContent.match(/\[pause\]/g) || []).length;
 
-      // Calculate basic metrics with safeguards
-      const wordCount = Math.max(words.length, 1);
+      // Calculate basic metrics with safeguards (use original content for word count)
+      const originalWords = scriptContent.split(/\s+/).filter(w => w.length > 0);
+      const wordCount = Math.max(originalWords.length, 1);
       const avgWordsPerSentence = wordCount / Math.max(sentences.length, 1);
       const speakingPace = 150; // Average words per minute
       const estimatedDuration = wordCount / speakingPace;
 
-      // Safe syllable counting
-      const totalSyllables = Math.max(syllableCount(scriptContent), wordCount * 0.5); // Fallback to half word count
+      // Safe syllable counting (use sampled content for performance)
+      const totalSyllables = Math.max(syllableCount(analysisContent), words.length * 0.5); // Fallback to half word count
 
       // Readability scoring with bounds checking
       const fleschKincaidGrade = Math.max(0, Math.min(20, 0.39 * avgWordsPerSentence + 11.8 * (totalSyllables / wordCount) - 15.59));
@@ -236,16 +331,16 @@ export default function IntelligentScriptEditor({
       else if (fleschKincaidGrade > 12) complexity = 'Complex';
       else if (fleschKincaidGrade > 16) complexity = 'Very Complex';
 
-      // Engagement scoring
-      const hooks = (scriptContent.match(/\b(imagine|picture this|what if|here's the thing)\b/gi) || []).length;
-      const questions = (scriptContent.match(/\?/g) || []).length;
-      const stories = (scriptContent.match(/\b(story|tale|example|case)\b/gi) || []).length;
-      const statistics = (scriptContent.match(/\b\d+(\.\d+)?%?\b/g) || []).length;
+      // Engagement scoring (use sampled content for performance)
+      const hooks = (analysisContent.match(/\b(imagine|picture this|what if|here's the thing)\b/gi) || []).length;
+      const questions = (analysisContent.match(/\?/g) || []).length;
+      const stories = (analysisContent.match(/\b(story|tale|example|case)\b/gi) || []).length;
+      const statistics = (analysisContent.match(/\b\d+(\.\d+)?%?\b/g) || []).length;
       
       const engagementScore = Math.min(100, (hooks * 10) + (questions * 5) + (stories * 8) + (statistics * 6));
 
-      // SEO analysis with error handling
-      const commonWords = extractKeywords(scriptContent);
+      // SEO analysis with error handling (use sampled content)
+      const commonWords = extractKeywords(analysisContent);
       const seoScore = Math.min(100, (commonWords.length * 5) + (wordCount > 1000 ? 20 : 0));
 
       // Generate suggestions
@@ -425,6 +520,24 @@ export default function IntelligentScriptEditor({
     }
   };
 
+  // Early return if component not mounted to prevent freezing
+  if (!isMounted) {
+    return (
+      <div className={`grid grid-cols-1 lg:grid-cols-3 gap-6 ${className}`}>
+        <div className="lg:col-span-2 space-y-4 reading-max">
+          <Card>
+            <CardContent className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <AppIcon name="loading" className="w-6 h-6 animate-spin mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Loading Intelligent Editor...</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`grid grid-cols-1 lg:grid-cols-3 gap-6 ${className}`}>
       {/* Main Editor */}
@@ -500,6 +613,33 @@ Tip: Use [pause] markers for natural pauses in speech."
                 </div>
               </div>
 
+              {/* Manual Analysis Button */}
+              <div className="flex justify-center">
+                <Button 
+                  onClick={() => {
+                    if (content.trim()) {
+                      analyzeScript(content);
+                    } else {
+                      toast({
+                        title: "No Content",
+                        description: "Please add some script content to analyze.",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                  disabled={isAnalyzing || !content.trim()}
+                  variant="outline"
+                  className="flex items-center space-x-2"
+                >
+                  {isAnalyzing ? (
+                    <AppIcon name="loading" className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <AppIcon name="spark" className="w-4 h-4" />
+                  )}
+                  <span>{isAnalyzing ? "Analyzing..." : "Analyze Script"}</span>
+                </Button>
+              </div>
+
               {/* Quick Stats */}
               {analysis && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted rounded-lg">
@@ -542,7 +682,6 @@ Tip: Use [pause] markers for natural pauses in speech."
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="overview" className="space-y-4">
-                {(() => { const { containerRef } = useRovingTabs([]); return (
                 <TabsList ref={containerRef as any} className="grid w-full grid-cols-2 gap-0" role="tablist" aria-label="Analysis sections">
                   <TabsTrigger value="overview">Overview</TabsTrigger>
                   <TabsTrigger value="suggestions">
@@ -553,7 +692,7 @@ Tip: Use [pause] markers for natural pauses in speech."
                       </Badge>
                     )}
                   </TabsTrigger>
-                </TabsList> ); })()}
+                </TabsList>
 
                 <TabsContent value="overview" className="space-y-4">
                   {/* Engagement Score */}
